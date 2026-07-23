@@ -310,6 +310,22 @@ function WorkoutPage({ workout, exercises, unit, onStart, onChange, onFinish, on
     setRestEndAt(Date.now() + target.plannedRestSeconds * 1000);
   }
 
+  function updateSet(exerciseId: string, setOrder: number, weight: number, reps: number) {
+    if (weight < 0 || reps < 1) return;
+
+    onChange({
+      ...workout,
+      exercises: workout.exercises.map((item) => item.exerciseId === exerciseId
+        ? {
+            ...item,
+            completedSets: item.completedSets.map((set) =>
+              set.order === setOrder ? { ...set, weight, reps } : set
+            ),
+          }
+        : item),
+    });
+  }
+
   function deleteSet(exerciseId: string, setOrder: number) {
     onChange({
       ...workout,
@@ -351,18 +367,19 @@ function WorkoutPage({ workout, exercises, unit, onStart, onChange, onFinish, on
       <div className="stack">
         {workout.exercises.map((item) => {
           const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
-          return exercise ? <WorkoutExerciseCard key={item.exerciseId} exercise={exercise} item={item} unit={unit} onAddSet={addSet} onDeleteSet={deleteSet} onRemove={removeExercise} onRestChange={updateRest} /> : null;
+          return exercise ? <WorkoutExerciseCard key={item.exerciseId} exercise={exercise} item={item} unit={unit} onAddSet={addSet} onUpdateSet={updateSet} onDeleteSet={deleteSet} onRemove={removeExercise} onRestChange={updateRest} /> : null;
         })}
       </div>
     </section>
   );
 }
 
-function WorkoutExerciseCard({ exercise, item, unit, onAddSet, onDeleteSet, onRemove, onRestChange }: {
+function WorkoutExerciseCard({ exercise, item, unit, onAddSet, onUpdateSet, onDeleteSet, onRemove, onRestChange }: {
   exercise: Exercise;
   item: WorkoutExercise;
   unit: string;
   onAddSet: (id: string, weight: number, reps: number) => void;
+  onUpdateSet: (id: string, setOrder: number, weight: number, reps: number) => void;
   onDeleteSet: (id: string, setOrder: number) => void;
   onRemove: (id: string) => void;
   onRestChange: (id: string, restSeconds: number) => void;
@@ -386,7 +403,21 @@ function WorkoutExerciseCard({ exercise, item, unit, onAddSet, onDeleteSet, onRe
         <div><h2>{exercise.name}</h2><p>{formatLabel(exercise.primaryMuscle)}</p></div>
         <div className="exercise-actions"><span className="set-count">{item.completedSets.length}/{item.plannedSets.length || "–"} sets</span><button className="danger-text" onClick={() => onRemove(exercise.id)}>Remove</button></div>
       </div>
-      {item.completedSets.length > 0 && <div className="sets-list">{item.completedSets.map((set, index) => <div key={set.order}><span>Set {index + 1}</span><strong>{set.weight} {unit.toLowerCase()} × {set.reps}</strong><button className="icon-button" aria-label={`Delete set ${index + 1}`} onClick={() => onDeleteSet(exercise.id, set.order)}>×</button></div>)}</div>}
+      {item.completedSets.length > 0 && (
+        <div className="sets-list">
+          {item.completedSets.map((set, index) => (
+            <EditableCompletedSet
+              key={set.order}
+              exerciseId={exercise.id}
+              set={set}
+              setNumber={index + 1}
+              unit={unit}
+              onSave={onUpdateSet}
+              onDelete={onDeleteSet}
+            />
+          ))}
+        </div>
+      )}
       {plannedNext && <p className="plan-hint">Planned next: {plannedNext.weight ?? 0} {unit.toLowerCase()} × {plannedNext.reps}</p>}
       <div className="set-entry">
         <label>Weight<input type="number" min="0" step="0.5" value={weight} onChange={(e) => setWeight(Number(e.target.value))} /></label>
@@ -395,6 +426,70 @@ function WorkoutExerciseCard({ exercise, item, unit, onAddSet, onDeleteSet, onRe
       </div>
       <label className="rest-setting">Rest after set<select value={item.plannedRestSeconds} onChange={(e) => onRestChange(exercise.id, Number(e.target.value))}><option value={60}>1:00</option><option value={90}>1:30</option><option value={120}>2:00</option><option value={180}>3:00</option><option value={240}>4:00</option><option value={300}>5:00</option></select></label>
     </article>
+  );
+}
+
+
+function EditableCompletedSet({ exerciseId, set, setNumber, unit, onSave, onDelete }: {
+  exerciseId: string;
+  set: WorkoutExercise["completedSets"][number];
+  setNumber: number;
+  unit: string;
+  onSave: (id: string, setOrder: number, weight: number, reps: number) => void;
+  onDelete: (id: string, setOrder: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [weight, setWeight] = useState(set.weight);
+  const [reps, setReps] = useState(set.reps);
+
+  useEffect(() => {
+    if (!editing) {
+      setWeight(set.weight);
+      setReps(set.reps);
+    }
+  }, [editing, set.weight, set.reps]);
+
+  function save() {
+    if (weight < 0 || reps < 1) return;
+    onSave(exerciseId, set.order, weight, reps);
+    setEditing(false);
+  }
+
+  function cancel() {
+    setWeight(set.weight);
+    setReps(set.reps);
+    setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <div>
+        <span>Set {setNumber}</span>
+        <strong>{set.weight} {unit.toLowerCase()} × {set.reps}</strong>
+        <div className="header-actions">
+          <button className="text-button" onClick={() => setEditing(true)}>Edit</button>
+          <button className="icon-button" aria-label={`Delete set ${setNumber}`} onClick={() => onDelete(exerciseId, set.order)}>×</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <span>Set {setNumber}</span>
+      <label>
+        Weight
+        <input type="number" min="0" step="0.5" value={weight} onChange={(event) => setWeight(Number(event.target.value))} />
+      </label>
+      <label>
+        Reps
+        <input type="number" min="1" value={reps} onChange={(event) => setReps(Number(event.target.value))} />
+      </label>
+      <div className="header-actions">
+        <button className="primary" disabled={weight < 0 || reps < 1} onClick={save}>Save</button>
+        <button className="text-button" onClick={cancel}>Cancel</button>
+      </div>
+    </div>
   );
 }
 
