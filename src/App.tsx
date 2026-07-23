@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import "./App.css";
 import type { Exercise } from "./domain/entities/Exercise";
 import type { Profile } from "./domain/entities/Profile";
@@ -15,24 +14,9 @@ import { profileRepository } from "./data/repositories/ProfileRepository";
 import { templateRepository } from "./data/repositories/TemplateRepository";
 import { seedExercises } from "./data/seedExercises";
 import { formatDate, formatLabel } from "./shared";
+import { ExercisePicker } from "./components/ExercisePicker";
 
 type Page = "home" | "workout" | "exercises" | "templates" | "history" | "settings";
-
-const pageRoutes: Record<Page, string> = {
-  home: "/",
-  workout: "/workout",
-  exercises: "/exercises",
-  templates: "/templates",
-  history: "/history",
-  settings: "/settings",
-};
-
-function pageFromPath(pathname: string): Page {
-  const match = (Object.entries(pageRoutes) as [Page, string][])
-    .find(([, route]) => route === pathname);
-
-  return match?.[0] ?? "home";
-}
 
 const emptyProfile: Profile = {
   id: "profile",
@@ -42,9 +26,7 @@ const emptyProfile: Profile = {
 };
 
 function App() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const page = pageFromPath(location.pathname);
+  const [page, setPage] = useState<Page>("home");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
@@ -90,7 +72,7 @@ function App() {
     };
     await workoutRepository.saveActive(workout);
     setActiveWorkout(workout);
-    navigate(pageRoutes.workout);
+    setPage("workout");
   }
 
   async function updateActiveWorkout(workout: Workout) {
@@ -109,7 +91,7 @@ function App() {
     await workoutRepository.clearActive();
     setActiveWorkout(null);
     setWorkouts(await workoutRepository.getAll());
-    navigate(pageRoutes.history);
+    setPage("history");
   }
 
   async function cancelWorkout() {
@@ -117,7 +99,7 @@ function App() {
     if (!window.confirm("Discard this workout? All completed sets in it will be lost.")) return;
     await workoutRepository.clearActive();
     setActiveWorkout(null);
-    navigate(pageRoutes.home);
+    setPage("home");
   }
 
   async function saveWorkoutAsTemplate(workout: Workout) {
@@ -143,7 +125,7 @@ function App() {
 
     await templateRepository.save(template);
     setTemplates(await templateRepository.getAll());
-    navigate(pageRoutes.templates);
+    setPage("templates");
   }
 
   if (loading) return <div className="loading">Loading LiftLog…</div>;
@@ -151,7 +133,7 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => navigate(pageRoutes.home)}>LiftLog</button>
+        <button className="brand" onClick={() => setPage("home")}>LiftLog</button>
         <span className="tagline">Train. Track. Progress.</span>
       </header>
 
@@ -163,9 +145,9 @@ function App() {
             templates={templates}
             onStart={() => startWorkout()}
             onStartTemplate={startWorkout}
-            onResume={() => navigate(pageRoutes.workout)}
-            onHistory={() => navigate(pageRoutes.history)}
-            onTemplates={() => navigate(pageRoutes.templates)}
+            onResume={() => setPage("workout")}
+            onHistory={() => setPage("history")}
+            onTemplates={() => setPage("templates")}
           />
         )}
         {page === "workout" && (
@@ -188,7 +170,7 @@ function App() {
             exercises={exercises}
             activeWorkout={activeWorkout}
             onStart={startWorkout}
-            onResume={() => navigate(pageRoutes.workout)}
+            onResume={() => setPage("workout")}
             onDelete={async (id) => {
               await templateRepository.remove(id);
               setTemplates(await templateRepository.getAll());
@@ -205,7 +187,7 @@ function App() {
 
       <nav className="bottom-nav" aria-label="Main navigation">
         {(["home", "workout", "exercises", "history", "settings"] as Page[]).map((item) => (
-          <button key={item} className={page === item ? "active" : ""} onClick={() => navigate(pageRoutes[item])}>
+          <button key={item} className={page === item ? "active" : ""} onClick={() => setPage(item)}>
             <span>{navIcon(item)}</span>{formatLabel(item)}
           </button>
         ))}
@@ -280,7 +262,6 @@ function WorkoutPage({ workout, exercises, unit, onStart, onChange, onFinish, on
   onFinish: () => void;
   onCancel: () => void;
 }) {
-  const [selectedId, setSelectedId] = useState(exercises[0]?.id ?? "");
   const [restEndAt, setRestEndAt] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
 
@@ -303,9 +284,9 @@ function WorkoutPage({ workout, exercises, unit, onStart, onChange, onFinish, on
 
   if (!workout) return <EmptyState title="No active workout" text="Start a workout and begin logging sets." action="Start Workout" onAction={onStart} />;
 
-  function addExercise() {
-    if (!selectedId || workout.exercises.some((item) => item.exerciseId === selectedId)) return;
-    const next: WorkoutExercise = { exerciseId: selectedId, order: workout.exercises.length, plannedRestSeconds: 120, plannedSets: [], completedSets: [] };
+  function addExercise(exerciseId: string) {
+    if (workout.exercises.some((item) => item.exerciseId === exerciseId)) return;
+    const next: WorkoutExercise = { exerciseId, order: workout.exercises.length, plannedRestSeconds: 120, plannedSets: [], completedSets: [] };
     onChange({ ...workout, exercises: [...workout.exercises, next] });
   }
 
@@ -361,10 +342,11 @@ function WorkoutPage({ workout, exercises, unit, onStart, onChange, onFinish, on
         </div>
       )}
 
-      <div className="add-row card">
-        <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>{exercises.map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}</select>
-        <button onClick={addExercise}>Add exercise</button>
-      </div>
+      <ExercisePicker
+        exercises={exercises}
+        excludedExerciseIds={workout.exercises.map((item) => item.exerciseId)}
+        onSelect={addExercise}
+      />
       {workout.exercises.length === 0 && <p className="muted-center">Add your first exercise above.</p>}
       <div className="stack">
         {workout.exercises.map((item) => {
