@@ -19,6 +19,7 @@ type WorkoutExerciseCardProps = {
   ) => void;
   onDeleteSet: (workoutExerciseId: string, setOrder: number) => void;
   onMove: (workoutExerciseId: string, direction: -1 | 1) => void;
+  onDuplicate: (workoutExerciseId: string) => void;
   onRemove: (workoutExerciseId: string) => void;
   onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
 };
@@ -33,6 +34,7 @@ export function WorkoutExerciseCard({
   onUpdateSet,
   onDeleteSet,
   onMove,
+  onDuplicate,
   onRemove,
   onRestChange,
 }: WorkoutExerciseCardProps) {
@@ -81,6 +83,12 @@ export function WorkoutExerciseCard({
           <span className="set-count">
             {item.completedSets.length}/{item.plannedSets.length || "–"} sets
           </span>
+          <button
+            className="text-button"
+            onClick={() => onDuplicate(item.id)}
+          >
+            Duplicate
+          </button>
           <button
             className="danger-text"
             onClick={() => onRemove(item.id)}

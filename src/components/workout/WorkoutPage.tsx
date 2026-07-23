@@ -39,10 +39,6 @@ export function WorkoutPage({
   }
 
   function addExercise(exerciseId: string) {
-    if (workout.exercises.some((item) => item.exerciseId === exerciseId)) {
-      return;
-    }
-
     const next: WorkoutExercise = {
       id: crypto.randomUUID(),
       exerciseId,
@@ -61,6 +57,32 @@ export function WorkoutPage({
       .map((item, index) => ({ ...item, order: index }));
 
     onChange({ ...workout, exercises: nextExercises });
+  }
+
+  function duplicateExercise(workoutExerciseId: string) {
+    const sourceIndex = workout.exercises.findIndex(
+      (item) => item.id === workoutExerciseId,
+    );
+    if (sourceIndex === -1) return;
+
+    const source = workout.exercises[sourceIndex];
+    const duplicate: WorkoutExercise = {
+      ...source,
+      id: crypto.randomUUID(),
+      plannedSets: source.plannedSets.map((set) => ({ ...set })),
+      completedSets: source.completedSets.map((set) => ({ ...set })),
+    };
+
+    const nextExercises = [...workout.exercises];
+    nextExercises.splice(sourceIndex + 1, 0, duplicate);
+
+    onChange({
+      ...workout,
+      exercises: nextExercises.map((item, index) => ({
+        ...item,
+        order: index,
+      })),
+    });
   }
 
   function moveExercise(workoutExerciseId: string, direction: -1 | 1) {
@@ -197,9 +219,7 @@ export function WorkoutPage({
 
       <ExercisePicker
         exercises={exercises}
-        excludedExerciseIds={workout.exercises.map(
-          (item) => item.exerciseId,
-        )}
+        excludedExerciseIds={[]}
         onSelect={addExercise}
       />
 
@@ -225,6 +245,7 @@ export function WorkoutPage({
               onUpdateSet={updateSet}
               onDeleteSet={deleteSet}
               onMove={moveExercise}
+              onDuplicate={duplicateExercise}
               onRemove={removeExercise}
               onRestChange={updateRest}
             />
