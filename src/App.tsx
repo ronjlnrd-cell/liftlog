@@ -16,12 +16,14 @@ import { ExercisesPage } from "./pages/ExercisesPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TemplateEditorPage } from "./pages/TemplateEditorPage";
 
 type Page =
   | "home"
   | "workout"
   | "exercises"
   | "templates"
+  | "template-editor"
   | "history"
   | "settings";
 
@@ -50,6 +52,7 @@ function App() {
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [loading, setLoading] = useState(true);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
 
   async function refreshData() {
     await seedExercises();
@@ -238,9 +241,33 @@ function App() {
             activeWorkout={activeWorkout}
             onStart={startWorkout}
             onResume={() => setPage("workout")}
+            onEdit={(template) => {
+              setEditingTemplateId(template.id);
+              setPage("template-editor");
+            }}
             onDelete={async (id) => {
               await templateRepository.remove(id);
               setTemplates(await templateRepository.getAll());
+            }}
+          />
+        )}
+
+        {page === "template-editor" && (
+          <TemplateEditorPage
+            template={
+              templates.find((template) => template.id === editingTemplateId) ??
+              null
+            }
+            exercises={exercises}
+            onCancel={() => {
+              setEditingTemplateId(null);
+              setPage("templates");
+            }}
+            onSave={async (template) => {
+              await templateRepository.save(template);
+              setTemplates(await templateRepository.getAll());
+              setEditingTemplateId(null);
+              setPage("templates");
             }}
           />
         )}
@@ -294,6 +321,7 @@ function navIcon(page: Page) {
     workout: "＋",
     exercises: "≡",
     templates: "▤",
+    "template-editor": "▤",
     history: "◷",
     settings: "⚙",
   }[page];

@@ -9,6 +9,7 @@ type TemplatesPageProps = {
   activeWorkout: Workout | null;
   onStart: (template: WorkoutTemplate) => void;
   onResume: () => void;
+  onEdit: (template: WorkoutTemplate) => void;
   onDelete: (id: string) => Promise<void>;
 };
 
@@ -18,6 +19,7 @@ export function TemplatesPage({
   activeWorkout,
   onStart,
   onResume,
+  onEdit,
   onDelete,
 }: TemplatesPageProps) {
   return (
@@ -52,6 +54,12 @@ export function TemplatesPage({
                 </div>
 
                 <div className="header-actions">
+                  <button
+                    className="text-button"
+                    onClick={() => onEdit(template)}
+                  >
+                    Edit
+                  </button>
                   <button
                     className="danger-text"
                     onClick={() => onDelete(template.id)}

@@ -91,3 +91,14 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   .template-card .header-actions { flex-direction:column-reverse; }
   .active-notice { align-items:flex-start; }
 }
+
+.template-editor-heading { align-items:flex-start; }
+.template-editor-heading .page-title { margin-bottom:0; }
+.template-editor-card { margin-bottom:16px; }
+.template-editor-card input { width:100%; font-size:18px; font-weight:700; }
+.template-editor-exercise { display:flex; justify-content:space-between; align-items:center; }
+.template-editor-exercise p { margin:6px 0 0; }
+@media (max-width:600px) {
+  .template-editor-heading { flex-direction:column; }
+  .template-editor-heading .header-actions { width:100%; flex-direction:row; justify-content:flex-end; }
+}
