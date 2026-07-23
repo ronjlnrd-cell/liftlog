@@ -44,6 +44,7 @@ export function WorkoutPage({
     }
 
     const next: WorkoutExercise = {
+      id: crypto.randomUUID(),
       exerciseId,
       order: workout.exercises.length,
       plannedRestSeconds: 120,
@@ -54,17 +55,17 @@ export function WorkoutPage({
     onChange({ ...workout, exercises: [...workout.exercises, next] });
   }
 
-  function removeExercise(exerciseId: string) {
+  function removeExercise(workoutExerciseId: string) {
     const nextExercises = workout.exercises
-      .filter((item) => item.exerciseId !== exerciseId)
+      .filter((item) => item.id !== workoutExerciseId)
       .map((item, index) => ({ ...item, order: index }));
 
     onChange({ ...workout, exercises: nextExercises });
   }
 
-  function moveExercise(exerciseId: string, direction: -1 | 1) {
+  function moveExercise(workoutExerciseId: string, direction: -1 | 1) {
     const currentIndex = workout.exercises.findIndex(
-      (item) => item.exerciseId === exerciseId,
+      (item) => item.id === workoutExerciseId,
     );
     if (currentIndex === -1) return;
 
@@ -86,16 +87,16 @@ export function WorkoutPage({
     });
   }
 
-  function addSet(exerciseId: string, weight: number, reps: number) {
+  function addSet(workoutExerciseId: string, weight: number, reps: number) {
     const target = workout.exercises.find(
-      (item) => item.exerciseId === exerciseId,
+      (item) => item.id === workoutExerciseId,
     );
     if (!target) return;
 
     onChange({
       ...workout,
       exercises: workout.exercises.map((item) =>
-        item.exerciseId === exerciseId
+        item.id === workoutExerciseId
           ? {
               ...item,
               completedSets: [
@@ -116,7 +117,7 @@ export function WorkoutPage({
   }
 
   function updateSet(
-    exerciseId: string,
+    workoutExerciseId: string,
     setOrder: number,
     weight: number,
     reps: number,
@@ -126,7 +127,7 @@ export function WorkoutPage({
     onChange({
       ...workout,
       exercises: workout.exercises.map((item) =>
-        item.exerciseId === exerciseId
+        item.id === workoutExerciseId
           ? {
               ...item,
               completedSets: item.completedSets.map((set) =>
@@ -138,11 +139,11 @@ export function WorkoutPage({
     });
   }
 
-  function deleteSet(exerciseId: string, setOrder: number) {
+  function deleteSet(workoutExerciseId: string, setOrder: number) {
     onChange({
       ...workout,
       exercises: workout.exercises.map((item) =>
-        item.exerciseId === exerciseId
+        item.id === workoutExerciseId
           ? {
               ...item,
               completedSets: item.completedSets
@@ -154,11 +155,11 @@ export function WorkoutPage({
     });
   }
 
-  function updateRest(exerciseId: string, restSeconds: number) {
+  function updateRest(workoutExerciseId: string, restSeconds: number) {
     onChange({
       ...workout,
       exercises: workout.exercises.map((item) =>
-        item.exerciseId === exerciseId
+        item.id === workoutExerciseId
           ? { ...item, plannedRestSeconds: restSeconds }
           : item,
       ),
@@ -214,7 +215,7 @@ export function WorkoutPage({
 
           return exercise ? (
             <WorkoutExerciseCard
-              key={item.exerciseId}
+              key={item.id}
               exercise={exercise}
               item={item}
               unit={unit}

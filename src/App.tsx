@@ -25,6 +25,16 @@ const emptyProfile: Profile = {
   weightUnit: "KG",
 };
 
+function ensureWorkoutExerciseIds(workout: Workout): Workout {
+  return {
+    ...workout,
+    exercises: workout.exercises.map((item) => ({
+      ...item,
+      id: item.id || crypto.randomUUID(),
+    })),
+  };
+}
+
 function App() {
   const [page, setPage] = useState<Page>("home");
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -43,11 +53,23 @@ function App() {
       workoutRepository.getActive(),
       profileRepository.get(),
     ]);
+    const normalizedWorkouts = workoutData.map(ensureWorkoutExerciseIds);
+    const normalizedActive = activeData
+      ? ensureWorkoutExerciseIds(activeData)
+      : null;
+
     setExercises(exerciseData);
-    setWorkouts(workoutData);
+    setWorkouts(normalizedWorkouts);
     setTemplates(templateData);
-    setActiveWorkout(activeData ?? null);
+    setActiveWorkout(normalizedActive);
     setProfile(profileData);
+
+    if (
+      activeData &&
+      activeData.exercises.some((item) => !item.id)
+    ) {
+      await workoutRepository.saveActive(normalizedActive!);
+    }
   }
 
   useEffect(() => {
@@ -327,7 +349,7 @@ function HistoryPage({ workouts, exercises, onSaveTemplate }: { workouts: Workou
                 <div><strong>{formatDate(workout.startedAt)}</strong><p>{workout.exercises.reduce((sum, e) => sum + e.completedSets.length, 0)} sets</p></div>
                 <button className="text-button" onClick={() => onSaveTemplate(workout)}>Save as template</button>
               </div>
-              {workout.exercises.map((item) => <p key={item.exerciseId}>{exercises.find((e) => e.id === item.exerciseId)?.name ?? "Exercise"}: {item.completedSets.map((s) => `${s.weight}×${s.reps}`).join(", ")}</p>)}
+              {workout.exercises.map((item) => <p key={item.id}>{exercises.find((e) => e.id === item.exerciseId)?.name ?? "Exercise"}: {item.completedSets.map((s) => `${s.weight}×${s.reps}`).join(", ")}</p>)}
             </article>
           ))}
         </div>

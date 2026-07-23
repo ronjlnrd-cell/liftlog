@@ -11,6 +11,8 @@ export interface Workout {
 }
 
 export interface WorkoutExercise {
+  id: string;
+
   exerciseId: string;
 
   order: number;

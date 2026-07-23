@@ -10,17 +10,17 @@ type WorkoutExerciseCardProps = {
   unit: string;
   position: number;
   exerciseCount: number;
-  onAddSet: (exerciseId: string, weight: number, reps: number) => void;
+  onAddSet: (workoutExerciseId: string, weight: number, reps: number) => void;
   onUpdateSet: (
-    exerciseId: string,
+    workoutExerciseId: string,
     setOrder: number,
     weight: number,
     reps: number,
   ) => void;
-  onDeleteSet: (exerciseId: string, setOrder: number) => void;
-  onMove: (exerciseId: string, direction: -1 | 1) => void;
-  onRemove: (exerciseId: string) => void;
-  onRestChange: (exerciseId: string, restSeconds: number) => void;
+  onDeleteSet: (workoutExerciseId: string, setOrder: number) => void;
+  onMove: (workoutExerciseId: string, direction: -1 | 1) => void;
+  onRemove: (workoutExerciseId: string) => void;
+  onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
 };
 
 export function WorkoutExerciseCard({
@@ -66,7 +66,7 @@ export function WorkoutExerciseCard({
             className="text-button"
             aria-label={`Move ${exercise.name} up`}
             disabled={position === 0}
-            onClick={() => onMove(exercise.id, -1)}
+            onClick={() => onMove(item.id, -1)}
           >
             ↑
           </button>
@@ -74,7 +74,7 @@ export function WorkoutExerciseCard({
             className="text-button"
             aria-label={`Move ${exercise.name} down`}
             disabled={position === exerciseCount - 1}
-            onClick={() => onMove(exercise.id, 1)}
+            onClick={() => onMove(item.id, 1)}
           >
             ↓
           </button>
@@ -83,7 +83,7 @@ export function WorkoutExerciseCard({
           </span>
           <button
             className="danger-text"
-            onClick={() => onRemove(exercise.id)}
+            onClick={() => onRemove(item.id)}
           >
             Remove
           </button>
@@ -95,7 +95,7 @@ export function WorkoutExerciseCard({
           {item.completedSets.map((set, index) => (
             <EditableCompletedSet
               key={set.order}
-              exerciseId={exercise.id}
+              exerciseId={item.id}
               set={set}
               setNumber={index + 1}
               unit={unit}
@@ -136,7 +136,7 @@ export function WorkoutExerciseCard({
         <button
           className="primary"
           disabled={reps < 1 || weight < 0}
-          onClick={() => onAddSet(exercise.id, weight, reps)}
+          onClick={() => onAddSet(item.id, weight, reps)}
         >
           Complete set
         </button>
@@ -147,7 +147,7 @@ export function WorkoutExerciseCard({
         <select
           value={item.plannedRestSeconds}
           onChange={(event) =>
-            onRestChange(exercise.id, Number(event.target.value))
+            onRestChange(item.id, Number(event.target.value))
           }
         >
           <option value={60}>1:00</option>
