@@ -7,12 +7,16 @@ type HistoryPageProps = {
   workouts: Workout[];
   exercises: Exercise[];
   onSaveTemplate: (workout: Workout) => void;
+  onEdit: (workout: Workout) => void;
+  onDelete: (workout: Workout) => void;
 };
 
 export function HistoryPage({
   workouts,
   exercises,
   onSaveTemplate,
+  onEdit,
+  onDelete,
 }: HistoryPageProps) {
   return (
     <section>
@@ -27,7 +31,7 @@ export function HistoryPage({
         <div className="stack">
           {workouts.map((workout) => (
             <article className="card history-card" key={workout.id}>
-              <div className="section-heading">
+              <div className="section-heading history-heading">
                 <div>
                   <strong>{formatDate(workout.startedAt)}</strong>
                   <p>
@@ -40,12 +44,26 @@ export function HistoryPage({
                   </p>
                 </div>
 
-                <button
-                  className="text-button"
-                  onClick={() => onSaveTemplate(workout)}
-                >
-                  Save as template
-                </button>
+                <div className="header-actions history-actions">
+                  <button
+                    className="text-button"
+                    onClick={() => onSaveTemplate(workout)}
+                  >
+                    Save as template
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() => onEdit(workout)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="danger-text"
+                    onClick={() => onDelete(workout)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
 
               {workout.exercises.map((item) => (

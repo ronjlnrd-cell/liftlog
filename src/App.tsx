@@ -15,6 +15,7 @@ import { HomePage } from "./pages/HomePage";
 import { ExercisesPage } from "./pages/ExercisesPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { HistoryWorkoutEditorPage } from "./pages/HistoryWorkoutEditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TemplateEditorPage } from "./pages/TemplateEditorPage";
 
@@ -25,6 +26,7 @@ type Page =
   | "templates"
   | "template-editor"
   | "history"
+  | "history-editor"
   | "settings";
 
 const emptyProfile: Profile = {
@@ -53,6 +55,7 @@ function App() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
 
   async function refreshData() {
     await seedExercises();
@@ -277,6 +280,42 @@ function App() {
             workouts={workouts}
             exercises={exercises}
             onSaveTemplate={saveWorkoutAsTemplate}
+            onEdit={(workout) => {
+              setEditingWorkoutId(workout.id);
+              setPage("history-editor");
+            }}
+            onDelete={async (workout) => {
+              if (
+                !window.confirm(
+                  "Delete this workout permanently? This cannot be undone.",
+                )
+              ) {
+                return;
+              }
+
+              await workoutRepository.remove(workout.id);
+              setWorkouts(await workoutRepository.getAll());
+            }}
+          />
+        )}
+
+        {page === "history-editor" && (
+          <HistoryWorkoutEditorPage
+            workout={
+              workouts.find((workout) => workout.id === editingWorkoutId) ??
+              null
+            }
+            exercises={exercises}
+            onCancel={() => {
+              setEditingWorkoutId(null);
+              setPage("history");
+            }}
+            onSave={async (workout) => {
+              await workoutRepository.save(workout);
+              setWorkouts(await workoutRepository.getAll());
+              setEditingWorkoutId(null);
+              setPage("history");
+            }}
           />
         )}
 
@@ -297,6 +336,7 @@ function App() {
             "home",
             "workout",
             "exercises",
+            "templates",
             "history",
             "settings",
           ] as Page[]
@@ -323,6 +363,7 @@ function navIcon(page: Page) {
     templates: "▤",
     "template-editor": "▤",
     history: "◷",
+    "history-editor": "◷",
     settings: "⚙",
   }[page];
 }

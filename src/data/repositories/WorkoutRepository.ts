@@ -10,6 +10,10 @@ export class WorkoutRepository {
     await db.workouts.put(workout);
   }
 
+  async remove(id: string): Promise<void> {
+    await db.workouts.delete(id);
+  }
+
   async getActive(): Promise<Workout | undefined> {
     return db.activeWorkout.get("active");
   }
