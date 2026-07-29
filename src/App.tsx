@@ -19,10 +19,12 @@ import { HistoryWorkoutEditorPage } from "./pages/HistoryWorkoutEditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TemplateEditorPage } from "./pages/TemplateEditorPage";
 import { ExerciseDetailsPage } from "./pages/ExerciseDetailsPage";
+import { WorkoutSummaryPage } from "./pages/WorkoutSummaryPage";
 
 type Page =
   | "home"
   | "workout"
+  | "workout-summary"
   | "exercises"
   | "exercise-details"
   | "templates"
@@ -59,6 +61,7 @@ function App() {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [summaryWorkout, setSummaryWorkout] = useState<Workout | null>(null);
 
   async function refreshData() {
     await seedExercises();
@@ -145,7 +148,8 @@ function App() {
     await workoutRepository.clearActive();
     setActiveWorkout(null);
     setWorkouts(await workoutRepository.getAll());
-    setPage("history");
+    setSummaryWorkout(completed);
+    setPage("workout-summary");
   }
 
   async function cancelWorkout() {
@@ -229,6 +233,20 @@ function App() {
             onChange={updateActiveWorkout}
             onFinish={finishWorkout}
             onCancel={cancelWorkout}
+          />
+        )}
+
+        {page === "workout-summary" && summaryWorkout && (
+          <WorkoutSummaryPage
+            workout={summaryWorkout}
+            workouts={workouts}
+            exercises={exercises}
+            unit={profile.weightUnit}
+            onDone={() => {
+              setSummaryWorkout(null);
+              setPage("history");
+            }}
+            onSaveTemplate={() => saveWorkoutAsTemplate(summaryWorkout)}
           />
         )}
 
@@ -383,6 +401,7 @@ function navIcon(page: Page) {
   return {
     home: "⌂",
     workout: "＋",
+    "workout-summary": "✓",
     exercises: "≡",
     "exercise-details": "≡",
     templates: "▤",

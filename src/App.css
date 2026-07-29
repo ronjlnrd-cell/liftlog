@@ -178,3 +178,32 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   .progression-card { padding:16px; }
   .progression-card .section-heading { align-items:flex-start; }
 }
+
+
+/* Workout summary */
+.workout-summary-page { display:flex; flex-direction:column; gap:16px; }
+.summary-hero { background:linear-gradient(145deg,#173e28,#2e7349); color:#fff; border-radius:26px; padding:30px; }
+.summary-hero h1 { margin:6px 0 8px; font-size:42px; letter-spacing:-1.5px; }
+.summary-hero p:last-child { margin:0; color:#dce9df; }
+.summary-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.summary-stats article { display:flex; flex-direction:column; gap:6px; }
+.summary-stats span { color:var(--muted); font-size:13px; }
+.summary-stats strong { color:var(--ink); font-size:22px; }
+.summary-section h2 { margin-bottom:14px; }
+.summary-pr-list,.summary-exercises { display:flex; flex-direction:column; gap:12px; }
+.summary-pr { display:flex; gap:12px; align-items:flex-start; padding:12px; border-radius:12px; background:#f5f9f2; }
+.summary-pr > span { font-size:22px; }
+.summary-pr p { margin:3px 0 0; color:var(--green-dark); font-weight:700; }
+.summary-exercise { padding:12px 0; border-bottom:1px solid var(--line); }
+.summary-exercise:last-child { border-bottom:0; padding-bottom:0; }
+.summary-exercise > div { display:flex; justify-content:space-between; gap:12px; }
+.summary-exercise > div span { color:var(--muted); font-size:13px; }
+.summary-exercise p { margin:7px 0 0; line-height:1.6; }
+.summary-actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:4px 0 18px; }
+
+@media (max-width:600px) {
+  .summary-hero { padding:26px 22px; border-radius:22px; }
+  .summary-stats { grid-template-columns:1fr 1fr; }
+  .summary-stats article:last-child { grid-column:1 / -1; }
+  .summary-actions { justify-content:space-between; }
+}
