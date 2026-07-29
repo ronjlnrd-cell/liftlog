@@ -3,6 +3,7 @@ import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
 import { formatLabel } from "../../shared";
 import { EditableCompletedSet } from "./EditableCompletedSet";
+import { activeSetKey, type PRType } from "../../domain/analytics/personalRecords";
 
 type WorkoutExerciseCardProps = {
   exercise: Exercise;
@@ -10,6 +11,7 @@ type WorkoutExerciseCardProps = {
   unit: string;
   position: number;
   exerciseCount: number;
+  prTypesBySet: Map<string, PRType[]>;
   onAddSet: (workoutExerciseId: string, weight: number, reps: number) => void;
   onUpdateSet: (
     workoutExerciseId: string,
@@ -30,6 +32,7 @@ export function WorkoutExerciseCard({
   unit,
   position,
   exerciseCount,
+  prTypesBySet,
   onAddSet,
   onUpdateSet,
   onDeleteSet,
@@ -107,6 +110,7 @@ export function WorkoutExerciseCard({
               set={set}
               setNumber={index + 1}
               unit={unit}
+              prTypes={prTypesBySet.get(activeSetKey(item.id, set.order)) ?? []}
               onSave={onUpdateSet}
               onDelete={onDeleteSet}
             />

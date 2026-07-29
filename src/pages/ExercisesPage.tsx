@@ -10,11 +10,13 @@ import { formatLabel } from "../shared";
 type ExercisesPageProps = {
   exercises: Exercise[];
   onRefresh: () => Promise<void>;
+  onOpen: (exercise: Exercise) => void;
 };
 
 export function ExercisesPage({
   exercises,
   onRefresh,
+  onOpen,
 }: ExercisesPageProps) {
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
@@ -89,7 +91,19 @@ export function ExercisesPage({
 
       <div className="exercise-list">
         {visible.map((exercise) => (
-          <article className="card exercise-row" key={exercise.id}>
+          <article
+            className="card exercise-row exercise-row-clickable"
+            key={exercise.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => onOpen(exercise)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onOpen(exercise);
+              }
+            }}
+          >
             <div>
               <strong>{exercise.name}</strong>
               <p>
@@ -101,7 +115,8 @@ export function ExercisesPage({
             {exercise.source === ExerciseSource.CUSTOM && (
               <button
                 className="danger-text"
-                onClick={async () => {
+                onClick={async (event) => {
+                  event.stopPropagation();
                   await exerciseRepository.archive(exercise.id);
                   await onRefresh();
                 }}

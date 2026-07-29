@@ -1,11 +1,13 @@
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
+import { estimated1RM, getWorkoutPRs, prLabel, setKey } from "../domain/analytics/personalRecords";
 import { formatDate } from "../shared";
 import { EmptyState } from "./components/EmptyState";
 
 type HistoryPageProps = {
   workouts: Workout[];
   exercises: Exercise[];
+  unit: "KG" | "LB";
   onSaveTemplate: (workout: Workout) => void;
   onEdit: (workout: Workout) => void;
   onDelete: (workout: Workout) => void;
@@ -14,10 +16,13 @@ type HistoryPageProps = {
 export function HistoryPage({
   workouts,
   exercises,
+  unit,
   onSaveTemplate,
   onEdit,
   onDelete,
 }: HistoryPageProps) {
+  const prs = getWorkoutPRs(workouts);
+
   return (
     <section>
       <h1 className="page-title">History</h1>
@@ -29,56 +34,73 @@ export function HistoryPage({
         />
       ) : (
         <div className="stack">
-          {workouts.map((workout) => (
-            <article className="card history-card" key={workout.id}>
-              <div className="section-heading history-heading">
-                <div>
-                  <strong>{formatDate(workout.startedAt)}</strong>
-                  <p>
-                    {workout.exercises.reduce(
-                      (sum, exercise) =>
-                        sum + exercise.completedSets.length,
-                      0,
-                    )}{" "}
-                    sets
-                  </p>
+          {workouts.map((workout) => {
+            const workoutPRCount = workout.exercises.reduce(
+              (count, item) =>
+                count +
+                item.completedSets.filter((set) =>
+                  prs.has(setKey(workout.id, item.id, set.order)),
+                ).length,
+              0,
+            );
+
+            return (
+              <article className="card history-card" key={workout.id}>
+                <div className="section-heading history-heading">
+                  <div>
+                    <strong>{formatDate(workout.startedAt)}</strong>
+                    <p>
+                      {workout.exercises.reduce(
+                        (sum, exercise) => sum + exercise.completedSets.length,
+                        0,
+                      )}{" "}
+                      sets
+                      {workoutPRCount > 0 && (
+                        <span className="history-pr-count"> · 🏆 {workoutPRCount} PR{workoutPRCount === 1 ? "" : "s"}</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="header-actions history-actions">
+                    <button className="text-button" onClick={() => onSaveTemplate(workout)}>
+                      Save as template
+                    </button>
+                    <button className="text-button" onClick={() => onEdit(workout)}>
+                      Edit
+                    </button>
+                    <button className="danger-text" onClick={() => onDelete(workout)}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
-                <div className="header-actions history-actions">
-                  <button
-                    className="text-button"
-                    onClick={() => onSaveTemplate(workout)}
-                  >
-                    Save as template
-                  </button>
-                  <button
-                    className="text-button"
-                    onClick={() => onEdit(workout)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="danger-text"
-                    onClick={() => onDelete(workout)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-
-              {workout.exercises.map((item) => (
-                <p key={item.id}>
-                  {exercises.find(
-                    (exercise) => exercise.id === item.exerciseId,
-                  )?.name ?? "Exercise"}
-                  :{" "}
-                  {item.completedSets
-                    .map((set) => `${set.weight}×${set.reps}`)
-                    .join(", ")}
-                </p>
-              ))}
-            </article>
-          ))}
+                {workout.exercises.map((item) => (
+                  <div className="history-exercise" key={item.id}>
+                    <strong>
+                      {exercises.find((exercise) => exercise.id === item.exerciseId)?.name ?? "Exercise"}
+                    </strong>
+                    <div className="history-set-chips">
+                      {item.completedSets.map((set) => {
+                        const pr = prs.get(setKey(workout.id, item.id, set.order));
+                        return (
+                          <span className={pr ? "history-set-chip pr" : "history-set-chip"} key={set.order}>
+                            {set.weight}×{set.reps}
+                            {pr && (
+                              <span className="pr-badge" title={prLabel(pr.types)}>
+                                🏆 {pr.types.includes("estimated1RM")
+                                  ? `1RM PR · ${estimated1RM(set).toFixed(1)} ${unit.toLowerCase()}`
+                                  : prLabel(pr.types)}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

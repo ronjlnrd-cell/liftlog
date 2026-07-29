@@ -4,11 +4,13 @@ import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
 import { ExercisePicker } from "../ExercisePicker";
 import { RestTimer } from "./RestTimer";
 import { WorkoutExerciseCard } from "./WorkoutExerciseCard";
+import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 
 type WorkoutPageProps = {
   workout: Workout | null;
   exercises: Exercise[];
   unit: "KG" | "LB";
+  history: Workout[];
   onStart: () => void;
   onChange: (workout: Workout) => void;
   onFinish: () => void;
@@ -19,6 +21,7 @@ export function WorkoutPage({
   workout,
   exercises,
   unit,
+  history,
   onStart,
   onChange,
   onFinish,
@@ -188,6 +191,8 @@ export function WorkoutPage({
     });
   }
 
+  const activePRs = getActiveWorkoutPRs(history, workout);
+
   const canFinish = workout.exercises.some(
     (item) => item.completedSets.length > 0,
   );
@@ -241,6 +246,7 @@ export function WorkoutPage({
               unit={unit}
               position={index}
               exerciseCount={workout.exercises.length}
+              prTypesBySet={activePRs}
               onAddSet={addSet}
               onUpdateSet={updateSet}
               onDeleteSet={deleteSet}

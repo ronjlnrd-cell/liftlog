@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { WorkoutExercise } from "../../domain/entities/workout";
+import { prLabel, type PRType } from "../../domain/analytics/personalRecords";
 
 type CompletedSet = WorkoutExercise["completedSets"][number];
 
@@ -8,6 +9,7 @@ type EditableCompletedSetProps = {
   set: CompletedSet;
   setNumber: number;
   unit: string;
+  prTypes?: PRType[];
   onSave: (
     exerciseId: string,
     setOrder: number,
@@ -22,6 +24,7 @@ export function EditableCompletedSet({
   set,
   setNumber,
   unit,
+  prTypes = [],
   onSave,
   onDelete,
 }: EditableCompletedSetProps) {
@@ -54,6 +57,9 @@ export function EditableCompletedSet({
         <span>Set {setNumber}</span>
         <strong>
           {set.weight} {unit.toLowerCase()} × {set.reps}
+          {prTypes.length > 0 && (
+            <span className="pr-badge" title={prLabel(prTypes)}>🏆 {prLabel(prTypes)}</span>
+          )}
         </strong>
         <div className="header-actions">
           <button className="text-button" onClick={() => setEditing(true)}>

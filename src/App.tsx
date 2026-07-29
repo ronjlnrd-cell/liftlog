@@ -18,11 +18,13 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { HistoryWorkoutEditorPage } from "./pages/HistoryWorkoutEditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TemplateEditorPage } from "./pages/TemplateEditorPage";
+import { ExerciseDetailsPage } from "./pages/ExerciseDetailsPage";
 
 type Page =
   | "home"
   | "workout"
   | "exercises"
+  | "exercise-details"
   | "templates"
   | "template-editor"
   | "history"
@@ -56,6 +58,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   async function refreshData() {
     await seedExercises();
@@ -221,6 +224,7 @@ function App() {
               (exercise) => !exercise.archivedAt,
             )}
             unit={profile.weightUnit}
+            history={workouts}
             onStart={() => startWorkout()}
             onChange={updateActiveWorkout}
             onFinish={finishWorkout}
@@ -234,6 +238,25 @@ function App() {
             onRefresh={async () =>
               setExercises(await exerciseRepository.getAll())
             }
+            onOpen={(exercise) => {
+              setSelectedExerciseId(exercise.id);
+              setPage("exercise-details");
+            }}
+          />
+        )}
+
+        {page === "exercise-details" && (
+          <ExerciseDetailsPage
+            exercise={
+              exercises.find((exercise) => exercise.id === selectedExerciseId) ??
+              null
+            }
+            workouts={workouts}
+            unit={profile.weightUnit}
+            onBack={() => {
+              setSelectedExerciseId(null);
+              setPage("exercises");
+            }}
           />
         )}
 
@@ -279,6 +302,7 @@ function App() {
           <HistoryPage
             workouts={workouts}
             exercises={exercises}
+            unit={profile.weightUnit}
             onSaveTemplate={saveWorkoutAsTemplate}
             onEdit={(workout) => {
               setEditingWorkoutId(workout.id);
@@ -360,6 +384,7 @@ function navIcon(page: Page) {
     home: "⌂",
     workout: "＋",
     exercises: "≡",
+    "exercise-details": "≡",
     templates: "▤",
     "template-editor": "▤",
     history: "◷",

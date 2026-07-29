@@ -122,3 +122,59 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   .history-editor-details { grid-template-columns:1fr; }
   .history-set-row { grid-template-columns:48px 1fr 1fr 30px; gap:7px; }
 }
+
+/* Personal records */
+.pr-badge { display:inline-flex; align-items:center; gap:3px; margin-left:8px; padding:3px 7px; border-radius:999px; background:#f4f7d5; color:#526014; font-size:11px; font-weight:800; white-space:nowrap; }
+.history-pr-count { color:var(--green-dark); font-weight:750; }
+.history-exercise { margin-top:14px; }
+.history-exercise > strong { display:block; margin-bottom:7px; }
+.history-set-chips { display:flex; flex-wrap:wrap; gap:7px; }
+.history-set-chip { display:inline-flex; align-items:center; gap:2px; padding:7px 9px; border:1px solid var(--line); border-radius:10px; background:#f8faf7; color:var(--ink); font-size:13px; font-weight:700; }
+.history-set-chip.pr { border-color:#d9e485; background:#fbfce9; }
+.history-set-chip .pr-badge { margin-left:4px; }
+.sets-list strong .pr-badge { vertical-align:middle; }
+@media (max-width:600px) {
+  .history-set-chip { width:100%; justify-content:space-between; }
+  .sets-list strong .pr-badge { display:flex; margin:5px 0 0; width:max-content; }
+}
+
+/* Exercise details and estimated 1RM progress */
+.exercise-row-clickable { cursor:pointer; transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease; }
+.exercise-row-clickable:hover { transform:translateY(-1px); border-color:#bfd0b8; box-shadow:0 9px 24px rgba(30,50,35,.08); }
+.exercise-row-clickable:focus-visible { outline:3px solid rgba(37,95,59,.2); outline-offset:2px; }
+.exercise-details-back { margin-bottom:18px; padding-left:0; }
+.exercise-details-heading { margin-bottom:22px; }
+.exercise-details-heading .page-title { margin:5px 0 4px; }
+.exercise-details-meta { margin:0; color:var(--muted); }
+.exercise-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.exercise-stat-card { display:flex; flex-direction:column; gap:7px; min-height:136px; justify-content:center; }
+.exercise-stat-card span,.exercise-stat-card small { color:var(--muted); }
+.exercise-stat-card strong { color:var(--ink); font-size:29px; letter-spacing:-.8px; }
+.exercise-stat-card.primary-stat { border-color:#bfd0b8; background:#f5f9f2; }
+.exercise-stat-card.primary-stat strong { color:var(--green-dark); font-size:35px; }
+.exercise-stat-card .date-stat { font-size:23px; }
+.relative-strength-card { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:14px; border-color:#dce59b; background:#fbfce9; }
+.relative-strength-card div { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+.relative-strength-card span { color:#626c2a; font-size:13px; font-weight:750; }
+.relative-strength-card strong { color:#3f4a12; font-size:32px; }
+.relative-strength-card p { margin:0; text-align:right; }
+.progression-card { margin-top:14px; }
+.progression-card .section-heading p { margin:5px 0 0; }
+.progress-chart-wrap { margin-top:22px; width:100%; overflow:hidden; }
+.progress-chart { display:block; width:100%; height:auto; min-height:210px; }
+.chart-grid-line { stroke:#dfe5dc; stroke-width:1; }
+.chart-axis-label,.chart-date-label,.chart-unit-label { fill:#788078; font-size:12px; font-family:inherit; }
+.chart-unit-label { font-weight:800; }
+.chart-line { stroke:var(--green); stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+.chart-point { fill:#fff; stroke:var(--green-dark); stroke-width:4; }
+@media (max-width:600px) {
+  .exercise-stat-grid { grid-template-columns:1fr 1fr; gap:10px; }
+  .exercise-stat-card { min-height:124px; padding:16px; }
+  .exercise-stat-card strong { font-size:23px; }
+  .exercise-stat-card.primary-stat strong { font-size:28px; }
+  .exercise-stat-card .date-stat { font-size:18px; }
+  .relative-strength-card { align-items:flex-start; flex-direction:column; gap:10px; }
+  .relative-strength-card p { text-align:left; }
+  .progression-card { padding:16px; }
+  .progression-card .section-heading { align-items:flex-start; }
+}
