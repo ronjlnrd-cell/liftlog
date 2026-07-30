@@ -48,6 +48,32 @@ export function HomePage({
     .map(([muscle, sets]) => ({ muscle, sets }))
     .sort((a, b) => b.sets - a.sets);
   const maxMuscleSets = Math.max(1, ...muscleVolume.map((item) => item.sets));
+  const DAY = 86_400_000;
+  const now = Date.now();
+  const previousWeekStart = now - 14 * DAY;
+  const previousWeekEnd = now - 7 * DAY;
+  const previousWeekWorkouts = workouts.filter((workout) => {
+    if (!workout.completedAt) return false;
+    const time = new Date(workout.completedAt).getTime();
+    return time >= previousWeekStart && time < previousWeekEnd;
+  });
+  const thisWeekWorkouts = workouts.filter(
+    (workout) =>
+      workout.completedAt &&
+      new Date(workout.completedAt).getTime() >= now - 7 * DAY,
+  );
+  const countSets = (items: Workout[]) =>
+    items.reduce(
+      (sum, workout) =>
+        sum +
+        workout.exercises.reduce(
+          (exerciseSum, item) => exerciseSum + item.completedSets.length,
+          0,
+        ),
+      0,
+    );
+  const thisWeekSets = countSets(thisWeekWorkouts);
+  const previousWeekSets = countSets(previousWeekWorkouts);
 
   return (
     <section>
@@ -138,30 +164,25 @@ export function HomePage({
         )}
       </article>
 
-      <article className="card section-card">
+      <article className="card section-card progress-lower">
         <div className="section-heading">
-          <h2>Last workout</h2>
-          <button className="text-button" onClick={onHistory}>
-            View history
-          </button>
+          <div>
+            <h2>Progress</h2>
+            <p className="section-subtitle">Last 7 days vs previous 7 days</p>
+          </div>
         </div>
-
-        {last ? (
-          <>
-            <strong>{formatDate(last.startedAt)}</strong>
-            <p>
-              {last.exercises.length} exercises ·{" "}
-              {last.exercises.reduce(
-                (sum, exercise) =>
-                  sum + exercise.completedSets.length,
-                0,
-              )}{" "}
-              sets
-            </p>
-          </>
-        ) : (
-          <p>No completed workouts yet.</p>
-        )}
+        <div className="progress-stat-grid">
+          <div className="progress-stat">
+            <span>Workouts</span>
+            <strong>{thisWeekWorkouts.length}</strong>
+            <small>Previous week: {previousWeekWorkouts.length}</small>
+          </div>
+          <div className="progress-stat">
+            <span>Completed sets</span>
+            <strong>{thisWeekSets}</strong>
+            <small>Previous week: {previousWeekSets}</small>
+          </div>
+        </div>
       </article>
     </section>
   );
