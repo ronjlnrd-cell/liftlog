@@ -1,3 +1,4 @@
+import { getProgressionRecommendation } from "../../domain/analytics/progression";
 import { useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
@@ -8,6 +9,7 @@ import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 
 type WorkoutPageProps = {
   workout: Workout | null;
+  workouts: Workout[];
   exercises: Exercise[];
   unit: "KG" | "LB";
   history: Workout[];
@@ -19,6 +21,7 @@ type WorkoutPageProps = {
 
 export function WorkoutPage({
   workout,
+  workouts,
   exercises,
   unit,
   history,
@@ -39,6 +42,47 @@ export function WorkoutPage({
         </button>
       </div>
     );
+  }
+
+
+  function latestCompletedExercise(exerciseId: string) {
+    const sorted = [...workouts]
+      .filter((candidate) => candidate.completedAt)
+      .sort(
+        (a, b) =>
+          new Date(b.completedAt ?? b.startedAt).getTime() -
+          new Date(a.completedAt ?? a.startedAt).getTime(),
+      );
+
+    for (const previousWorkout of sorted) {
+      const previousExercise = previousWorkout.exercises.find(
+        (item) =>
+          item.exerciseId === exerciseId && item.completedSets.length > 0,
+      );
+      if (previousExercise) return previousExercise;
+    }
+
+    return null;
+  }
+
+  function applyProgression(
+    workoutExerciseId: string,
+    option: {
+      nextWeight: number;
+      reps: number;
+      sets: number;
+      restSeconds?: number;
+    },
+  ) {
+    updateExercise(workoutExerciseId, (item) => ({
+      ...item,
+      plannedRestSeconds: option.restSeconds ?? item.plannedRestSeconds,
+      plannedSets: Array.from({ length: option.sets }, (_, index) => ({
+        order: index,
+        weight: option.nextWeight,
+        reps: option.reps,
+      })),
+    }));
   }
 
   function addExercise(exerciseId: string) {
@@ -250,6 +294,18 @@ export function WorkoutPage({
               onAddSet={addSet}
               onUpdateSet={updateSet}
               onDeleteSet={deleteSet}
+              progressionRecommendation={(() => {
+                const previous = latestCompletedExercise(item.exerciseId);
+                const exercise = exercises.find(
+                  (candidate) => candidate.id === item.exerciseId,
+                );
+                return previous && exercise
+                  ? getProgressionRecommendation(previous, exercise)
+                  : null;
+              })()}
+              onApplyProgression={(option) =>
+                applyProgression(item.id, option)
+              }
               onMove={moveExercise}
               onDuplicate={duplicateExercise}
               onRemove={removeExercise}

@@ -224,6 +224,7 @@ function App() {
         {page === "workout" && (
           <WorkoutPage
             workout={activeWorkout}
+            workouts={workouts}
             exercises={exercises.filter(
               (exercise) => !exercise.archivedAt,
             )}

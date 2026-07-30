@@ -1,3 +1,4 @@
+import type { ProgressionRecommendation, ProgressionOption } from "../../domain/analytics/progression";
 import { useEffect, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
@@ -6,6 +7,8 @@ import { EditableCompletedSet } from "./EditableCompletedSet";
 import { activeSetKey, type PRType } from "../../domain/analytics/personalRecords";
 
 type WorkoutExerciseCardProps = {
+  progressionRecommendation: ProgressionRecommendation | null;
+  onApplyProgression: (option: ProgressionOption) => void;
   exercise: Exercise;
   item: WorkoutExercise;
   unit: string;
@@ -27,6 +30,8 @@ type WorkoutExerciseCardProps = {
 };
 
 export function WorkoutExerciseCard({
+  progressionRecommendation,
+  onApplyProgression,
   exercise,
   item,
   unit,
@@ -84,7 +89,31 @@ export function WorkoutExerciseCard({
             ↓
           </button>
           <span className="set-count">
-            {item.completedSets.length}/{item.plannedSets.length || "–"} sets
+                  {progressionRecommendation && item.completedSets.length === 0 && (
+        <div className="progression-reminder">
+          <strong>Progression from last workout</strong>
+          <p>Choose one target for this exercise.</p>
+          <div className="progression-reminder-options">
+            {progressionRecommendation.options.map((option, index) => (
+              <div key={option.label}>
+                {index > 0 && <div className="progression-or">or</div>}
+                <button
+                  className="progression-target-button"
+                  onClick={() => onApplyProgression(option)}
+                >
+                  <span>
+                    <strong>{option.label}</strong>
+                    {option.recommended && <em>Recommended</em>}
+                  </span>
+                  <span>{option.detail}</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+{item.completedSets.length}/{item.plannedSets.length || "–"} sets
           </span>
           <button
             className="text-button"

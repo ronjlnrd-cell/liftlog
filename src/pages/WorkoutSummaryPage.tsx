@@ -7,6 +7,7 @@ import {
   setKey,
 } from "../domain/analytics/personalRecords";
 import { formatDate } from "../shared";
+import { getProgressionRecommendation } from "../domain/analytics/progression";
 
 type WorkoutSummaryPageProps = {
   workout: Workout;
@@ -136,6 +137,9 @@ export function WorkoutSummaryPage({
             const exercise = exercises.find(
               (candidate) => candidate.id === item.exerciseId,
             );
+            const recommendation = exercise
+              ? getProgressionRecommendation(item, exercise)
+              : null;
 
             return (
               <div className="summary-exercise" key={item.id}>
@@ -151,6 +155,33 @@ export function WorkoutSummaryPage({
                     )
                     .join("  ·  ")}
                 </p>
+
+                {recommendation && (
+                  <div className="progression-recommendation">
+                    <strong className="progression-title">
+                      Choose one progression
+                    </strong>
+                    <div className="progression-options">
+                      {recommendation.options.map((option, index) => (
+                        <div key={option.label}>
+                          {index > 0 && <div className="progression-or">or</div>}
+                          <div className="progression-option">
+                            <span>•</span>
+                            <div>
+                              <strong>{option.label}</strong>
+                              <p>
+                                {option.detail} {unit.toLowerCase()}
+                                {option.recommended && (
+                                  <em> · Recommended</em>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
