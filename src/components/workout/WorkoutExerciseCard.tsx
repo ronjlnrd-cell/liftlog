@@ -89,7 +89,24 @@ export function WorkoutExerciseCard({
             ↓
           </button>
           <span className="set-count">
-                  {progressionRecommendation && item.completedSets.length === 0 && (
+            {item.completedSets.length}/{item.plannedSets.length || "–"} sets
+          </span>
+          <button
+            className="text-button"
+            onClick={() => onDuplicate(item.id)}
+          >
+            Duplicate
+          </button>
+          <button
+            className="danger-text"
+            onClick={() => onRemove(item.id)}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+
+      {progressionRecommendation && item.completedSets.length === 0 && (
         <div className="progression-reminder">
           <strong>Progression from last workout</strong>
           <p>Choose one target for this exercise.</p>
@@ -112,23 +129,6 @@ export function WorkoutExerciseCard({
           </div>
         </div>
       )}
-
-{item.completedSets.length}/{item.plannedSets.length || "–"} sets
-          </span>
-          <button
-            className="text-button"
-            onClick={() => onDuplicate(item.id)}
-          >
-            Duplicate
-          </button>
-          <button
-            className="danger-text"
-            onClick={() => onRemove(item.id)}
-          >
-            Remove
-          </button>
-        </div>
-      </div>
 
       {item.completedSets.length > 0 && (
         <div className="sets-list">

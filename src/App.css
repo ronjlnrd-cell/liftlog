@@ -237,53 +237,12 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 }
 
 
-/* Progression reminder during workout */
-.progression-reminder {
-  margin:12px 0;
-  padding:14px;
-  border:1px solid #d7e4d2;
-  border-radius:12px;
-  background:#f5f9f2;
-}
-.progression-reminder > strong {
-  color:var(--green-dark);
-  font-size:15px;
-}
-.progression-reminder > p {
-  margin:4px 0 10px;
-  color:var(--muted);
-  font-size:13px;
-}
-.progression-reminder-options {
-  display:flex;
-  flex-direction:column;
-}
-.progression-target-button {
-  width:100%;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  padding:10px 12px;
-  border:1px solid var(--line);
-  border-radius:10px;
-  background:#fff;
-  color:var(--ink);
-  text-align:left;
-  cursor:pointer;
-}
-.progression-target-button:hover {
-  border-color:#a9c7a0;
-  background:#fbfdf9;
-}
-.progression-target-button > span:first-child {
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.progression-target-button em {
-  color:var(--green);
-  font-size:11px;
-  font-style:normal;
-  font-weight:750;
-}
+/* Weekly muscle volume */
+.section-subtitle { margin:3px 0 0; color:var(--muted); font-size:13px; }
+.muscle-volume-list { display:flex; flex-direction:column; gap:14px; }
+.muscle-volume-row { display:flex; flex-direction:column; gap:7px; }
+.muscle-volume-label { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+.muscle-volume-label strong { color:var(--ink); font-size:14px; }
+.muscle-volume-label span { color:var(--muted); font-size:13px; }
+.muscle-volume-track { width:100%; height:8px; overflow:hidden; border-radius:999px; background:#e9eee6; }
+.muscle-volume-fill { height:100%; border-radius:999px; background:var(--green); min-width:4px; }

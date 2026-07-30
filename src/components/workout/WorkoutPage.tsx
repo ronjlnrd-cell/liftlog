@@ -46,7 +46,7 @@ export function WorkoutPage({
 
 
   function latestCompletedExercise(exerciseId: string) {
-    const sorted = [...workouts]
+    const sorted = [...(workouts ?? [])]
       .filter((candidate) => candidate.completedAt)
       .sort(
         (a, b) =>

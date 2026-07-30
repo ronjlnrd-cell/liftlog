@@ -211,6 +211,7 @@ function App() {
         {page === "home" && (
           <HomePage
             activeWorkout={activeWorkout}
+            exercises={exercises}
             workouts={workouts}
             templates={templates}
             onStart={() => startWorkout()}
@@ -224,7 +225,6 @@ function App() {
         {page === "workout" && (
           <WorkoutPage
             workout={activeWorkout}
-            workouts={workouts}
             exercises={exercises.filter(
               (exercise) => !exercise.archivedAt,
             )}

@@ -1,9 +1,11 @@
 import type { WorkoutTemplate } from "../domain/entities/Template";
+import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
-import { formatDate } from "../shared";
+import { formatDate, formatLabel } from "../shared";
 
 type HomePageProps = {
   activeWorkout: Workout | null;
+  exercises: Exercise[];
   workouts: Workout[];
   templates: WorkoutTemplate[];
   onStart: () => void;
@@ -15,6 +17,7 @@ type HomePageProps = {
 
 export function HomePage({
   activeWorkout,
+  exercises,
   workouts,
   templates,
   onStart,
@@ -25,6 +28,26 @@ export function HomePage({
 }: HomePageProps) {
   const last = workouts[0];
   const recentTemplates = templates.slice(0, 3);
+  const sevenDaysAgo = Date.now() - 7 * 86_400_000;
+  const weeklyMuscleSets = new Map<string, number>();
+
+  workouts
+    .filter((workout) => workout.completedAt && new Date(workout.completedAt).getTime() >= sevenDaysAgo)
+    .forEach((workout) => {
+      workout.exercises.forEach((item) => {
+        const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
+        if (!exercise || exercise.primaryMuscle === "UNKNOWN") return;
+        weeklyMuscleSets.set(
+          exercise.primaryMuscle,
+          (weeklyMuscleSets.get(exercise.primaryMuscle) ?? 0) + item.completedSets.length,
+        );
+      });
+    });
+
+  const muscleVolume = [...weeklyMuscleSets.entries()]
+    .map(([muscle, sets]) => ({ muscle, sets }))
+    .sort((a, b) => b.sets - a.sets);
+  const maxMuscleSets = Math.max(1, ...muscleVolume.map((item) => item.sets));
 
   return (
     <section>
@@ -88,6 +111,32 @@ export function HomePage({
           </strong>
         </article>
       </div>
+
+      <article className="card section-card">
+        <div className="section-heading">
+          <div>
+            <h2>Weekly muscle volume</h2>
+            <p className="section-subtitle">Completed sets in the last 7 days</p>
+          </div>
+        </div>
+        {muscleVolume.length === 0 ? (
+          <p>No completed sets in the last 7 days.</p>
+        ) : (
+          <div className="muscle-volume-list">
+            {muscleVolume.map(({ muscle, sets }) => (
+              <div className="muscle-volume-row" key={muscle}>
+                <div className="muscle-volume-label">
+                  <strong>{formatLabel(muscle)}</strong>
+                  <span>{sets} {sets === 1 ? "set" : "sets"}</span>
+                </div>
+                <div className="muscle-volume-track">
+                  <div className="muscle-volume-fill" style={{ width: `${(sets / maxMuscleSets) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
 
       <article className="card section-card">
         <div className="section-heading">
