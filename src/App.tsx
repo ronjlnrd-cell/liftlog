@@ -81,6 +81,8 @@ function App() {
   const [migrationBusy, setMigrationBusy] = useState(false);
   const [migrationError, setMigrationError] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
+  const [cloudLoadError, setCloudLoadError] = useState("");
+  const [cloudRetrying, setCloudRetrying] = useState(false);
   const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
 
   async function refreshData() {
@@ -157,7 +159,20 @@ function App() {
       return;
     }
     const builtIns = exercises.filter((exercise) => exercise.source === "BUILT_IN");
-    setWorkouts(cloud.workouts.map(ensureWorkoutExerciseIds));
+
+    // Local completed workouts may include offline entries that have not reached Supabase yet.
+    // Never replace them with the cloud list. Merge by id, preferring cloud copies when both exist.
+    const localWorkouts = (await workoutRepository.getAll()).map(ensureWorkoutExerciseIds);
+    const cloudWorkouts = cloud.workouts.map(ensureWorkoutExerciseIds);
+    const mergedWorkoutMap = new Map(localWorkouts.map((workout) => [workout.id, workout]));
+    for (const workout of cloudWorkouts) mergedWorkoutMap.set(workout.id, workout);
+    const mergedWorkouts = Array.from(mergedWorkoutMap.values()).sort(
+      (a, b) =>
+        new Date(b.completedAt ?? b.startedAt).getTime() -
+        new Date(a.completedAt ?? a.startedAt).getTime(),
+    );
+
+    setWorkouts(mergedWorkouts);
     setTemplates(cloud.templates);
     setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
     if (cloud.profile) setProfile(cloud.profile);
@@ -165,14 +180,29 @@ function App() {
 
     // Supabase is authoritative. IndexedDB is retained as a local cache/recovery layer.
     await Promise.all([
-      ...cloud.workouts.map((workout) =>
+      ...mergedWorkouts.map((workout) =>
         workoutRepository.save(ensureWorkoutExerciseIds(workout)),
       ),
       ...cloud.templates.map((template) => templateRepository.save(template)),
       ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
       ...cloudBodyweights.map((entry) => bodyweightRepository.save(entry)),
     ]);
+    setCloudLoadError("");
     setCloudReady(true);
+  }
+
+  async function retryCloudLoad() {
+    if (!session || cloudRetrying) return;
+    setCloudRetrying(true);
+    setCloudLoadError("");
+    try {
+      await connectCloud(session.user.id);
+    } catch (error) {
+      console.error(error);
+      setCloudLoadError(error instanceof Error ? error.message : "Could not load cloud data.");
+    } finally {
+      setCloudRetrying(false);
+    }
   }
 
   async function migrateLocalData(userId: string) {
@@ -200,7 +230,9 @@ function App() {
     if (!session || loading || cloudReady) return;
     void connectCloud(session.user.id).catch((error) => {
       console.error(error);
-      setMigrationError(error instanceof Error ? error.message : "Could not load cloud data.");
+      setCloudLoadError(error instanceof Error ? error.message : "Could not load cloud data.");
+      // Local IndexedDB remains usable offline. Mark the initial cloud attempt complete
+      // so this effect does not continuously retry and disrupt local History.
       setCloudReady(true);
     });
   }, [session, loading, cloudReady]);
@@ -213,10 +245,46 @@ function App() {
       return true;
     } catch (error) {
       console.error(error);
-      setSyncMessage("Not synced — retry when online");
+      setSyncMessage("Sync failed — check connection and try again");
       return false;
     }
   }
+
+  useEffect(() => {
+    if (!session) return;
+
+    const syncLocalWorkouts = async () => {
+      const localWorkouts = await workoutRepository.getAll();
+      if (localWorkouts.length === 0) return;
+
+      let failed = false;
+      for (const workout of localWorkouts) {
+        try {
+          await saveCloudWorkout(session.user.id, workout);
+        } catch (error) {
+          failed = true;
+          console.error(error);
+          break;
+        }
+      }
+
+      if (!failed) {
+        setSyncMessage("");
+        try {
+          await connectCloud(session.user.id);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+
+    const handleOnline = () => {
+      void syncLocalWorkouts();
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [session]);
 
   async function startWorkout(template?: WorkoutTemplate) {
     const workout: Workout = {
@@ -263,26 +331,30 @@ function App() {
       completedAt: new Date(),
     };
 
+    // Persist locally FIRST. Finishing a workout must never depend on network access.
+    await workoutRepository.save(completed);
+    await workoutRepository.clearActive();
+
+    // Update the UI immediately from local storage before attempting cloud sync.
+    setActiveWorkout(null);
+    setWorkouts((current) => {
+      const withoutDuplicate = current.filter((workout) => workout.id !== completed.id);
+      return [completed, ...withoutDuplicate];
+    });
+    setSummaryWorkout(completed);
+    setPage("workout-summary");
+
     if (session) {
       const synced = await cloudAction(() =>
         saveCloudWorkout(session.user.id, completed),
       );
-
-      // Keep IndexedDB as the local cache used by History and recovery.
-      await workoutRepository.save(completed);
-
       if (!synced) {
-        setSyncMessage("Not synced — retry when online");
+        setSyncMessage("Workout saved on device — cloud sync pending");
       }
-    } else {
-      await workoutRepository.save(completed);
     }
 
-    await workoutRepository.clearActive();
-    setActiveWorkout(null);
-    setWorkouts(await workoutRepository.getAll());
-    setSummaryWorkout(completed);
-    setPage("workout-summary");
+    return;
+
   }
 
   async function cancelWorkout() {
@@ -434,7 +506,16 @@ function App() {
         <button className="brand" onClick={() => setPage("home")}>
           LiftLog
         </button>
-        {syncMessage && <span className="sync-status">{syncMessage}</span>}
+        {(syncMessage || cloudLoadError) && (
+          <span className="sync-status">
+            {syncMessage || "Offline — using data saved on this device"}
+            {cloudLoadError && (
+              <button className="text-button" onClick={() => void retryCloudLoad()}>
+                Retry
+              </button>
+            )}
+          </span>
+        )}
         <div className="account-header">
           <span className="tagline">{session.user.email}</span>
           <button className="text-button" onClick={() => void supabase?.auth.signOut()}>
