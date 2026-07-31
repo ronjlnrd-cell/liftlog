@@ -23,7 +23,10 @@ import { WorkoutSummaryPage } from "./pages/WorkoutSummaryPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ProfileSetupPage } from "./pages/ProfileSetupPage";
 import { CloudMigrationPage } from "./pages/CloudMigrationPage";
-import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate } from "./data/cloud/cloudData";
+import { WeightPage } from "./pages/WeightPage";
+import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
+import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
+import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight} from "./data/cloud/cloudData";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
@@ -38,6 +41,7 @@ type Page =
   | "history"
   | "history-summary"
   | "history-editor"
+  | "weight"
   | "settings";
 
 const emptyProfile: Profile = {
@@ -77,6 +81,7 @@ function App() {
   const [migrationBusy, setMigrationBusy] = useState(false);
   const [migrationError, setMigrationError] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
+  const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
 
   async function refreshData() {
     await seedExercises();
@@ -87,12 +92,14 @@ function App() {
       templateData,
       activeData,
       profileData,
+      bodyweightData,
     ] = await Promise.all([
       exerciseRepository.getAll(),
       workoutRepository.getAll(),
       templateRepository.getAll(),
       workoutRepository.getActive(),
       profileRepository.get(),
+      bodyweightRepository.getAll(),
     ]);
 
     const normalizedWorkouts = workoutData.map(ensureWorkoutExerciseIds);
@@ -105,6 +112,7 @@ function App() {
     setTemplates(templateData);
     setActiveWorkout(normalizedActive);
     setProfile(profileData);
+    setBodyweights(bodyweightData);
 
     if (activeData && activeData.exercises.some((item) => !item.id)) {
       await workoutRepository.saveActive(normalizedActive!);
@@ -133,6 +141,7 @@ function App() {
 
   async function connectCloud(userId: string) {
     const cloud = await loadCloudData(userId);
+    const cloudBodyweights = await loadCloudBodyweights(userId);
     const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
     const cloudEmpty =
       cloud.workouts.length === 0 &&
@@ -152,6 +161,7 @@ function App() {
     setTemplates(cloud.templates);
     setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
     if (cloud.profile) setProfile(cloud.profile);
+    setBodyweights(cloudBodyweights);
 
     // Supabase is authoritative. IndexedDB is retained as a local cache/recovery layer.
     await Promise.all([
@@ -160,6 +170,7 @@ function App() {
       ),
       ...cloud.templates.map((template) => templateRepository.save(template)),
       ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
+      ...cloudBodyweights.map((entry) => bodyweightRepository.save(entry)),
     ]);
     setCloudReady(true);
   }
@@ -534,7 +545,6 @@ function App() {
                 );
                 if (!deleted) return;
               }
-
               await templateRepository.remove(id);
               setTemplates(await templateRepository.getAll());
             }}
@@ -593,6 +603,12 @@ function App() {
                 return;
               }
 
+              if (session) {
+                const deleted = await cloudAction(() =>
+                  deleteCloudWorkout(session.user.id, workout.id),
+                );
+                if (!deleted) return;
+              }
               await workoutRepository.remove(workout.id);
               setWorkouts(await workoutRepository.getAll());
             }}
@@ -621,6 +637,12 @@ function App() {
                     "Delete this workout permanently? This cannot be undone.",
                   )
                 ) return;
+                if (session) {
+                  const deleted = await cloudAction(() =>
+                    deleteCloudWorkout(session.user.id, historicalWorkout.id),
+                  );
+                  if (!deleted) return;
+                }
                 await workoutRepository.remove(historicalWorkout.id);
                 setWorkouts(await workoutRepository.getAll());
                 setHistorySummaryId(null);
@@ -655,6 +677,42 @@ function App() {
           />
         )}
 
+        {page === "weight" && (
+          <WeightPage
+            entries={bodyweights}
+            unit={profile.weightUnit}
+            onAdd={async (weight, date) => {
+              if (!session) return;
+              const entry: BodyweightEntry = {
+                id: crypto.randomUUID(),
+                userId: session.user.id,
+                weight,
+                recordedAt: new Date(`${date}T12:00:00`).toISOString(),
+                createdAt: new Date().toISOString(),
+              };
+              const saved = await cloudAction(() => saveCloudBodyweight(session.user.id, entry));
+              if (!saved) return;
+              await bodyweightRepository.save(entry);
+              const next = await bodyweightRepository.getAll();
+              setBodyweights(next);
+              const latest = next[0];
+              if (latest) {
+                const nextProfile = { ...profile, bodyweight: latest.weight };
+                await profileRepository.save(nextProfile);
+                setProfile(nextProfile);
+                await cloudAction(() => saveCloudProfile(session.user.id, nextProfile));
+              }
+            }}
+            onDelete={async (id) => {
+              if (!session) return;
+              const deleted = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
+              if (!deleted) return;
+              await bodyweightRepository.remove(id);
+              setBodyweights(await bodyweightRepository.getAll());
+            }}
+          />
+        )}
+
         {page === "settings" && (
           <SettingsPage
             profile={profile}
@@ -674,6 +732,7 @@ function App() {
             "exercises",
             "templates",
             "history",
+            "weight",
             "settings",
           ] as Page[]
         ).map((item) => (
@@ -702,6 +761,7 @@ function navIcon(page: Page) {
     "template-editor": "▤",
     history: "◷",
     "history-editor": "◷",
+    weight: "↕",
     settings: "⚙",
   }[page];
 }

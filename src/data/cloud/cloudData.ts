@@ -1,3 +1,4 @@
+import type { BodyweightEntry } from "../../domain/entities/BodyweightEntry";
 import { supabase } from "../../lib/supabase";
 import type { Profile } from "../../domain/entities/Profile";
 import type { Workout } from "../../domain/entities/workout";
@@ -49,8 +50,16 @@ export async function saveCloudWorkout(userId: string, workout: Workout) {
   if (error) throw error;
 }
 export async function deleteCloudWorkout(userId: string, id: string) {
-  const { error } = await client().from("workouts").delete().eq("user_id", userId).eq("id", id);
+  const { data, error } = await client()
+    .from("workouts")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", id)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error(`Workout ${id} was not deleted from Supabase.`);
+  }
 }
 export async function saveCloudTemplate(userId: string, template: WorkoutTemplate) {
   const { error } = await client().from("templates").upsert({
@@ -78,4 +87,42 @@ export async function deleteCloudTemplate(userId: string, id: string) {
   if (!data || data.length === 0) {
     throw new Error(`Template ${id} was not deleted from Supabase.`);
   }
+}
+
+export async function loadCloudBodyweights(userId: string): Promise<BodyweightEntry[]> {
+  const { data, error } = await client()
+    .from("bodyweight_entries")
+    .select("id,user_id,weight,recorded_at,created_at")
+    .eq("user_id", userId)
+    .order("recorded_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    weight: Number(row.weight),
+    recordedAt: row.recorded_at,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function saveCloudBodyweight(userId: string, entry: BodyweightEntry) {
+  const { error } = await client().from("bodyweight_entries").upsert({
+    id: entry.id,
+    user_id: userId,
+    weight: entry.weight,
+    recorded_at: entry.recordedAt,
+    created_at: entry.createdAt,
+  });
+  if (error) throw error;
+}
+
+export async function deleteCloudBodyweight(userId: string, id: string) {
+  const { data, error } = await client()
+    .from("bodyweight_entries")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", id)
+    .select("id");
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error(`Bodyweight ${id} was not deleted from Supabase.`);
 }
