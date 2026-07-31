@@ -4,10 +4,12 @@ import type { Exercise } from "./domain/entities/Exercise";
 import type { Profile } from "./domain/entities/Profile";
 import type { WorkoutTemplate } from "./domain/entities/Template";
 import type { Workout } from "./domain/entities/workout";
+import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
 import { exerciseRepository } from "./data/repositories/ExerciseRepository";
 import { workoutRepository } from "./data/repositories/WorkoutRepository";
 import { profileRepository } from "./data/repositories/ProfileRepository";
 import { templateRepository } from "./data/repositories/TemplateRepository";
+import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
 import { seedExercises } from "./data/seedExercises";
 import { formatLabel } from "./shared";
 import { WorkoutPage } from "./components/workout/WorkoutPage";
@@ -17,9 +19,16 @@ import { TemplatesPage } from "./pages/TemplatesPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { HistoryWorkoutEditorPage } from "./pages/HistoryWorkoutEditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { WeightPage } from "./pages/WeightPage";
 import { TemplateEditorPage } from "./pages/TemplateEditorPage";
 import { ExerciseDetailsPage } from "./pages/ExerciseDetailsPage";
 import { WorkoutSummaryPage } from "./pages/WorkoutSummaryPage";
+import { AuthPage } from "./pages/AuthPage";
+import { ProfileSetupPage } from "./pages/ProfileSetupPage";
+import { CloudMigrationPage } from "./pages/CloudMigrationPage";
+import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight } from "./data/cloud/cloudData";
+import { supabase, supabaseConfigured } from "./lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 
 type Page =
   | "home"
@@ -30,7 +39,9 @@ type Page =
   | "templates"
   | "template-editor"
   | "history"
+  | "history-summary"
   | "history-editor"
+  | "weight"
   | "settings";
 
 const emptyProfile: Profile = {
@@ -57,11 +68,20 @@ function App() {
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [profile, setProfile] = useState<Profile>(emptyProfile);
+  const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
+  const [historySummaryId, setHistorySummaryId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [summaryWorkout, setSummaryWorkout] = useState<Workout | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
+  const [migrationNeeded, setMigrationNeeded] = useState(false);
+  const [migrationBusy, setMigrationBusy] = useState(false);
+  const [migrationError, setMigrationError] = useState("");
+  const [syncMessage, setSyncMessage] = useState("");
 
   async function refreshData() {
     await seedExercises();
@@ -72,12 +92,14 @@ function App() {
       templateData,
       activeData,
       profileData,
+      bodyweightData,
     ] = await Promise.all([
       exerciseRepository.getAll(),
       workoutRepository.getAll(),
       templateRepository.getAll(),
       workoutRepository.getActive(),
       profileRepository.get(),
+      bodyweightRepository.getAll(),
     ]);
 
     const normalizedWorkouts = workoutData.map(ensureWorkoutExerciseIds);
@@ -90,6 +112,7 @@ function App() {
     setTemplates(templateData);
     setActiveWorkout(normalizedActive);
     setProfile(profileData);
+    setBodyweights(bodyweightData);
 
     if (activeData && activeData.exercises.some((item) => !item.id)) {
       await workoutRepository.saveActive(normalizedActive!);
@@ -100,12 +123,108 @@ function App() {
     refreshData().finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function connectCloud(userId: string) {
+    const cloud = await loadCloudData(userId);
+    const cloudBodyweights = await loadCloudBodyweights(userId);
+    const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
+    const cloudEmpty =
+      cloud.workouts.length === 0 &&
+      cloud.templates.length === 0 &&
+      cloud.customExercises.length === 0 &&
+      !cloud.profile;
+    const hasLocal =
+      workouts.length > 0 || templates.length > 0 || localCustom.length > 0 ||
+      Boolean(profile.bodyweight);
+    if (cloudEmpty && hasLocal) {
+      setMigrationNeeded(true);
+      setCloudReady(true);
+      return;
+    }
+    const builtIns = exercises.filter((exercise) => exercise.source === "BUILT_IN");
+    setWorkouts(cloud.workouts.map(ensureWorkoutExerciseIds));
+    setTemplates(cloud.templates);
+    setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
+    if (cloud.profile) setProfile(cloud.profile);
+    setBodyweights(cloudBodyweights);
+
+    // Supabase is authoritative. IndexedDB is retained as a local cache/recovery layer.
+    await Promise.all([
+      ...cloud.workouts.map((workout) =>
+        workoutRepository.save(ensureWorkoutExerciseIds(workout)),
+      ),
+      ...cloud.templates.map((template) => templateRepository.save(template)),
+      ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
+      ...cloudBodyweights.map((entry) => bodyweightRepository.save(entry)),
+    ]);
+    setCloudReady(true);
+  }
+
+  async function migrateLocalData(userId: string) {
+    setMigrationBusy(true); setMigrationError("");
+    try {
+      const custom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
+      await Promise.all([
+        ...workouts.map((workout) => saveCloudWorkout(userId, workout)),
+        ...templates.map((template) => saveCloudTemplate(userId, template)),
+        ...custom.map((exercise) => saveCloudCustomExercise(userId, exercise)),
+        saveCloudProfile(userId, { ...profile, userId, setupCompleted: true }),
+      ]);
+      const verified = await loadCloudData(userId);
+      if (verified.workouts.length < workouts.length || verified.templates.length < templates.length) {
+        throw new Error("Cloud verification did not match the local data. Local data was kept.");
+      }
+      setProfile({ ...profile, userId, setupCompleted: true });
+      setMigrationNeeded(false);
+    } catch (error) {
+      setMigrationError(error instanceof Error ? error.message : "Migration failed.");
+    } finally { setMigrationBusy(false); }
+  }
+
+  useEffect(() => {
+    if (!session || loading || cloudReady) return;
+    void connectCloud(session.user.id).catch((error) => {
+      console.error(error);
+      setMigrationError(error instanceof Error ? error.message : "Could not load cloud data.");
+      setCloudReady(true);
+    });
+  }, [session, loading, cloudReady]);
+
+  async function cloudAction(action: () => Promise<void>) {
+    try {
+      setSyncMessage("Syncing…");
+      await action();
+      setSyncMessage("");
+      return true;
+    } catch (error) {
+      console.error(error);
+      setSyncMessage("Not synced — retry when online");
+      return false;
+    }
+  }
+
   async function startWorkout(template?: WorkoutTemplate) {
     const workout: Workout = {
       id: "active",
       startedAt: new Date(),
       completedAt: null,
       bodyweight: profile.bodyweight,
+      sourceTemplateId: template?.id,
       exercises: template
         ? template.exercises.map((item) => ({
             id: crypto.randomUUID(),
@@ -144,7 +263,21 @@ function App() {
       completedAt: new Date(),
     };
 
-    await workoutRepository.save(completed);
+    if (session) {
+      const synced = await cloudAction(() =>
+        saveCloudWorkout(session.user.id, completed),
+      );
+
+      // Keep IndexedDB as the local cache used by History and recovery.
+      await workoutRepository.save(completed);
+
+      if (!synced) {
+        setSyncMessage("Not synced — retry when online");
+      }
+    } else {
+      await workoutRepository.save(completed);
+    }
+
     await workoutRepository.clearActive();
     setActiveWorkout(null);
     setWorkouts(await workoutRepository.getAll());
@@ -189,13 +322,110 @@ function App() {
       })),
     };
 
-    await templateRepository.save(template);
+    if (session) {
+      const synced = await cloudAction(() => saveCloudTemplate(session.user.id, template));
+      if (!synced) await templateRepository.save(template);
+    } else {
+      await templateRepository.save(template);
+    }
     setTemplates(await templateRepository.getAll());
     setPage("templates");
   }
 
-  if (loading) {
+  async function applyProgressionToSourceTemplate(
+    workout: Workout,
+    exerciseId: string,
+    option: { nextWeight: number; reps: number; sets: number; restSeconds?: number },
+  ) {
+    if (!workout.sourceTemplateId) return;
+
+    const template = templates.find(
+      (candidate) => candidate.id === workout.sourceTemplateId,
+    );
+    if (!template) return;
+
+    const updated: WorkoutTemplate = {
+      ...template,
+      exercises: template.exercises.map((item) =>
+        item.exerciseId === exerciseId
+          ? {
+              ...item,
+              plannedRestSeconds:
+                option.restSeconds ?? item.plannedRestSeconds,
+              plannedSets: Array.from({ length: option.sets }, (_, index) => ({
+                order: index,
+                weight: option.nextWeight,
+                reps: option.reps,
+              })),
+            }
+          : item,
+      ),
+    };
+
+    await templateRepository.save(updated);
+    setTemplates(await templateRepository.getAll());
+  }
+
+  const profileNeedsSetup =
+    Boolean(session) &&
+    !profile.setupCompleted &&
+    !(profile.bodyweight && profile.bodyweight > 0 && profile.gender !== "UNSPECIFIED");
+
+  if (session && !profile.setupCompleted && !profileNeedsSetup) {
+    profile.setupCompleted = true;
+    profile.userId = session.user.id;
+    void profileRepository.save(profile);
+  }
+
+  if (loading || authLoading) {
     return <div className="loading">Loading LiftLog…</div>;
+  }
+
+  if (!supabaseConfigured) {
+    return (
+      <main className="auth-shell">
+        <section className="card auth-card">
+          <h1>Connect LiftLog authentication</h1>
+          <p>Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your .env file, then restart Vite.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!session) return <AuthPage />;
+
+  if (session && migrationNeeded) {
+    const customCount = exercises.filter((exercise) => exercise.source !== "BUILT_IN").length;
+    return (
+      <CloudMigrationPage
+        workouts={workouts.length}
+        templates={templates.length}
+        customExercises={customCount}
+        busy={migrationBusy}
+        error={migrationError}
+        onMigrate={() => migrateLocalData(session.user.id)}
+        onSkip={() => setMigrationNeeded(false)}
+      />
+    );
+  }
+
+  if (profileNeedsSetup) {
+    return (
+      <ProfileSetupPage
+        initial={profile}
+        email={session.user.email ?? ""}
+        onComplete={async (nextProfile) => {
+          const ownedProfile = {
+            ...nextProfile,
+            userId: session.user.id,
+            setupCompleted: true,
+          };
+          const synced = await cloudAction(() => saveCloudProfile(session.user.id, ownedProfile));
+          if (!synced) await profileRepository.save(ownedProfile);
+          setProfile(ownedProfile);
+        }}
+      />
+    );
   }
 
   return (
@@ -204,7 +434,13 @@ function App() {
         <button className="brand" onClick={() => setPage("home")}>
           LiftLog
         </button>
-        <span className="tagline">Train. Track. Progress.</span>
+        {syncMessage && <span className="sync-status">{syncMessage}</span>}
+        <div className="account-header">
+          <span className="tagline">{session.user.email}</span>
+          <button className="text-button" onClick={() => void supabase?.auth.signOut()}>
+            Sign out
+          </button>
+        </div>
       </header>
 
       <main className="page-wrap">
@@ -243,6 +479,16 @@ function App() {
             workouts={workouts}
             exercises={exercises}
             unit={profile.weightUnit}
+            sourceTemplate={
+              summaryWorkout.sourceTemplateId
+                ? templates.find(
+                    (template) => template.id === summaryWorkout.sourceTemplateId,
+                  ) ?? null
+                : null
+            }
+            onApplyProgression={(exerciseId, option) =>
+              applyProgressionToSourceTemplate(summaryWorkout, exerciseId, option)
+            }
             onDone={() => {
               setSummaryWorkout(null);
               setPage("history");
@@ -272,6 +518,7 @@ function App() {
             }
             workouts={workouts}
             unit={profile.weightUnit}
+            gender={profile.gender}
             onBack={() => {
               setSelectedExerciseId(null);
               setPage("exercises");
@@ -309,7 +556,16 @@ function App() {
               setPage("templates");
             }}
             onSave={async (template) => {
-              await templateRepository.save(template);
+              if (session) {
+                const synced = await cloudAction(() =>
+                  saveCloudTemplate(session.user.id, template),
+                );
+                // Supabase is authoritative; IndexedDB mirrors successful cloud state for UI/recovery.
+                await templateRepository.save(template);
+                if (!synced) setSyncMessage("Not synced — retry when online");
+              } else {
+                await templateRepository.save(template);
+              }
               setTemplates(await templateRepository.getAll());
               setEditingTemplateId(null);
               setPage("templates");
@@ -322,6 +578,10 @@ function App() {
             workouts={workouts}
             exercises={exercises}
             unit={profile.weightUnit}
+            onOpen={(workout) => {
+              setHistorySummaryId(workout.id);
+              setPage("history-summary");
+            }}
             onSaveTemplate={saveWorkoutAsTemplate}
             onEdit={(workout) => {
               setEditingWorkoutId(workout.id);
@@ -342,6 +602,42 @@ function App() {
           />
         )}
 
+        {page === "history-summary" && historySummaryId && (() => {
+          const historicalWorkout =
+            workouts.find((workout) => workout.id === historySummaryId) ?? null;
+          return historicalWorkout ? (
+            <WorkoutSummaryPage
+              workout={historicalWorkout}
+              workouts={workouts}
+              exercises={exercises}
+              unit={profile.weightUnit}
+              sourceTemplate={null}
+              onApplyProgression={async () => {}}
+              historical
+              onEdit={() => {
+                setEditingWorkoutId(historicalWorkout.id);
+                setPage("history-editor");
+              }}
+              onDelete={async () => {
+                if (
+                  !window.confirm(
+                    "Delete this workout permanently? This cannot be undone.",
+                  )
+                ) return;
+                await workoutRepository.remove(historicalWorkout.id);
+                setWorkouts(await workoutRepository.getAll());
+                setHistorySummaryId(null);
+                setPage("history");
+              }}
+              onSaveTemplate={() => saveWorkoutAsTemplate(historicalWorkout)}
+              onDone={() => {
+                setHistorySummaryId(null);
+                setPage("history");
+              }}
+            />
+          ) : null;
+        })()}
+
         {page === "history-editor" && (
           <HistoryWorkoutEditorPage
             workout={
@@ -358,6 +654,42 @@ function App() {
               setWorkouts(await workoutRepository.getAll());
               setEditingWorkoutId(null);
               setPage("history");
+            }}
+          />
+        )}
+
+        {page === "weight" && (
+          <WeightPage
+            entries={bodyweights}
+            unit={profile.weightUnit}
+            onAdd={async (weight, date) => {
+              if (!session) return;
+              const entry: BodyweightEntry = {
+                id: crypto.randomUUID(), userId: session.user.id, weight,
+                recordedAt: new Date(`${date}T12:00:00`).toISOString(),
+                createdAt: new Date().toISOString(),
+              };
+              const synced = await cloudAction(() => saveCloudBodyweight(session.user.id, entry));
+              await bodyweightRepository.save(entry);
+              const nextProfile = { ...profile, bodyweight: weight };
+              setProfile(nextProfile);
+              await profileRepository.save(nextProfile);
+              if (synced) await cloudAction(() => saveCloudProfile(session.user.id, nextProfile));
+              setBodyweights(await bodyweightRepository.getAll());
+            }}
+            onDelete={async (id) => {
+              if (!session) return;
+              const synced = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
+              if (!synced) return;
+              await bodyweightRepository.remove(id);
+              const remaining = await bodyweightRepository.getAll();
+              setBodyweights(remaining);
+              const latest = remaining[0];
+              if (latest) {
+                const nextProfile = { ...profile, bodyweight: latest.weight };
+                setProfile(nextProfile); await profileRepository.save(nextProfile);
+                await cloudAction(() => saveCloudProfile(session.user.id, nextProfile));
+              }
             }}
           />
         )}
@@ -381,6 +713,7 @@ function App() {
             "exercises",
             "templates",
             "history",
+            "weight",
             "settings",
           ] as Page[]
         ).map((item) => (
@@ -409,6 +742,7 @@ function navIcon(page: Page) {
     "template-editor": "▤",
     history: "◷",
     "history-editor": "◷",
+    weight: "◇",
     settings: "⚙",
   }[page];
 }

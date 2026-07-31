@@ -6,6 +6,7 @@ const defaultProfile: Profile = {
   bodyweight: null,
   gender: "UNSPECIFIED",
   weightUnit: "KG",
+  setupCompleted: false,
 };
 
 export class ProfileRepository {

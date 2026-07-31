@@ -8,6 +8,7 @@ type HistoryPageProps = {
   workouts: Workout[];
   exercises: Exercise[];
   unit: "KG" | "LB";
+  onOpen: (workout: Workout) => void;
   onSaveTemplate: (workout: Workout) => void;
   onEdit: (workout: Workout) => void;
   onDelete: (workout: Workout) => void;
@@ -17,6 +18,7 @@ export function HistoryPage({
   workouts,
   exercises,
   unit,
+  onOpen,
   onSaveTemplate,
   onEdit,
   onDelete,
@@ -45,7 +47,11 @@ export function HistoryPage({
             );
 
             return (
-              <article className="card history-card" key={workout.id}>
+              <article
+                className="card history-card history-card-clickable"
+                key={workout.id}
+                onClick={() => onOpen(workout)}
+              >
                 <div className="section-heading history-heading">
                   <div>
                     <strong>{formatDate(workout.startedAt)}</strong>
@@ -62,13 +68,13 @@ export function HistoryPage({
                   </div>
 
                   <div className="header-actions history-actions">
-                    <button className="text-button" onClick={() => onSaveTemplate(workout)}>
+                    <button className="text-button" onClick={(event) => { event.stopPropagation(); onSaveTemplate(workout); }}>
                       Save as template
                     </button>
-                    <button className="text-button" onClick={() => onEdit(workout)}>
+                    <button className="text-button" onClick={(event) => { event.stopPropagation(); onEdit(workout); }}>
                       Edit
                     </button>
-                    <button className="danger-text" onClick={() => onDelete(workout)}>
+                    <button className="danger-text" onClick={(event) => { event.stopPropagation(); onDelete(workout); }}>
                       Delete
                     </button>
                   </div>

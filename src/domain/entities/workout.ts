@@ -7,6 +7,8 @@ export interface Workout {
 
   bodyweight: number | null;
 
+  sourceTemplateId?: string;
+
   exercises: WorkoutExercise[];
 }
 

@@ -21,6 +21,7 @@ export function ExercisesPage({
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [showAddCustom, setShowAddCustom] = useState(false);
 
   const visible = useMemo(
     () =>
@@ -60,34 +61,51 @@ export function ExercisesPage({
 
     setName("");
     setError("");
+    setShowAddCustom(false);
     await onRefresh();
   }
 
   return (
     <section>
-      <h1 className="page-title">Exercises</h1>
-
-      <div className="card form-card">
-        <h2>Add custom exercise</h2>
-        <div className="add-row">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Exercise name"
-          />
-          <button className="primary" onClick={addExercise}>
-            Add
-          </button>
-        </div>
-        {error && <p className="error">{error}</p>}
+      <div className="exercise-page-header">
+        <h1 className="page-title">Exercises</h1>
+        <button
+          className="secondary add-custom-button"
+          onClick={() => setShowAddCustom((current) => !current)}
+          aria-expanded={showAddCustom}
+        >
+          <span aria-hidden="true">+</span>
+          Add custom
+        </button>
       </div>
 
       <input
-        className="search"
+        className="search exercise-search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search exercises…"
+        autoFocus
       />
+
+      {showAddCustom && (
+        <div className="card form-card add-custom-panel">
+          <h2>Add custom exercise</h2>
+          <div className="add-row">
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Exercise name"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void addExercise();
+              }}
+            />
+            <button className="primary" onClick={addExercise}>
+              Add
+            </button>
+          </div>
+          {error && <p className="error">{error}</p>}
+        </div>
+      )}
 
       <div className="exercise-list">
         {visible.map((exercise) => (

@@ -1,4 +1,7 @@
+import { useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
+import type { WorkoutTemplate } from "../domain/entities/Template";
+import type { ProgressionOption } from "../domain/analytics/progression";
 import type { Workout } from "../domain/entities/workout";
 import {
   estimated1RM,
@@ -14,9 +17,30 @@ type WorkoutSummaryPageProps = {
   workouts: Workout[];
   exercises: Exercise[];
   unit: "KG" | "LB";
+  sourceTemplate: WorkoutTemplate | null;
+  onApplyProgression: (exerciseId: string, option: ProgressionOption) => Promise<void>;
+  historical?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onDone: () => void;
   onSaveTemplate: () => void;
 };
+
+type Achievement = {
+  key: string;
+  icon: string;
+  title: string;
+  detail: string;
+};
+
+function workoutMilestones(total: number): number[] {
+  return [1, 10, 25, 50, 100, 250, 500].filter((value) => total === value);
+}
+
+function weightMilestone(weight: number): number | null {
+  const milestones = [40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 300];
+  return [...milestones].reverse().find((value) => weight >= value) ?? null;
+}
 
 function formatDuration(startedAt: Date, completedAt: Date | null): string {
   if (!completedAt) return "—";
@@ -41,13 +65,59 @@ export function WorkoutSummaryPage({
   workouts,
   exercises,
   unit,
+  sourceTemplate,
+  onApplyProgression,
+  historical = false,
+  onEdit,
+  onDelete,
   onDone,
   onSaveTemplate,
 }: WorkoutSummaryPageProps) {
+  const [updatedExercises, setUpdatedExercises] = useState<Set<string>>(new Set());
   const allPRs = getWorkoutPRs(workouts);
   const workoutPRs = [...allPRs.values()].filter(
     (record) => record.workoutId === workout.id,
   );
+
+  const achievements: Achievement[] = [];
+  const completedCount = workouts.filter((item) => item.completedAt).length;
+  for (const milestone of workoutMilestones(completedCount)) {
+    achievements.push({
+      key: `workouts-${milestone}`,
+      icon: milestone === 1 ? "🎉" : "🔥",
+      title: `${milestone} workout${milestone === 1 ? "" : "s"} completed`,
+      detail: milestone === 1 ? "Your first completed workout." : "A training consistency milestone.",
+    });
+  }
+
+  for (const item of workout.exercises) {
+    const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
+    if (!exercise || item.completedSets.length === 0) continue;
+
+    const maxWeight = Math.max(...item.completedSets.map((set) => set.weight));
+    const milestone = weightMilestone(maxWeight);
+    if (!milestone) continue;
+
+    const earlierMax = Math.max(
+      0,
+      ...workouts
+        .filter((candidate) => candidate.id !== workout.id)
+        .flatMap((candidate) =>
+          candidate.exercises
+            .filter((candidateExercise) => candidateExercise.exerciseId === item.exerciseId)
+            .flatMap((candidateExercise) => candidateExercise.completedSets.map((set) => set.weight)),
+        ),
+    );
+
+    if (earlierMax < milestone) {
+      achievements.push({
+        key: `weight-${item.exerciseId}-${milestone}`,
+        icon: "💪",
+        title: `${milestone} ${unit.toLowerCase()} ${exercise.name}`,
+        detail: `First logged set at or above ${milestone} ${unit.toLowerCase()}.`,
+      });
+    }
+  }
 
   const totalSets = workout.exercises.reduce(
     (sum, item) => sum + item.completedSets.length,
@@ -90,6 +160,23 @@ export function WorkoutSummaryPage({
           </strong>
         </article>
       </div>
+
+      {!historical && achievements.length > 0 && (
+        <article className="card summary-section achievement-section">
+          <h2>Achievements</h2>
+          <div className="achievement-list">
+            {achievements.map((achievement) => (
+              <div className="achievement-row" key={achievement.key}>
+                <span className="achievement-icon">{achievement.icon}</span>
+                <div>
+                  <strong>{achievement.title}</strong>
+                  <p>{achievement.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      )}
 
       {workoutPRs.length > 0 && (
         <article className="card summary-section">
@@ -137,7 +224,7 @@ export function WorkoutSummaryPage({
             const exercise = exercises.find(
               (candidate) => candidate.id === item.exerciseId,
             );
-            const recommendation = exercise
+            const recommendation = !historical && exercise
               ? getProgressionRecommendation(item, exercise)
               : null;
 
@@ -175,6 +262,28 @@ export function WorkoutSummaryPage({
                                   <em> · Recommended</em>
                                 )}
                               </p>
+                              {sourceTemplate &&
+                                sourceTemplate.exercises.some(
+                                  (templateExercise) =>
+                                    templateExercise.exerciseId === item.exerciseId,
+                                ) && (
+                                  <button
+                                    className="template-progression-button"
+                                    disabled={updatedExercises.has(item.exerciseId)}
+                                    onClick={async () => {
+                                      await onApplyProgression(item.exerciseId, option);
+                                      setUpdatedExercises((current) => {
+                                        const next = new Set(current);
+                                        next.add(item.exerciseId);
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    {updatedExercises.has(item.exerciseId)
+                                      ? "Template updated"
+                                      : `Apply to ${sourceTemplate.name}`}
+                                  </button>
+                                )}
                             </div>
                           </div>
                         </div>
@@ -192,8 +301,18 @@ export function WorkoutSummaryPage({
         <button className="text-button" onClick={onSaveTemplate}>
           Save as template
         </button>
+        {historical && onEdit && (
+          <button className="text-button" onClick={onEdit}>
+            Edit workout
+          </button>
+        )}
+        {historical && onDelete && (
+          <button className="danger-text" onClick={onDelete}>
+            Delete
+          </button>
+        )}
         <button className="primary" onClick={onDone}>
-          Done
+          {historical ? "Back to history" : "Done"}
         </button>
       </div>
     </section>

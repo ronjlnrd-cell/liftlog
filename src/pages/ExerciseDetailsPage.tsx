@@ -2,12 +2,14 @@ import { useMemo } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
 import { estimated1RM } from "../domain/analytics/personalRecords";
+import { getStrengthLevel, hasStrengthStandard } from "../domain/analytics/strengthStandards";
 import { formatLabel } from "../shared";
 
 type ExerciseDetailsPageProps = {
   exercise: Exercise | null;
   workouts: Workout[];
   unit: "KG" | "LB";
+  gender: "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED";
   onBack: () => void;
 };
 
@@ -29,6 +31,7 @@ export function ExerciseDetailsPage({
   exercise,
   workouts,
   unit,
+  gender,
   onBack,
 }: ExerciseDetailsPageProps) {
   const stats = useMemo(() => {
@@ -100,6 +103,9 @@ export function ExerciseDetailsPage({
     bestSet?.bodyweight && bestSet.bodyweight > 0
       ? (bestSet.estimated1RM / bestSet.bodyweight) * 100
       : null;
+  const strengthLevel = bestSet
+    ? getStrengthLevel(exercise.id, bestSet.estimated1RM, bestSet.bodyweight, gender)
+    : null;
 
   return (
     <section>
@@ -154,6 +160,23 @@ export function ExerciseDetailsPage({
               <p>
                 {formatWeight(bestSet.estimated1RM)} {unitLabel} estimated 1RM at {formatWeight(bestSet.bodyweight!)} {unitLabel} bodyweight.
               </p>
+            </div>
+          )}
+
+          {strengthLevel && (
+            <div className="card strength-level-card">
+              <div>
+                <span>Strength level</span>
+                <strong>{strengthLevel}</strong>
+              </div>
+              <p>Compared with lifters of the same gender using bodyweight-relative standards.</p>
+              <small>Strength Level community standard · 1RM estimate</small>
+            </div>
+          )}
+
+          {!strengthLevel && hasStrengthStandard(exercise.id) && gender !== "MALE" && gender !== "FEMALE" && (
+            <div className="card strength-level-card">
+              <p>Select Male or Female in Settings to show a strength level.</p>
             </div>
           )}
 

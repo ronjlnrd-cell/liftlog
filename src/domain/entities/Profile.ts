@@ -3,4 +3,6 @@ export interface Profile {
   bodyweight: number | null;
   gender: "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED";
   weightUnit: "KG" | "LB";
+  userId?: string;
+  setupCompleted?: boolean;
 }
