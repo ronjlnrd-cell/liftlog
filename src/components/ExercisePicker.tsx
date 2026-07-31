@@ -1,20 +1,31 @@
 import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
+import type { Workout } from "../domain/entities/workout";
 import { formatLabel } from "../shared";
 
 type ExercisePickerProps = {
   exercises: Exercise[];
   excludedExerciseIds: string[];
   onSelect: (exerciseId: string) => void;
+  workouts: Workout[];
 };
 
-export function ExercisePicker({ exercises, excludedExerciseIds, onSelect }: ExercisePickerProps) {
+export function ExercisePicker({ exercises, excludedExerciseIds, onSelect, workouts }: ExercisePickerProps) {
   const [query, setQuery] = useState("");
+  const [sortMode, setSortMode] = useState<"frequency" | "az">("frequency");
   const [open, setOpen] = useState(false);
 
   const availableExercises = useMemo(() => {
     const excluded = new Set(excludedExerciseIds);
     const normalizedQuery = query.trim().toLowerCase();
+
+    const frequency = new Map<string, number>();
+    for (const workout of workouts ?? []) {
+      if (!workout.completedAt) continue;
+      for (const item of workout.exercises) {
+        if (item.completedSets.length > 0) frequency.set(item.exerciseId, (frequency.get(item.exerciseId) ?? 0) + 1);
+      }
+    }
 
     return exercises
       .filter((exercise) => !excluded.has(exercise.id))
@@ -23,8 +34,12 @@ export function ExercisePicker({ exercises, excludedExerciseIds, onSelect }: Exe
         exercise.name.toLowerCase().includes(normalizedQuery) ||
         formatLabel(exercise.primaryMuscle).toLowerCase().includes(normalizedQuery),
       )
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [exercises, excludedExerciseIds, query]);
+      .sort((a, b) => {
+        if (sortMode === "az") return a.name.localeCompare(b.name);
+        const difference = (frequency.get(b.id) ?? 0) - (frequency.get(a.id) ?? 0);
+        return difference || a.name.localeCompare(b.name);
+      });
+  }, [exercises, excludedExerciseIds, query, sortMode, workouts]);
 
   function selectExercise(exerciseId: string) {
     onSelect(exerciseId);
@@ -47,6 +62,11 @@ export function ExercisePicker({ exercises, excludedExerciseIds, onSelect }: Exe
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by exercise or muscle…"
           />
+
+          <div className="exercise-sort-toggle" role="group" aria-label="Sort exercises">
+            <button className={sortMode === "frequency" ? "active" : ""} onClick={() => setSortMode("frequency")}>Most used</button>
+            <button className={sortMode === "az" ? "active" : ""} onClick={() => setSortMode("az")}>A–Z</button>
+          </div>
 
           <div className="exercise-list">
             {availableExercises.slice(0, 30).map((exercise) => (

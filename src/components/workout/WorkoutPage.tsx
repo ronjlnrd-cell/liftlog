@@ -269,6 +269,7 @@ export function WorkoutPage({
       <ExercisePicker
         exercises={exercises}
         excludedExerciseIds={[]}
+        workouts={workouts}
         onSelect={addExercise}
       />
 

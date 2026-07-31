@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
+import type { Workout } from "../domain/entities/workout";
 import { MuscleGroup } from "../domain/types/MuscleGroup";
 import { MovementPattern } from "../domain/types/MovementPattern";
 import { LoadType } from "../domain/types/LoadType";
@@ -9,12 +10,14 @@ import { formatLabel } from "../shared";
 
 type ExercisesPageProps = {
   exercises: Exercise[];
+  workouts: Workout[];
   onRefresh: () => Promise<void>;
   onOpen: (exercise: Exercise) => void;
 };
 
 export function ExercisesPage({
   exercises,
+  workouts,
   onRefresh,
   onOpen,
 }: ExercisesPageProps) {
@@ -22,16 +25,34 @@ export function ExercisesPage({
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [showAddCustom, setShowAddCustom] = useState(false);
+  const [sortMode, setSortMode] = useState<"frequency" | "alphabetical">("frequency");
 
-  const visible = useMemo(
-    () =>
-      exercises.filter(
-        (exercise) =>
-          !exercise.archivedAt &&
-          exercise.name.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [exercises, query],
-  );
+  const usageCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const workout of workouts) {
+      const performedInWorkout = new Set<string>();
+      for (const item of workout.exercises) {
+        if (item.completedSets.length > 0) performedInWorkout.add(item.exerciseId);
+      }
+      for (const exerciseId of performedInWorkout) {
+        counts.set(exerciseId, (counts.get(exerciseId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [workouts]);
+
+  const visible = useMemo(() => {
+    const filtered = exercises.filter(
+      (exercise) =>
+        !exercise.archivedAt &&
+        exercise.name.toLowerCase().includes(query.toLowerCase()),
+    );
+    return [...filtered].sort((a, b) => {
+      if (sortMode === "alphabetical") return a.name.localeCompare(b.name);
+      const difference = (usageCounts.get(b.id) ?? 0) - (usageCounts.get(a.id) ?? 0);
+      return difference || a.name.localeCompare(b.name);
+    });
+  }, [exercises, query, sortMode, usageCounts]);
 
   async function addExercise() {
     const trimmed = name.trim();
@@ -86,6 +107,10 @@ export function ExercisesPage({
         placeholder="Search exercises…"
         autoFocus
       />
+      <div className="exercise-sort-control" role="group" aria-label="Sort exercises">
+        <button className={sortMode === "frequency" ? "active" : ""} onClick={() => setSortMode("frequency")}>Most used</button>
+        <button className={sortMode === "alphabetical" ? "active" : ""} onClick={() => setSortMode("alphabetical")}>A–Z</button>
+      </div>
 
       {showAddCustom && (
         <div className="card form-card add-custom-panel">
@@ -129,6 +154,10 @@ export function ExercisesPage({
                 {formatLabel(exercise.loadType)}
               </p>
             </div>
+
+            <span className="exercise-usage-number" title={`${usageCounts.get(exercise.id) ?? 0} workouts performed`}>
+              {usageCounts.get(exercise.id) ?? 0}
+            </span>
 
             {exercise.source === ExerciseSource.CUSTOM && (
               <button

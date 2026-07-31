@@ -4,12 +4,10 @@ import type { Exercise } from "./domain/entities/Exercise";
 import type { Profile } from "./domain/entities/Profile";
 import type { WorkoutTemplate } from "./domain/entities/Template";
 import type { Workout } from "./domain/entities/workout";
-import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
 import { exerciseRepository } from "./data/repositories/ExerciseRepository";
 import { workoutRepository } from "./data/repositories/WorkoutRepository";
 import { profileRepository } from "./data/repositories/ProfileRepository";
 import { templateRepository } from "./data/repositories/TemplateRepository";
-import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
 import { seedExercises } from "./data/seedExercises";
 import { formatLabel } from "./shared";
 import { WorkoutPage } from "./components/workout/WorkoutPage";
@@ -19,14 +17,13 @@ import { TemplatesPage } from "./pages/TemplatesPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { HistoryWorkoutEditorPage } from "./pages/HistoryWorkoutEditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { WeightPage } from "./pages/WeightPage";
 import { TemplateEditorPage } from "./pages/TemplateEditorPage";
 import { ExerciseDetailsPage } from "./pages/ExerciseDetailsPage";
 import { WorkoutSummaryPage } from "./pages/WorkoutSummaryPage";
 import { AuthPage } from "./pages/AuthPage";
 import { ProfileSetupPage } from "./pages/ProfileSetupPage";
 import { CloudMigrationPage } from "./pages/CloudMigrationPage";
-import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight } from "./data/cloud/cloudData";
+import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate } from "./data/cloud/cloudData";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
@@ -41,7 +38,6 @@ type Page =
   | "history"
   | "history-summary"
   | "history-editor"
-  | "weight"
   | "settings";
 
 const emptyProfile: Profile = {
@@ -68,7 +64,6 @@ function App() {
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [profile, setProfile] = useState<Profile>(emptyProfile);
-  const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
@@ -92,14 +87,12 @@ function App() {
       templateData,
       activeData,
       profileData,
-      bodyweightData,
     ] = await Promise.all([
       exerciseRepository.getAll(),
       workoutRepository.getAll(),
       templateRepository.getAll(),
       workoutRepository.getActive(),
       profileRepository.get(),
-      bodyweightRepository.getAll(),
     ]);
 
     const normalizedWorkouts = workoutData.map(ensureWorkoutExerciseIds);
@@ -112,7 +105,6 @@ function App() {
     setTemplates(templateData);
     setActiveWorkout(normalizedActive);
     setProfile(profileData);
-    setBodyweights(bodyweightData);
 
     if (activeData && activeData.exercises.some((item) => !item.id)) {
       await workoutRepository.saveActive(normalizedActive!);
@@ -141,7 +133,6 @@ function App() {
 
   async function connectCloud(userId: string) {
     const cloud = await loadCloudData(userId);
-    const cloudBodyweights = await loadCloudBodyweights(userId);
     const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
     const cloudEmpty =
       cloud.workouts.length === 0 &&
@@ -161,7 +152,6 @@ function App() {
     setTemplates(cloud.templates);
     setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
     if (cloud.profile) setProfile(cloud.profile);
-    setBodyweights(cloudBodyweights);
 
     // Supabase is authoritative. IndexedDB is retained as a local cache/recovery layer.
     await Promise.all([
@@ -170,7 +160,6 @@ function App() {
       ),
       ...cloud.templates.map((template) => templateRepository.save(template)),
       ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
-      ...cloudBodyweights.map((entry) => bodyweightRepository.save(entry)),
     ]);
     setCloudReady(true);
   }
@@ -500,6 +489,7 @@ function App() {
         {page === "exercises" && (
           <ExercisesPage
             exercises={exercises}
+            workouts={workouts}
             onRefresh={async () =>
               setExercises(await exerciseRepository.getAll())
             }
@@ -538,6 +528,13 @@ function App() {
               setPage("template-editor");
             }}
             onDelete={async (id) => {
+              if (session) {
+                const deleted = await cloudAction(() =>
+                  deleteCloudTemplate(session.user.id, id),
+                );
+                if (!deleted) return;
+              }
+
               await templateRepository.remove(id);
               setTemplates(await templateRepository.getAll());
             }}
@@ -658,42 +655,6 @@ function App() {
           />
         )}
 
-        {page === "weight" && (
-          <WeightPage
-            entries={bodyweights}
-            unit={profile.weightUnit}
-            onAdd={async (weight, date) => {
-              if (!session) return;
-              const entry: BodyweightEntry = {
-                id: crypto.randomUUID(), userId: session.user.id, weight,
-                recordedAt: new Date(`${date}T12:00:00`).toISOString(),
-                createdAt: new Date().toISOString(),
-              };
-              const synced = await cloudAction(() => saveCloudBodyweight(session.user.id, entry));
-              await bodyweightRepository.save(entry);
-              const nextProfile = { ...profile, bodyweight: weight };
-              setProfile(nextProfile);
-              await profileRepository.save(nextProfile);
-              if (synced) await cloudAction(() => saveCloudProfile(session.user.id, nextProfile));
-              setBodyweights(await bodyweightRepository.getAll());
-            }}
-            onDelete={async (id) => {
-              if (!session) return;
-              const synced = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
-              if (!synced) return;
-              await bodyweightRepository.remove(id);
-              const remaining = await bodyweightRepository.getAll();
-              setBodyweights(remaining);
-              const latest = remaining[0];
-              if (latest) {
-                const nextProfile = { ...profile, bodyweight: latest.weight };
-                setProfile(nextProfile); await profileRepository.save(nextProfile);
-                await cloudAction(() => saveCloudProfile(session.user.id, nextProfile));
-              }
-            }}
-          />
-        )}
-
         {page === "settings" && (
           <SettingsPage
             profile={profile}
@@ -713,7 +674,6 @@ function App() {
             "exercises",
             "templates",
             "history",
-            "weight",
             "settings",
           ] as Page[]
         ).map((item) => (
@@ -742,7 +702,6 @@ function navIcon(page: Page) {
     "template-editor": "▤",
     history: "◷",
     "history-editor": "◷",
-    weight: "◇",
     settings: "⚙",
   }[page];
 }

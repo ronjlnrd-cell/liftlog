@@ -531,5 +531,17 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   z-index:3;
 }
 .clean-template-card .template-exercise-head{padding-left:36px}
-/* Weight tracking */
-.weight-log-card{display:flex;justify-content:space-between;gap:24px;align-items:end}.weight-log-card p{margin:5px 0 0}.weight-log-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.weight-log-controls label{min-width:130px}.weight-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}.weight-stats .card{display:grid;gap:5px}.weight-stats span{color:var(--muted);font-size:12px}.weight-stats strong{font-size:24px}.weight-chart-card{margin-bottom:14px}.weight-chart-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.weight-chart-head h2{margin:0}.range-tabs{display:flex;gap:4px}.range-tabs button{border:0;background:transparent;padding:7px 9px;border-radius:8px;color:var(--muted);cursor:pointer}.range-tabs button.active{background:var(--green-soft,#e8f1ec);color:var(--green-dark,#244b3a);font-weight:700}.weight-chart{width:100%;height:260px;margin-top:16px;color:var(--green-dark,#244b3a);overflow:visible}.weight-empty{min-height:180px;display:grid;place-items:center;color:var(--muted)}.weight-history h2{margin-top:0}.weight-history-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--border,#e7e7e7)}.weight-history-row>div{display:grid;gap:2px}.weight-history-row span{color:var(--muted);font-size:12px}@media(max-width:700px){.weight-log-card{display:block}.weight-log-controls{margin-top:14px}.weight-log-controls label{flex:1}.weight-log-controls .primary{width:100%}.weight-chart-head{align-items:flex-start;flex-direction:column}.weight-chart{height:210px}.weight-stats strong{font-size:20px}}
+
+.exercise-usage-count{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.exercise-sort-control{display:flex;gap:6px;margin:10px 0 14px}
+.exercise-sort-control button{border:1px solid var(--border,#ddd);background:transparent;border-radius:999px;padding:7px 12px;cursor:pointer}
+.exercise-sort-control button.active{font-weight:700;background:var(--surface,#fff)}
+.exercise-row-clickable{position:relative;padding-right:72px}
+.exercise-usage-number{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.exercise-row-clickable .danger-text{margin-right:44px}
