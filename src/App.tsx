@@ -508,14 +508,7 @@ function App() {
 
   const profileNeedsSetup =
     Boolean(session) &&
-    !profile.setupCompleted &&
-    profile.gender === "UNSPECIFIED";
-
-  if (session && !profile.setupCompleted && !profileNeedsSetup) {
-    profile.setupCompleted = true;
-    profile.userId = session.user.id;
-    void profileRepository.save(profile);
-  }
+    !profile.setupCompleted;
 
   if (loading || authLoading) {
     return <div className="loading">Loading LiftLog…</div>;
