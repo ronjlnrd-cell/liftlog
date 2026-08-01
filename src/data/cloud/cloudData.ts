@@ -36,7 +36,7 @@ export async function loadCloudData(userId: string) {
 
 export async function saveCloudProfile(userId: string, profile: Profile) {
   const { error } = await client().from("profiles").upsert({
-    user_id: userId, bodyweight: profile.bodyweight, gender: profile.gender,
+    user_id: userId, gender: profile.gender,
     weight_unit: profile.weightUnit, updated_at: new Date().toISOString(),
   });
   if (error) throw error;
