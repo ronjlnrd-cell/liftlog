@@ -271,7 +271,8 @@ function App() {
     | { kind: "bodyweight"; id: string }
     | { kind: "delete-workout"; id: string }
     | { kind: "delete-template"; id: string }
-    | { kind: "delete-bodyweight"; id: string };
+    | { kind: "delete-bodyweight"; id: string }
+    | { kind: "profile" };
 
   const pendingKey = session ? `liftlog-pending-sync:${session.user.id}` : "liftlog-pending-sync";
 
@@ -325,6 +326,9 @@ function App() {
           await deleteCloudWorkout(session.user.id, item.id);
         } else if (item.kind === "delete-template") {
           await deleteCloudTemplate(session.user.id, item.id);
+        } else if (item.kind === "profile") {
+          const profile = await profileRepository.get();
+          if (profile) await saveCloudProfile(session.user.id, profile);
         } else if (item.kind === "delete-bodyweight") {
           await deleteCloudBodyweight(session.user.id, item.id);
         }
@@ -878,6 +882,13 @@ function App() {
             onSave={async (next) => {
               await profileRepository.save(next);
               setProfile(next);
+              if (session) {
+                const synced = await cloudAction(() => saveCloudProfile(session.user.id, next));
+                if (!synced) {
+                  addPending({ kind: "profile" });
+                  setSyncMessage("Profile saved on device — cloud sync pending");
+                }
+              }
             }}
           />
         )}
