@@ -9,6 +9,9 @@ export interface Workout {
 
   sourceTemplateId?: string;
 
+  /** Set when saved locally or synced; used to resolve merge conflicts. */
+  updatedAt?: Date;
+
   exercises: WorkoutExercise[];
 }
 

@@ -26,7 +26,7 @@ import { CloudMigrationPage } from "./pages/CloudMigrationPage";
 import { WeightPage } from "./pages/WeightPage";
 import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
-import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight} from "./data/cloud/cloudData";
+import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight, type CloudWorkout } from "./data/cloud/cloudData";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
@@ -51,6 +51,15 @@ const emptyProfile: Profile = {
   weightUnit: "KG",
 };
 
+type PendingSync =
+  | { kind: "workout"; id: string }
+  | { kind: "template"; id: string }
+  | { kind: "bodyweight"; id: string }
+  | { kind: "delete-workout"; id: string }
+  | { kind: "delete-template"; id: string }
+  | { kind: "delete-bodyweight"; id: string }
+  | { kind: "profile" };
+
 function ensureWorkoutExerciseIds(workout: Workout): Workout {
   return {
     ...workout,
@@ -59,6 +68,55 @@ function ensureWorkoutExerciseIds(workout: Workout): Workout {
       id: item.id || crypto.randomUUID(),
     })),
   };
+}
+
+function chooseWorkout(
+  local: Workout,
+  cloud: CloudWorkout,
+  pending: PendingSync[],
+): Workout {
+  if (
+    pending.some(
+      (item) => item.kind === "workout" && item.id === local.id,
+    )
+  ) {
+    return local;
+  }
+
+  const cloudTime = new Date(cloud.updatedAt).getTime();
+  const localTime = local.updatedAt
+    ? new Date(local.updatedAt).getTime()
+    : new Date(local.completedAt ?? local.startedAt).getTime();
+
+  return localTime >= cloudTime ? local : cloud.workout;
+}
+
+function mergeWorkouts(
+  localWorkouts: Workout[],
+  cloudWorkouts: CloudWorkout[],
+  pending: PendingSync[],
+): Workout[] {
+  const localById = new Map(localWorkouts.map((workout) => [workout.id, workout]));
+  const merged = new Map<string, Workout>();
+
+  for (const local of localWorkouts) {
+    merged.set(local.id, local);
+  }
+
+  for (const cloud of cloudWorkouts) {
+    const local = localById.get(cloud.workout.id);
+    if (!local) {
+      merged.set(cloud.workout.id, cloud.workout);
+      continue;
+    }
+    merged.set(cloud.workout.id, chooseWorkout(local, cloud, pending));
+  }
+
+  return Array.from(merged.values()).sort(
+    (a, b) =>
+      new Date(b.completedAt ?? b.startedAt).getTime() -
+      new Date(a.completedAt ?? a.startedAt).getTime(),
+  );
 }
 
 function App() {
@@ -166,15 +224,16 @@ function App() {
     const builtIns = exercises.filter((exercise) => exercise.source === "BUILT_IN");
 
     // Local completed workouts may include offline entries that have not reached Supabase yet.
-    // Never replace them with the cloud list. Merge by id, preferring cloud copies when both exist.
+    // Merge by id: keep local when a pending sync exists, otherwise prefer the newest revision.
     const localWorkouts = (await workoutRepository.getAll()).map(ensureWorkoutExerciseIds);
-    const cloudWorkouts = cloud.workouts.map(ensureWorkoutExerciseIds);
-    const mergedWorkoutMap = new Map(localWorkouts.map((workout) => [workout.id, workout]));
-    for (const workout of cloudWorkouts) mergedWorkoutMap.set(workout.id, workout);
-    const mergedWorkouts = Array.from(mergedWorkoutMap.values()).sort(
-      (a, b) =>
-        new Date(b.completedAt ?? b.startedAt).getTime() -
-        new Date(a.completedAt ?? a.startedAt).getTime(),
+    const cloudWorkouts: CloudWorkout[] = cloud.workouts.map(({ workout, updatedAt }) => ({
+      workout: ensureWorkoutExerciseIds(workout),
+      updatedAt,
+    }));
+    const mergedWorkouts = mergeWorkouts(
+      localWorkouts,
+      cloudWorkouts,
+      readPending(),
     );
 
     const localTemplates = await templateRepository.getAll();
@@ -269,15 +328,6 @@ function App() {
       return false;
     }
   }
-
-  type PendingSync =
-    | { kind: "workout"; id: string }
-    | { kind: "template"; id: string }
-    | { kind: "bodyweight"; id: string }
-    | { kind: "delete-workout"; id: string }
-    | { kind: "delete-template"; id: string }
-    | { kind: "delete-bodyweight"; id: string }
-    | { kind: "profile" };
 
   const pendingKey = session ? `liftlog-pending-sync:${session.user.id}` : "liftlog-pending-sync";
 
@@ -398,6 +448,7 @@ function App() {
       ...activeWorkout,
       id: crypto.randomUUID(),
       completedAt: new Date(),
+      updatedAt: new Date(),
     };
 
     // Persist locally FIRST. Finishing a workout must never depend on network access.
@@ -753,7 +804,14 @@ function App() {
               }
 
               await workoutRepository.remove(workout.id);
-              setWorkouts(await workoutRepository.getAll());
+              const updated = await workoutRepository.getAll();
+              updated.sort(
+                (a, b) =>
+                  new Date(b.completedAt ?? b.startedAt).getTime() -
+                  new Date(a.completedAt ?? a.startedAt).getTime(),
+              );
+
+              setWorkouts(updated);
               if (session) {
                 const deleted = await cloudAction(() =>
                   deleteCloudWorkout(session.user.id, workout.id),
@@ -824,8 +882,27 @@ function App() {
               setPage("history");
             }}
             onSave={async (workout) => {
-              await workoutRepository.save(workout);
-              setWorkouts(await workoutRepository.getAll());
+              const toSave: Workout = { ...workout, updatedAt: new Date() };
+              await workoutRepository.save(toSave);
+
+              const updated = await workoutRepository.getAll();
+              updated.sort(
+                (a, b) =>
+                  new Date(b.completedAt ?? b.startedAt).getTime() -
+                  new Date(a.completedAt ?? a.startedAt).getTime(),
+              );
+              setWorkouts(updated);
+
+              if (session) {
+                const synced = await cloudAction(() =>
+                  saveCloudWorkout(session.user.id, toSave),
+                );
+                if (!synced) {
+                  addPending({ kind: "workout", id: toSave.id });
+                  setSyncMessage("Workout saved on device — cloud sync pending");
+                }
+              }
+
               setEditingWorkoutId(null);
               setPage("history");
             }}

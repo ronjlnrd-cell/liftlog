@@ -11,11 +11,20 @@ function client() {
   return supabase;
 }
 
+export type CloudWorkout = {
+  workout: Workout;
+  updatedAt: string;
+};
+
 export async function loadCloudData(userId: string) {
   const db = client();
   const [profiles, workouts, templates, customExercises] = await Promise.all([
     db.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-    db.from("workouts").select("data").eq("user_id", userId).order("started_at", { ascending: false }),
+    db
+      .from("workouts")
+      .select("data, updated_at")
+      .eq("user_id", userId)
+      .order("started_at", { ascending: false }),
     db.from("templates").select("data").eq("user_id", userId).order("created_at", { ascending: false }),
     db.from("custom_exercises").select("data").eq("user_id", userId),
   ]);
@@ -28,7 +37,10 @@ export async function loadCloudData(userId: string) {
   } : null;
   return {
     profile,
-    workouts: (workouts.data ?? []).map((row) => row.data as Workout),
+    workouts: (workouts.data ?? []).map((row) => ({
+      workout: row.data as Workout,
+      updatedAt: row.updated_at as string,
+    })),
     templates: (templates.data ?? []).map((row) => row.data as WorkoutTemplate),
     customExercises: (customExercises.data ?? []).map((row) => row.data as Exercise),
   };
@@ -124,5 +136,7 @@ export async function deleteCloudBodyweight(userId: string, id: string) {
     .eq("id", id)
     .select("id");
   if (error) throw error;
-  if (!data || data.length === 0) throw new Error(`Bodyweight ${id} was not deleted from Supabase.`);
+  if (!data || data.length === 0) {
+    throw new Error(`Bodyweight ${id} was not deleted from Supabase.`);
+  }
 }
