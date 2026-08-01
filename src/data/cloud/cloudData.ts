@@ -23,7 +23,7 @@ export async function loadCloudData(userId: string) {
   if (error) throw error;
   const row = profiles.data;
   const profile: Profile | null = row ? {
-    id: "profile", bodyweight: row.bodyweight == null ? null : Number(row.bodyweight),
+    id: "profile", 
     gender: row.gender, weightUnit: row.weight_unit, userId, setupCompleted: true,
   } : null;
   return {
