@@ -151,8 +151,9 @@ function App() {
       cloud.customExercises.length === 0 &&
       !cloud.profile;
     const hasLocal =
-      workouts.length > 0 || templates.length > 0 || localCustom.length > 0 ||
-      Boolean(profile.bodyweight);
+      workouts.length > 0 ||
+      templates.length > 0 ||
+      localCustom.length > 0;
     if (cloudEmpty && hasLocal) {
       setMigrationNeeded(true);
       setCloudReady(true);
@@ -355,7 +356,7 @@ function App() {
       id: "active",
       startedAt: new Date(),
       completedAt: null,
-      bodyweight: profile.bodyweight,
+      bodyweight: bodyweights.length > 0 ? bodyweights[0].weight : null,
       sourceTemplateId: template?.id,
       exercises: template
         ? template.exercises.map((item) => ({
@@ -508,7 +509,7 @@ function App() {
   const profileNeedsSetup =
     Boolean(session) &&
     !profile.setupCompleted &&
-    !(profile.bodyweight && profile.bodyweight > 0 && profile.gender !== "UNSPECIFIED");
+    profile.gender === "UNSPECIFIED";
 
   if (session && !profile.setupCompleted && !profileNeedsSetup) {
     profile.setupCompleted = true;
