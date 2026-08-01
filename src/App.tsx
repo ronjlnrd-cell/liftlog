@@ -85,6 +85,10 @@ function App() {
   const [cloudRetrying, setCloudRetrying] = useState(false);
   const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
 
+  function getLatestBodyweight() {
+  return bodyweights.length > 0 ? bodyweights[0].weight : null;
+  }
+
   async function refreshData() {
     await seedExercises();
 
@@ -356,7 +360,7 @@ function App() {
       id: "active",
       startedAt: new Date(),
       completedAt: null,
-      bodyweight: bodyweights.length > 0 ? bodyweights[0].weight : null,
+      bodyweight: getLatestBodyweight(),
       sourceTemplateId: template?.id,
       exercises: template
         ? template.exercises.map((item) => ({
@@ -849,13 +853,7 @@ function App() {
                 addPending({ kind: "bodyweight", id: entry.id });
                 setSyncMessage("Weight saved on device — cloud sync pending");
               }
-              const latest = next[0];
-              if (latest) {
-                const nextProfile = { ...profile, bodyweight: latest.weight };
-                await profileRepository.save(nextProfile);
-                setProfile(nextProfile);
-                await cloudAction(() => saveCloudProfile(session.user.id, nextProfile));
-              }
+
             }}
             onDelete={async (id) => {
               if (!session) return;
