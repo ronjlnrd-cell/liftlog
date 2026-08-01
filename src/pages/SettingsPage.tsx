@@ -99,24 +99,6 @@ export function SettingsPage({
 
       <div className="card settings-card">
         <label>
-          Bodyweight
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            value={draft.bodyweight ?? ""}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                bodyweight: event.target.value
-                  ? Number(event.target.value)
-                  : null,
-              })
-            }
-          />
-        </label>
-
-        <label>
           Gender
           <select
             value={draft.gender}

@@ -3,7 +3,6 @@ import type { Profile } from "../../domain/entities/Profile";
 
 const defaultProfile: Profile = {
   id: "profile",
-  bodyweight: null,
   gender: "UNSPECIFIED",
   weightUnit: "KG",
   setupCompleted: false,

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { ExercisePicker } from "../components/ExercisePicker";
 import type { Exercise } from "../domain/entities/Exercise";
-import type { Workout } from "../domain/entities/workout";
+import type { Workout, WorkoutExercise } from "../domain/entities/workout";
 
 type HistoryWorkoutEditorPageProps = {
   workout: Workout | null;
   exercises: Exercise[];
+  workouts: Workout[];
   onCancel: () => void;
   onSave: (workout: Workout) => Promise<void>;
 };
@@ -30,6 +32,7 @@ function toLocalDateTimeInput(value: Date): string {
 export function HistoryWorkoutEditorPage({
   workout,
   exercises,
+  workouts,
   onCancel,
   onSave,
 }: HistoryWorkoutEditorPageProps) {
@@ -110,6 +113,55 @@ export function HistoryWorkoutEditorPage({
           }
         : current,
     );
+  }
+
+  function addSet(workoutExerciseId: string) {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            exercises: current.exercises.map((item) => {
+              if (item.id !== workoutExerciseId) return item;
+
+              const previous = item.completedSets.at(-1);
+              const plannedNext = item.plannedSets[item.completedSets.length];
+              const lastOrder = previous?.order ?? -1;
+
+              return {
+                ...item,
+                completedSets: [
+                  ...item.completedSets,
+                  {
+                    order: lastOrder + 1,
+                    weight: previous?.weight ?? 0,
+                    reps: previous?.reps ?? plannedNext?.reps ?? 5,
+                  },
+                ],
+              };
+            }),
+          }
+        : current,
+    );
+  }
+
+  function addExercise(exerciseId: string) {
+    setDraft((current) => {
+      if (!current) return current;
+
+      const nextExercise: WorkoutExercise = {
+        id: crypto.randomUUID(),
+        exerciseId,
+        order: current.exercises.length,
+        plannedRestSeconds: 120,
+        plannedSets: [],
+        completedSets: [{ order: 0, weight: 0, reps: 5 }],
+      };
+
+      return {
+        ...current,
+        exercises: [...current.exercises, nextExercise],
+      };
+    });
   }
 
   function deleteExercise(workoutExerciseId: string) {
@@ -261,10 +313,25 @@ export function HistoryWorkoutEditorPage({
                   </div>
                 ))}
               </div>
+
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => addSet(item.id)}
+              >
+                + Add set
+              </button>
             </article>
           );
         })}
       </div>
+
+      <ExercisePicker
+        exercises={exercises}
+        excludedExerciseIds={[]}
+        workouts={workouts}
+        onSelect={addExercise}
+      />
 
       {setCount === 0 && (
         <p className="error history-editor-warning">

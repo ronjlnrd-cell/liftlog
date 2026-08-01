@@ -1,15 +1,26 @@
 import { useState } from "react";
 import type { Profile } from "../domain/entities/Profile";
 
-type Props = {
-  initial: Profile;
-  email: string;
-  onComplete: (profile: Profile) => Promise<void>;
+type ProfileSetupResult = {
+  profile: Profile;
+  bodyweight: number;
 };
 
-export function ProfileSetupPage({ initial, email, onComplete }: Props) {
+type Props = {
+  initial: Profile;
+  initialBodyweight: number | null;
+  email: string;
+  onComplete: (result: ProfileSetupResult) => Promise<void>;
+};
+
+export function ProfileSetupPage({
+  initial,
+  initialBodyweight,
+  email,
+  onComplete,
+}: Props) {
   const [bodyweight, setBodyweight] = useState(
-    initial.bodyweight ? String(initial.bodyweight) : "",
+    initialBodyweight ? String(initialBodyweight) : "",
   );
   const [gender, setGender] = useState<Profile["gender"]>(
     initial.gender === "UNSPECIFIED" ? "MALE" : initial.gender,
@@ -26,10 +37,12 @@ export function ProfileSetupPage({ initial, email, onComplete }: Props) {
     if (!valid) return;
     setBusy(true);
     await onComplete({
-      id: "profile",
+      profile: {
+        id: "profile",
+        gender,
+        weightUnit,
+      },
       bodyweight: parsed,
-      gender,
-      weightUnit,
     });
     setBusy(false);
   }
@@ -83,7 +96,8 @@ export function ProfileSetupPage({ initial, email, onComplete }: Props) {
 
         <p className="profile-setup-note">
           Bodyweight and gender are used for relative strength and strength-level
-          comparisons. You can change them later in Settings.
+          comparisons. You can update your weight anytime on the Weight page and
+          change preferences in Settings.
         </p>
 
         <button

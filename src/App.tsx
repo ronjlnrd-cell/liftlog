@@ -46,7 +46,6 @@ type Page =
 
 const emptyProfile: Profile = {
   id: "profile",
-  bodyweight: null,
   gender: "UNSPECIFIED",
   weightUnit: "KG",
 };
@@ -601,16 +600,38 @@ function App() {
     return (
       <ProfileSetupPage
         initial={profile}
+        initialBodyweight={getLatestBodyweight()}
         email={session.user.email ?? ""}
-        onComplete={async (nextProfile) => {
+        onComplete={async ({ profile: nextProfile, bodyweight }) => {
           const ownedProfile = {
             ...nextProfile,
             userId: session.user.id,
             setupCompleted: true,
           };
-          const synced = await cloudAction(() => saveCloudProfile(session.user.id, ownedProfile));
+          const entry: BodyweightEntry = {
+            id: crypto.randomUUID(),
+            userId: session.user.id,
+            weight: bodyweight,
+            recordedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          };
+
+          await bodyweightRepository.save(entry);
+          setBodyweights(await bodyweightRepository.getAll());
+
+          const synced = await cloudAction(() =>
+            saveCloudProfile(session.user.id, ownedProfile),
+          );
           if (!synced) await profileRepository.save(ownedProfile);
           setProfile(ownedProfile);
+
+          const weightSynced = await cloudAction(() =>
+            saveCloudBodyweight(session.user.id, entry),
+          );
+          if (!weightSynced) {
+            addPending({ kind: "bodyweight", id: entry.id });
+            setSyncMessage("Profile saved on device — cloud sync pending");
+          }
         }}
       />
     );
@@ -877,6 +898,7 @@ function App() {
               null
             }
             exercises={exercises}
+            workouts={workouts}
             onCancel={() => {
               setEditingWorkoutId(null);
               setPage("history");
