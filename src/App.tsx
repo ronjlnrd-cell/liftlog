@@ -172,20 +172,35 @@ function App() {
         new Date(a.completedAt ?? a.startedAt).getTime(),
     );
 
+    const localTemplates = await templateRepository.getAll();
+    const templateMap = new Map(cloud.templates.map((template) => [template.id, template]));
+    for (const template of localTemplates) {
+      if (!templateMap.has(template.id)) templateMap.set(template.id, template);
+    }
+    const mergedTemplates = Array.from(templateMap.values());
+
+    const localBodyweights = await bodyweightRepository.getAll();
+    const bodyweightMap = new Map(cloudBodyweights.map((entry) => [entry.id, entry]));
+    for (const entry of localBodyweights) {
+      if (!bodyweightMap.has(entry.id)) bodyweightMap.set(entry.id, entry);
+    }
+    const mergedBodyweights = Array.from(bodyweightMap.values()).sort(
+      (a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime(),
+    );
+
     setWorkouts(mergedWorkouts);
-    setTemplates(cloud.templates);
+    setTemplates(mergedTemplates);
     setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
     if (cloud.profile) setProfile(cloud.profile);
-    setBodyweights(cloudBodyweights);
+    setBodyweights(mergedBodyweights);
 
-    // Supabase is authoritative. IndexedDB is retained as a local cache/recovery layer.
     await Promise.all([
       ...mergedWorkouts.map((workout) =>
         workoutRepository.save(ensureWorkoutExerciseIds(workout)),
       ),
-      ...cloud.templates.map((template) => templateRepository.save(template)),
+      ...mergedTemplates.map((template) => templateRepository.save(template)),
       ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
-      ...cloudBodyweights.map((entry) => bodyweightRepository.save(entry)),
+      ...mergedBodyweights.map((entry) => bodyweightRepository.save(entry)),
     ]);
     setCloudLoadError("");
     setCloudReady(true);
@@ -250,39 +265,84 @@ function App() {
     }
   }
 
+  type PendingSync =
+    | { kind: "workout"; id: string }
+    | { kind: "template"; id: string }
+    | { kind: "bodyweight"; id: string }
+    | { kind: "delete-workout"; id: string }
+    | { kind: "delete-template"; id: string }
+    | { kind: "delete-bodyweight"; id: string };
+
+  const pendingKey = session ? `liftlog-pending-sync:${session.user.id}` : "liftlog-pending-sync";
+
+  function readPending(): PendingSync[] {
+    try {
+      return JSON.parse(localStorage.getItem(pendingKey) ?? "[]") as PendingSync[];
+    } catch {
+      return [];
+    }
+  }
+
+  function addPending(item: PendingSync) {
+    const pending = readPending();
+    if (!pending.some((candidate) => candidate.kind === item.kind && candidate.id === item.id)) {
+      localStorage.setItem(pendingKey, JSON.stringify([...pending, item]));
+    }
+  }
+
+  function queueDelete(kind: "workout" | "template" | "bodyweight", id: string) {
+    const pending = readPending().filter(
+      (item) => !(item.kind === kind && item.id === id),
+    );
+    const deleteKind = `delete-${kind}` as PendingSync["kind"];
+    if (!pending.some((item) => item.kind === deleteKind && item.id === id)) {
+      pending.push({ kind: deleteKind, id } as PendingSync);
+    }
+    localStorage.setItem(pendingKey, JSON.stringify(pending));
+  }
+
+  async function flushPendingSync() {
+    if (!session) return;
+    const pending = readPending();
+    if (pending.length === 0) {
+      setSyncMessage("");
+      return;
+    }
+
+    const remaining: PendingSync[] = [];
+    for (const item of pending) {
+      try {
+        if (item.kind === "workout") {
+          const workout = (await workoutRepository.getAll()).find((candidate) => candidate.id === item.id);
+          if (workout) await saveCloudWorkout(session.user.id, workout);
+        } else if (item.kind === "template") {
+          const template = (await templateRepository.getAll()).find((candidate) => candidate.id === item.id);
+          if (template) await saveCloudTemplate(session.user.id, template);
+        } else if (item.kind === "bodyweight") {
+          const entry = (await bodyweightRepository.getAll()).find((candidate) => candidate.id === item.id);
+          if (entry) await saveCloudBodyweight(session.user.id, entry);
+        } else if (item.kind === "delete-workout") {
+          await deleteCloudWorkout(session.user.id, item.id);
+        } else if (item.kind === "delete-template") {
+          await deleteCloudTemplate(session.user.id, item.id);
+        } else if (item.kind === "delete-bodyweight") {
+          await deleteCloudBodyweight(session.user.id, item.id);
+        }
+      } catch (error) {
+        console.error(error);
+        remaining.push(item);
+      }
+    }
+
+    localStorage.setItem(pendingKey, JSON.stringify(remaining));
+    setSyncMessage(remaining.length === 0 ? "" : "Some data is saved on device — cloud sync pending");
+  }
+
   useEffect(() => {
     if (!session) return;
-
-    const syncLocalWorkouts = async () => {
-      const localWorkouts = await workoutRepository.getAll();
-      if (localWorkouts.length === 0) return;
-
-      let failed = false;
-      for (const workout of localWorkouts) {
-        try {
-          await saveCloudWorkout(session.user.id, workout);
-        } catch (error) {
-          failed = true;
-          console.error(error);
-          break;
-        }
-      }
-
-      if (!failed) {
-        setSyncMessage("");
-        try {
-          await connectCloud(session.user.id);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    };
-
-    const handleOnline = () => {
-      void syncLocalWorkouts();
-    };
-
+    const handleOnline = () => void flushPendingSync();
     window.addEventListener("online", handleOnline);
+    if (navigator.onLine) void flushPendingSync();
     return () => window.removeEventListener("online", handleOnline);
   }, [session]);
 
@@ -349,6 +409,7 @@ function App() {
         saveCloudWorkout(session.user.id, completed),
       );
       if (!synced) {
+        addPending({ kind: "workout", id: completed.id });
         setSyncMessage("Workout saved on device — cloud sync pending");
       }
     }
@@ -394,13 +455,15 @@ function App() {
       })),
     };
 
+    await templateRepository.save(template);
+    setTemplates(await templateRepository.getAll());
     if (session) {
       const synced = await cloudAction(() => saveCloudTemplate(session.user.id, template));
-      if (!synced) await templateRepository.save(template);
-    } else {
-      await templateRepository.save(template);
+      if (!synced) {
+        addPending({ kind: "template", id: template.id });
+        setSyncMessage("Template saved on device — cloud sync pending");
+      }
     }
-    setTemplates(await templateRepository.getAll());
     setPage("templates");
   }
 
@@ -620,14 +683,17 @@ function App() {
               setPage("template-editor");
             }}
             onDelete={async (id) => {
+              await templateRepository.remove(id);
+              setTemplates(await templateRepository.getAll());
               if (session) {
                 const deleted = await cloudAction(() =>
                   deleteCloudTemplate(session.user.id, id),
                 );
-                if (!deleted) return;
+                if (!deleted) {
+                  queueDelete("template", id);
+                  setSyncMessage("Template deleted on device — cloud sync pending");
+                }
               }
-              await templateRepository.remove(id);
-              setTemplates(await templateRepository.getAll());
             }}
           />
         )}
@@ -644,17 +710,17 @@ function App() {
               setPage("templates");
             }}
             onSave={async (template) => {
+              await templateRepository.save(template);
+              setTemplates(await templateRepository.getAll());
               if (session) {
                 const synced = await cloudAction(() =>
                   saveCloudTemplate(session.user.id, template),
                 );
-                // Supabase is authoritative; IndexedDB mirrors successful cloud state for UI/recovery.
-                await templateRepository.save(template);
-                if (!synced) setSyncMessage("Not synced — retry when online");
-              } else {
-                await templateRepository.save(template);
+                if (!synced) {
+                  addPending({ kind: "template", id: template.id });
+                  setSyncMessage("Template saved on device — cloud sync pending");
+                }
               }
-              setTemplates(await templateRepository.getAll());
               setEditingTemplateId(null);
               setPage("templates");
             }}
@@ -684,14 +750,17 @@ function App() {
                 return;
               }
 
+              await workoutRepository.remove(workout.id);
+              setWorkouts(await workoutRepository.getAll());
               if (session) {
                 const deleted = await cloudAction(() =>
                   deleteCloudWorkout(session.user.id, workout.id),
                 );
-                if (!deleted) return;
+                if (!deleted) {
+                  queueDelete("workout", workout.id);
+                  setSyncMessage("Workout deleted on device — cloud sync pending");
+                }
               }
-              await workoutRepository.remove(workout.id);
-              setWorkouts(await workoutRepository.getAll());
             }}
           />
         )}
@@ -718,14 +787,17 @@ function App() {
                     "Delete this workout permanently? This cannot be undone.",
                   )
                 ) return;
+                await workoutRepository.remove(historicalWorkout.id);
+                setWorkouts(await workoutRepository.getAll());
                 if (session) {
                   const deleted = await cloudAction(() =>
                     deleteCloudWorkout(session.user.id, historicalWorkout.id),
                   );
-                  if (!deleted) return;
+                  if (!deleted) {
+                    queueDelete("workout", historicalWorkout.id);
+                    setSyncMessage("Workout deleted on device — cloud sync pending");
+                  }
                 }
-                await workoutRepository.remove(historicalWorkout.id);
-                setWorkouts(await workoutRepository.getAll());
                 setHistorySummaryId(null);
                 setPage("history");
               }}
@@ -771,11 +843,14 @@ function App() {
                 recordedAt: new Date(`${date}T12:00:00`).toISOString(),
                 createdAt: new Date().toISOString(),
               };
-              const saved = await cloudAction(() => saveCloudBodyweight(session.user.id, entry));
-              if (!saved) return;
               await bodyweightRepository.save(entry);
               const next = await bodyweightRepository.getAll();
               setBodyweights(next);
+              const saved = await cloudAction(() => saveCloudBodyweight(session.user.id, entry));
+              if (!saved) {
+                addPending({ kind: "bodyweight", id: entry.id });
+                setSyncMessage("Weight saved on device — cloud sync pending");
+              }
               const latest = next[0];
               if (latest) {
                 const nextProfile = { ...profile, bodyweight: latest.weight };
@@ -786,10 +861,13 @@ function App() {
             }}
             onDelete={async (id) => {
               if (!session) return;
-              const deleted = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
-              if (!deleted) return;
               await bodyweightRepository.remove(id);
               setBodyweights(await bodyweightRepository.getAll());
+              const deleted = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
+              if (!deleted) {
+                queueDelete("bodyweight", id);
+                setSyncMessage("Weight deleted on device — cloud sync pending");
+              }
             }}
           />
         )}
