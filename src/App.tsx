@@ -142,6 +142,7 @@ function App() {
   const [dbReady, setDbReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [creatingTemplate, setCreatingTemplate] = useState<WorkoutTemplate | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [historySummaryId, setHistorySummaryId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -168,6 +169,7 @@ function App() {
     setProfile(emptyProfile);
     setBodyweights([]);
     setEditingTemplateId(null);
+    setCreatingTemplate(null);
     setEditingWorkoutId(null);
     setHistorySummaryId(null);
     setSelectedExerciseId(null);
@@ -606,6 +608,17 @@ function App() {
     setPage("templates");
   }
 
+  function startCreateTemplate() {
+    setCreatingTemplate({
+      id: crypto.randomUUID(),
+      name: "",
+      createdAt: new Date(),
+      exercises: [],
+    });
+    setEditingTemplateId(null);
+    setPage("template-editor");
+  }
+
   async function applyProgressionToSourceTemplate(
     workout: Workout,
     exerciseId: string,
@@ -863,7 +876,9 @@ function App() {
             activeWorkout={activeWorkout}
             onStart={startWorkout}
             onResume={() => setPage("workout")}
+            onCreate={startCreateTemplate}
             onEdit={(template) => {
+              setCreatingTemplate(null);
               setEditingTemplateId(template.id);
               setPage("template-editor");
             }}
@@ -886,12 +901,15 @@ function App() {
         {page === "template-editor" && (
           <TemplateEditorPage
             template={
+              creatingTemplate ??
               templates.find((template) => template.id === editingTemplateId) ??
               null
             }
+            isNew={Boolean(creatingTemplate)}
             exercises={exercises}
             onCancel={() => {
               setEditingTemplateId(null);
+              setCreatingTemplate(null);
               setPage("templates");
             }}
             onSave={async (template) => {
@@ -907,6 +925,7 @@ function App() {
                 }
               }
               setEditingTemplateId(null);
+              setCreatingTemplate(null);
               setPage("templates");
             }}
           />

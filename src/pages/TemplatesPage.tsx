@@ -9,6 +9,7 @@ type TemplatesPageProps = {
   activeWorkout: Workout | null;
   onStart: (template: WorkoutTemplate) => void;
   onResume: () => void;
+  onCreate: () => void;
   onEdit: (template: WorkoutTemplate) => void;
   onDelete: (id: string) => Promise<void>;
 };
@@ -19,12 +20,18 @@ export function TemplatesPage({
   activeWorkout,
   onStart,
   onResume,
+  onCreate,
   onEdit,
   onDelete,
 }: TemplatesPageProps) {
   return (
     <section>
-      <h1 className="page-title">Templates</h1>
+      <div className="section-heading templates-page-heading">
+        <h1 className="page-title">Templates</h1>
+        <button className="primary" type="button" onClick={onCreate}>
+          Create template
+        </button>
+      </div>
 
       {activeWorkout && (
         <div className="card active-notice">
@@ -41,7 +48,7 @@ export function TemplatesPage({
       {templates.length === 0 ? (
         <EmptyState
           title="No templates yet"
-          text="Complete a workout, then save it as a template from History."
+          text="Create a template from scratch, or save a completed workout from History."
         />
       ) : (
         <div className="stack">

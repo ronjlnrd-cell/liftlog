@@ -5,11 +5,12 @@ import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Templ
 type Props = {
   template: WorkoutTemplate | null;
   exercises: Exercise[];
+  isNew?: boolean;
   onCancel: () => void;
   onSave: (template: WorkoutTemplate) => Promise<void>;
 };
 
-export function TemplateEditorPage({ template, exercises, onCancel, onSave }: Props) {
+export function TemplateEditorPage({ template, exercises, isNew = false, onCancel, onSave }: Props) {
   const [name, setName] = useState(template?.name ?? "");
   const [items, setItems] = useState<TemplateExercise[]>(template?.exercises ?? []);
   const [adding, setAdding] = useState(false);
@@ -30,7 +31,19 @@ export function TemplateEditorPage({ template, exercises, onCancel, onSave }: Pr
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [exercises, items, query]);
 
-  if (!template) return <section><h1 className="page-title">Edit Template</h1><div className="empty card"><h2>Template not found</h2><button className="primary" onClick={onCancel}>Back to Templates</button></div></section>;
+  if (!template) {
+    return (
+      <section>
+        <h1 className="page-title">Edit Template</h1>
+        <div className="empty card">
+          <h2>Template not found</h2>
+          <button className="primary" onClick={onCancel}>
+            Back to Templates
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   function normalize(next: TemplateExercise[]) {
     return next.map((x, index) => ({ ...x, order: index }));
@@ -70,7 +83,7 @@ export function TemplateEditorPage({ template, exercises, onCancel, onSave }: Pr
 
   return <section>
     <div className="section-heading template-editor-heading">
-      <div><p className="eyebrow">Template editor</p><h1 className="page-title">Edit Template</h1></div>
+      <div><p className="eyebrow">Template editor</p><h1 className="page-title">{isNew ? "Create Template" : "Edit Template"}</h1></div>
       <div className="header-actions"><button className="text-button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary" onClick={()=>void save()} disabled={!name.trim() || saving}>{saving ? "Saving…" : "Save"}</button></div>
     </div>
 
