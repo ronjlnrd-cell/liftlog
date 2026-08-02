@@ -169,29 +169,21 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
           </div>
         </div>
 
-        <div className="template-table">
-          <div className="template-table-header">
-            <span>Set</span>
-            <span>Weight (kg)</span>
-            <span>Reps</span>
-            <span></span>
-          </div>
-
+        <div className="template-sets-list">
           {item.plannedSets.map((set,setIndex)=>
-            <div className="template-table-row" key={setIndex}>
-              <div className="template-set-row-top">
-                <strong aria-label={`Set ${setIndex + 1}`}>{setIndex + 1}</strong>
+            <div className="template-set-block" key={setIndex}>
+              <div className="template-set-block-head">
+                <strong>Set {setIndex + 1}</strong>
                 <button className="icon-button set-remove" disabled={item.plannedSets.length===1} onClick={()=>updateItem(index,{plannedSets:item.plannedSets.filter((_,i)=>i!==setIndex).map((s,i)=>({...s,order:i}))})} aria-label={`Remove set ${setIndex+1}`}>×</button>
               </div>
-              <div className="template-set-fields">
-                <div className="template-weight-field">
-                  <span className="template-mobile-field-label">Weight (kg)</span>
-                  <input type="number" step="0.5" value={set.weight ?? ""} placeholder="From history" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
-                  <span className="template-weight-unit">kg</span>
-                </div>
-                <label className="template-reps-wrap">
-                  <span className="template-mobile-field-label">Reps</span>
-                  <input className="template-reps-field" type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
+              <div className="template-set-block-fields">
+                <label className="template-set-field">
+                  <span>Weight (kg)</span>
+                  <input type="number" step="0.5" value={set.weight ?? ""} placeholder="Optional" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
+                </label>
+                <label className="template-set-field template-set-field-reps">
+                  <span>Reps</span>
+                  <input type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
                 </label>
               </div>
             </div>)}

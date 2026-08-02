@@ -1162,53 +1162,64 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .rest-inline input{width:82px}
 .template-add-bottom{width:100%;margin-top:14px;padding:13px}
 
-/* Template editor table — shared */
-.clean-template-card{max-width:none}
-.template-table{margin-top:18px;width:100%}
-.template-table-header{
-  padding:0 8px 8px;
-  color:var(--muted);
-  font-size:11px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  border-bottom:1px solid var(--border,#e5e5e5);
+/* Template editor sets */
+.template-sets-list{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
 }
-.template-table-row{
-  padding:10px 8px;
+.template-set-block{
+  padding:14px 0;
   border-bottom:1px solid var(--border,#ededed);
 }
-.template-table-row:last-child{border-bottom:0}
-.template-table-row strong{font-size:14px}
-.template-table-row .template-weight-field input{width:100%;min-width:0}
-.template-table-row .template-reps-field{box-sizing:border-box}
-.template-card-footer{margin-top:6px}
-
+.template-set-block:last-child{border-bottom:0}
+.template-set-block-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.template-set-block-head strong{
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.template-set-block-fields{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 88px;
+  gap:12px;
+  align-items:end;
+}
+.template-set-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+  margin:0;
+}
+.template-set-field>span{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.template-set-field input{
+  width:100%;
+  min-width:0;
+  min-height:45px;
+  box-sizing:border-box;
+  color:var(--ink);
+  background:#fff;
+}
 @media(min-width:601px){
-  .template-table-header,
-  .template-table-row{
-    display:grid;
-    grid-template-columns:72px minmax(180px,1.6fr) minmax(90px,.7fr) 42px;
-    gap:14px;
-    align-items:center;
+  .template-set-block-fields{
+    grid-template-columns:minmax(180px,1fr) 100px;
+    max-width:520px;
   }
-  .template-table-row .template-weight-field{
-    width:100%;
-    max-width:280px;
-    grid-column:2;
-  }
-  .template-table-row .template-reps-field{
-    width:100%;
-    max-width:130px;
-    min-width:0;
-  }
-  .template-set-row-top{display:contents}
-  .template-set-row-top strong{grid-column:1}
-  .template-set-row-top .set-remove{grid-column:4;justify-self:end}
-  .template-set-fields{display:contents}
-  .template-reps-wrap{display:contents}
-  .template-reps-wrap .template-reps-field{grid-column:3}
-  .template-mobile-field-label{display:none}
 }
 
 @media(max-width:600px){
@@ -1233,67 +1244,7 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
     margin-left:0;
   }
   .rest-inline input{flex:1;max-width:120px}
-  .template-table{margin-top:12px}
-  .template-table-header{display:none}
-  .template-table-row{
-    display:flex;
-    flex-direction:column;
-    align-items:stretch;
-    gap:10px;
-    padding:14px 0;
-  }
-  .template-set-row-top{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
-  .template-set-row-top strong{
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:.04em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  .template-set-row-top strong::before{content:"Set "}
-  .template-set-fields{
-    display:flex;
-    align-items:flex-end;
-    gap:12px;
-  }
-  .template-table-row .template-weight-field{
-    flex:1;
-    min-width:0;
-    flex-direction:column;
-    align-items:stretch;
-    gap:6px;
-  }
-  .template-table-row .template-weight-field input{min-width:0}
-  .template-table-row .template-weight-field span.template-weight-unit{display:none}
-  .template-reps-wrap{
-    display:flex;
-    flex-direction:column;
-    align-items:stretch;
-    gap:6px;
-    flex:0 0 72px;
-    width:72px;
-    max-width:72px;
-  }
-  .template-table-row .template-reps-field{
-    width:100%;
-    max-width:72px;
-    min-height:45px;
-  }
-  .template-mobile-field-label{
-    display:block;
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:.04em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  .template-exercise-head{align-items:flex-start}
-  .template-exercise-head{gap:8px}
+  .template-exercise-head{align-items:flex-start;gap:8px}
   .remove-exercise{font-size:12px}
 }
 
