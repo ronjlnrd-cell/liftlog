@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Template";
+import { formatLabel } from "../shared";
 
 type Props = {
   template: WorkoutTemplate | null;
@@ -212,8 +213,26 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
       </button>
     </div>
     {adding && <article className="card template-picker">
-      <input autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>
-      <div className="template-picker-list">{available.slice(0,30).map(ex => <button key={ex.id} className="template-picker-item" onClick={()=>addExercise(ex.id)}><strong>{ex.name}</strong><span>{String(ex.primaryMuscle).replaceAll("_"," ")}</span></button>)}</div>
+      <input className="search" autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>
+      <div className="exercise-list template-picker-list">
+        {available.slice(0, 30).map((ex) => (
+          <button
+            key={ex.id}
+            type="button"
+            className="card exercise-row template-picker-item"
+            onClick={() => addExercise(ex.id)}
+          >
+            <div>
+              <strong>{ex.name}</strong>
+              <p>{formatLabel(ex.primaryMuscle)}</p>
+            </div>
+            <span className="add-custom-icon" aria-hidden="true">
+              +
+            </span>
+          </button>
+        ))}
+        {available.length === 0 && <p className="muted-center">No matching exercises.</p>}
+      </div>
     </article>}
   </section>;
 }
