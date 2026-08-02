@@ -1,5 +1,5 @@
 import type { ProgressionRecommendation, ProgressionOption } from "../../domain/analytics/progression";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
 import { formatLabel } from "../../shared";
@@ -30,6 +30,8 @@ type WorkoutExerciseCardProps = {
   onRemove: (workoutExerciseId: string) => void;
   onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
   updatesTemplate: boolean;
+  focusWeight?: boolean;
+  onWeightFocused?: () => void;
 };
 
 export function WorkoutExerciseCard({
@@ -50,7 +52,10 @@ export function WorkoutExerciseCard({
   onRemove,
   onRestChange,
   updatesTemplate,
+  focusWeight = false,
+  onWeightFocused,
 }: WorkoutExerciseCardProps) {
+  const weightInputRef = useRef<HTMLInputElement>(null);
   const plannedNext = item.plannedSets[item.completedSets.length];
   const previous = item.completedSets.at(-1);
   const [weight, setWeight] = useState(
@@ -74,6 +79,13 @@ export function WorkoutExerciseCard({
       setReps(nextPlan.reps);
     }
   }, [item.completedSets.length, item.plannedSets]);
+
+  useEffect(() => {
+    if (!focusWeight || !weightInputRef.current) return;
+    weightInputRef.current.focus();
+    weightInputRef.current.select();
+    onWeightFocused?.();
+  }, [focusWeight, onWeightFocused]);
 
   function handleApplyProgression(option: ProgressionOption) {
     onApplyProgression(option);
@@ -153,6 +165,7 @@ export function WorkoutExerciseCard({
           <label>
             Weight
             <input
+              ref={weightInputRef}
               type="number"
               min="0"
               step="0.5"

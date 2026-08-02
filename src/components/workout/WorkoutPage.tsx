@@ -37,6 +37,7 @@ export function WorkoutPage({
   onProgressionApplied,
 }: WorkoutPageProps) {
   const [restEndAt, setRestEndAt] = useState<number | null>(null);
+  const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
 
   if (!workout) {
     return (
@@ -99,6 +100,7 @@ export function WorkoutPage({
       completedSets: [],
     };
 
+    setFocusExerciseId(next.id);
     onChange({ ...workout, exercises: [...workout.exercises, next] });
   }
 
@@ -245,6 +247,15 @@ export function WorkoutPage({
     (item) => item.completedSets.length > 0,
   );
 
+  const exercisePicker = (
+    <ExercisePicker
+      exercises={exercises}
+      excludedExerciseIds={[]}
+      workouts={workouts}
+      onSelect={addExercise}
+    />
+  );
+
   return (
     <section>
       <div className="section-heading workout-heading">
@@ -270,59 +281,60 @@ export function WorkoutPage({
         <RestTimer endAt={restEndAt} onSkip={() => setRestEndAt(null)} />
       )}
 
-      <ExercisePicker
-        exercises={exercises}
-        excludedExerciseIds={[]}
-        workouts={workouts}
-        onSelect={addExercise}
-      />
+      {workout.exercises.length === 0 ? (
+        <>
+          {exercisePicker}
+          <p className="muted-center">Add your first exercise above.</p>
+        </>
+      ) : (
+        <>
+          <div className="stack">
+            {workout.exercises.map((item, index) => {
+              const exercise = exercises.find(
+                (candidate) => candidate.id === item.exerciseId,
+              );
 
-      {workout.exercises.length === 0 && (
-        <p className="muted-center">Add your first exercise above.</p>
+              return exercise ? (
+                <WorkoutExerciseCard
+                  key={item.id}
+                  exercise={exercise}
+                  item={item}
+                  unit={unit}
+                  position={index}
+                  exerciseCount={workout.exercises.length}
+                  prTypesBySet={activePRs}
+                  previousPerformance={
+                    previousPerformanceByExerciseId.get(item.exerciseId) ?? null
+                  }
+                  focusWeight={item.id === focusExerciseId}
+                  onWeightFocused={() => setFocusExerciseId(null)}
+                  onAddSet={addSet}
+                  onUpdateSet={updateSet}
+                  onDeleteSet={deleteSet}
+                  progressionRecommendation={(() => {
+                    const previous = latestCompletedExercise(item.exerciseId);
+                    const exercise = exercises.find(
+                      (candidate) => candidate.id === item.exerciseId,
+                    );
+                    return previous && exercise
+                      ? getProgressionRecommendation(previous, exercise)
+                      : null;
+                  })()}
+                  onApplyProgression={(option) =>
+                    applyProgression(item.id, item.exerciseId, option)
+                  }
+                  onMove={moveExercise}
+                  onDuplicate={duplicateExercise}
+                  onRemove={removeExercise}
+                  onRestChange={updateRest}
+                  updatesTemplate={Boolean(workout.sourceTemplateId)}
+                />
+              ) : null;
+            })}
+          </div>
+          {exercisePicker}
+        </>
       )}
-
-      <div className="stack">
-        {workout.exercises.map((item, index) => {
-          const exercise = exercises.find(
-            (candidate) => candidate.id === item.exerciseId,
-          );
-
-          return exercise ? (
-            <WorkoutExerciseCard
-              key={item.id}
-              exercise={exercise}
-              item={item}
-              unit={unit}
-              position={index}
-              exerciseCount={workout.exercises.length}
-              prTypesBySet={activePRs}
-              previousPerformance={
-                previousPerformanceByExerciseId.get(item.exerciseId) ?? null
-              }
-              onAddSet={addSet}
-              onUpdateSet={updateSet}
-              onDeleteSet={deleteSet}
-              progressionRecommendation={(() => {
-                const previous = latestCompletedExercise(item.exerciseId);
-                const exercise = exercises.find(
-                  (candidate) => candidate.id === item.exerciseId,
-                );
-                return previous && exercise
-                  ? getProgressionRecommendation(previous, exercise)
-                  : null;
-              })()}
-              onApplyProgression={(option) =>
-                applyProgression(item.id, item.exerciseId, option)
-              }
-              onMove={moveExercise}
-              onDuplicate={duplicateExercise}
-              onRemove={removeExercise}
-              onRestChange={updateRest}
-              updatesTemplate={Boolean(workout.sourceTemplateId)}
-            />
-          ) : null;
-        })}
-      </div>
     </section>
   );
 }
