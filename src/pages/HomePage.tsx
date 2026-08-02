@@ -52,28 +52,11 @@ export function HomePage({
   const now = Date.now();
   const previousWeekStart = now - 14 * DAY;
   const previousWeekEnd = now - 7 * DAY;
-  const previousWeekWorkouts = workouts.filter((workout) => {
+  const lastWeekWorkouts = workouts.filter((workout) => {
     if (!workout.completedAt) return false;
     const time = new Date(workout.completedAt).getTime();
     return time >= previousWeekStart && time < previousWeekEnd;
-  });
-  const thisWeekWorkouts = workouts.filter(
-    (workout) =>
-      workout.completedAt &&
-      new Date(workout.completedAt).getTime() >= now - 7 * DAY,
-  );
-  const countSets = (items: Workout[]) =>
-    items.reduce(
-      (sum, workout) =>
-        sum +
-        workout.exercises.reduce(
-          (exerciseSum, item) => exerciseSum + item.completedSets.length,
-          0,
-        ),
-      0,
-    );
-  const thisWeekSets = countSets(thisWeekWorkouts);
-  const previousWeekSets = countSets(previousWeekWorkouts);
+  }).length;
 
   return (
     <section>
@@ -136,6 +119,11 @@ export function HomePage({
             }
           </strong>
         </article>
+
+        <article className="card">
+          <span>Last week</span>
+          <strong>{lastWeekWorkouts}</strong>
+        </article>
       </div>
 
       <article className="card section-card">
@@ -162,27 +150,6 @@ export function HomePage({
             ))}
           </div>
         )}
-      </article>
-
-      <article className="card section-card progress-lower">
-        <div className="section-heading">
-          <div>
-            <h2>Progress</h2>
-            <p className="section-subtitle">Last 7 days vs previous 7 days</p>
-          </div>
-        </div>
-        <div className="progress-stat-grid">
-          <div className="progress-stat">
-            <span>Workouts</span>
-            <strong>{thisWeekWorkouts.length}</strong>
-            <small>Previous week: {previousWeekWorkouts.length}</small>
-          </div>
-          <div className="progress-stat">
-            <span>Completed sets</span>
-            <strong>{thisWeekSets}</strong>
-            <small>Previous week: {previousWeekSets}</small>
-          </div>
-        </div>
       </article>
     </section>
   );

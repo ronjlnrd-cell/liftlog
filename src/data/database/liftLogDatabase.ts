@@ -5,7 +5,7 @@ import type { Profile } from "../../domain/entities/Profile";
 import type { WorkoutTemplate } from "../../domain/entities/Template";
 import type { BodyweightEntry } from "../../domain/entities/BodyweightEntry";
 
-class LiftLogDatabase extends Dexie {
+export class LiftLogDatabase extends Dexie {
   exercises!: Table<Exercise, string>;
   workouts!: Table<Workout, string>;
   activeWorkout!: Table<Workout, string>;
@@ -13,8 +13,8 @@ class LiftLogDatabase extends Dexie {
   templates!: Table<WorkoutTemplate, string>;
   bodyweightEntries!: Table<BodyweightEntry, string>;
 
-  constructor() {
-    super("LiftLogDatabase");
+  constructor(databaseName: string) {
+    super(databaseName);
 
     this.version(1).stores({
       exercises: "id",
@@ -44,5 +44,3 @@ class LiftLogDatabase extends Dexie {
     });
   }
 }
-
-export const db = new LiftLogDatabase();

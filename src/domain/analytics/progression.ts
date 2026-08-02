@@ -19,7 +19,7 @@ function roundWeight(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function plannedWorkoutSucceeded(item: WorkoutExercise): boolean {
+export function plannedWorkoutSucceeded(item: WorkoutExercise): boolean {
   if (item.plannedSets.length === 0) {
     return item.completedSets.length > 0;
   }

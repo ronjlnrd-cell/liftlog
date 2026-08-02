@@ -1,5 +1,6 @@
-import { getProgressionRecommendation } from "../../domain/analytics/progression";
-import { useState } from "react";
+import { getProgressionRecommendation, type ProgressionOption } from "../../domain/analytics/progression";
+import { getPreviousPerformanceByExerciseId } from "../../domain/analytics/previousPerformance";
+import { useMemo, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
 import { ExercisePicker } from "../ExercisePicker";
@@ -17,6 +18,10 @@ type WorkoutPageProps = {
   onChange: (workout: Workout) => void;
   onFinish: () => void;
   onCancel: () => void;
+  onProgressionApplied?: (
+    exerciseId: string,
+    option: ProgressionOption,
+  ) => void | Promise<void>;
 };
 
 export function WorkoutPage({
@@ -29,6 +34,7 @@ export function WorkoutPage({
   onChange,
   onFinish,
   onCancel,
+  onProgressionApplied,
 }: WorkoutPageProps) {
   const [restEndAt, setRestEndAt] = useState<number | null>(null);
 
@@ -45,44 +51,42 @@ export function WorkoutPage({
   }
 
 
+  const previousPerformanceByExerciseId = useMemo(
+    () =>
+      getPreviousPerformanceByExerciseId(
+        history,
+        workout.exercises.map((item) => item.exerciseId),
+      ),
+    [history, workout.exercises],
+  );
+
   function latestCompletedExercise(exerciseId: string) {
-    const sorted = [...(workouts ?? [])]
-      .filter((candidate) => candidate.completedAt)
-      .sort(
-        (a, b) =>
-          new Date(b.completedAt ?? b.startedAt).getTime() -
-          new Date(a.completedAt ?? a.startedAt).getTime(),
-      );
-
-    for (const previousWorkout of sorted) {
-      const previousExercise = previousWorkout.exercises.find(
-        (item) =>
-          item.exerciseId === exerciseId && item.completedSets.length > 0,
-      );
-      if (previousExercise) return previousExercise;
-    }
-
-    return null;
+    return previousPerformanceByExerciseId.get(exerciseId) ?? null;
   }
 
   function applyProgression(
     workoutExerciseId: string,
-    option: {
-      nextWeight: number;
-      reps: number;
-      sets: number;
-      restSeconds?: number;
-    },
+    exerciseId: string,
+    option: ProgressionOption,
   ) {
-    updateExercise(workoutExerciseId, (item) => ({
-      ...item,
-      plannedRestSeconds: option.restSeconds ?? item.plannedRestSeconds,
-      plannedSets: Array.from({ length: option.sets }, (_, index) => ({
-        order: index,
-        weight: option.nextWeight,
-        reps: option.reps,
-      })),
-    }));
+    onChange({
+      ...workout,
+      exercises: workout.exercises.map((item) =>
+        item.id === workoutExerciseId
+          ? {
+              ...item,
+              plannedRestSeconds: option.restSeconds ?? item.plannedRestSeconds,
+              plannedSets: Array.from({ length: option.sets }, (_, index) => ({
+                order: index,
+                weight: option.nextWeight,
+                reps: option.reps,
+              })),
+            }
+          : item,
+      ),
+    });
+
+    void onProgressionApplied?.(exerciseId, option);
   }
 
   function addExercise(exerciseId: string) {
@@ -292,6 +296,9 @@ export function WorkoutPage({
               position={index}
               exerciseCount={workout.exercises.length}
               prTypesBySet={activePRs}
+              previousPerformance={
+                previousPerformanceByExerciseId.get(item.exerciseId) ?? null
+              }
               onAddSet={addSet}
               onUpdateSet={updateSet}
               onDeleteSet={deleteSet}
@@ -305,12 +312,13 @@ export function WorkoutPage({
                   : null;
               })()}
               onApplyProgression={(option) =>
-                applyProgression(item.id, option)
+                applyProgression(item.id, item.exerciseId, option)
               }
               onMove={moveExercise}
               onDuplicate={duplicateExercise}
               onRemove={removeExercise}
               onRestChange={updateRest}
+              updatesTemplate={Boolean(workout.sourceTemplateId)}
             />
           ) : null;
         })}

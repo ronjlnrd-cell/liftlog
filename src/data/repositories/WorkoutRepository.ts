@@ -1,29 +1,29 @@
-import { db } from "../database/db";
+import { getDb } from "../database/databaseManager";
 import type { Workout } from "../../domain/entities/workout";
 
 export class WorkoutRepository {
   async getAll(): Promise<Workout[]> {
-    return db.workouts.orderBy("startedAt").reverse().toArray();
+    return getDb().workouts.orderBy("startedAt").reverse().toArray();
   }
 
   async save(workout: Workout): Promise<void> {
-    await db.workouts.put(workout);
+    await getDb().workouts.put(workout);
   }
 
   async remove(id: string): Promise<void> {
-    await db.workouts.delete(id);
+    await getDb().workouts.delete(id);
   }
 
   async getActive(): Promise<Workout | undefined> {
-    return db.activeWorkout.get("active");
+    return getDb().activeWorkout.get("active");
   }
 
   async saveActive(workout: Workout): Promise<void> {
-    await db.activeWorkout.put({ ...workout, id: "active" });
+    await getDb().activeWorkout.put({ ...workout, id: "active" });
   }
 
   async clearActive(): Promise<void> {
-    await db.activeWorkout.delete("active");
+    await getDb().activeWorkout.delete("active");
   }
 }
 

@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
 import { formatLabel } from "../../shared";
-import { EditableCompletedSet } from "./EditableCompletedSet";
-import { activeSetKey, type PRType } from "../../domain/analytics/personalRecords";
+import type { PRType } from "../../domain/analytics/personalRecords";
+import { ProgressionPopup } from "./ProgressionPopup";
+import { WorkoutExerciseComparison } from "./WorkoutExerciseComparison";
 
 type WorkoutExerciseCardProps = {
   progressionRecommendation: ProgressionRecommendation | null;
@@ -15,6 +16,7 @@ type WorkoutExerciseCardProps = {
   position: number;
   exerciseCount: number;
   prTypesBySet: Map<string, PRType[]>;
+  previousPerformance: WorkoutExercise | null;
   onAddSet: (workoutExerciseId: string, weight: number, reps: number) => void;
   onUpdateSet: (
     workoutExerciseId: string,
@@ -27,6 +29,7 @@ type WorkoutExerciseCardProps = {
   onDuplicate: (workoutExerciseId: string) => void;
   onRemove: (workoutExerciseId: string) => void;
   onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
+  updatesTemplate: boolean;
 };
 
 export function WorkoutExerciseCard({
@@ -38,6 +41,7 @@ export function WorkoutExerciseCard({
   position,
   exerciseCount,
   prTypesBySet,
+  previousPerformance,
   onAddSet,
   onUpdateSet,
   onDeleteSet,
@@ -45,6 +49,7 @@ export function WorkoutExerciseCard({
   onDuplicate,
   onRemove,
   onRestChange,
+  updatesTemplate,
 }: WorkoutExerciseCardProps) {
   const plannedNext = item.plannedSets[item.completedSets.length];
   const previous = item.completedSets.at(-1);
@@ -54,6 +59,13 @@ export function WorkoutExerciseCard({
   const [reps, setReps] = useState(
     plannedNext?.reps ?? previous?.reps ?? 5,
   );
+  const [progressionOpen, setProgressionOpen] = useState(false);
+  const [progressionApplied, setProgressionApplied] = useState(false);
+
+  const showProgressionIcon =
+    progressionRecommendation != null &&
+    item.completedSets.length === 0 &&
+    !progressionApplied;
 
   useEffect(() => {
     const nextPlan = item.plannedSets[item.completedSets.length];
@@ -63,11 +75,30 @@ export function WorkoutExerciseCard({
     }
   }, [item.completedSets.length, item.plannedSets]);
 
+  function handleApplyProgression(option: ProgressionOption) {
+    onApplyProgression(option);
+    setProgressionApplied(true);
+    setProgressionOpen(false);
+  }
+
   return (
     <article className="card workout-card">
       <div className="section-heading">
         <div>
-          <h2>{exercise.name}</h2>
+          <div className="workout-exercise-title">
+            <h2>{exercise.name}</h2>
+            {showProgressionIcon && (
+              <button
+                type="button"
+                className="progression-icon-button"
+                aria-label="Progression recommended"
+                title="Progression recommended"
+                onClick={() => setProgressionOpen(true)}
+              >
+                ↗
+              </button>
+            )}
+          </div>
           <p>{formatLabel(exercise.primaryMuscle)}</p>
         </div>
 
@@ -75,6 +106,7 @@ export function WorkoutExerciseCard({
           <button
             className="text-button"
             aria-label={`Move ${exercise.name} up`}
+            title="Move up"
             disabled={position === 0}
             onClick={() => onMove(item.id, -1)}
           >
@@ -83,6 +115,7 @@ export function WorkoutExerciseCard({
           <button
             className="text-button"
             aria-label={`Move ${exercise.name} down`}
+            title="Move down"
             disabled={position === exerciseCount - 1}
             onClick={() => onMove(item.id, 1)}
           >
@@ -106,99 +139,73 @@ export function WorkoutExerciseCard({
         </div>
       </div>
 
-      {progressionRecommendation && item.completedSets.length === 0 && (
-        <div className="progression-reminder">
-          <strong>Progression from last workout</strong>
-          <p>Choose one target for this exercise.</p>
-          <div className="progression-reminder-options">
-            {progressionRecommendation.options.map((option, index) => (
-              <div key={option.label}>
-                {index > 0 && <div className="progression-or">or</div>}
-                <button
-                  className="progression-target-button"
-                  onClick={() => onApplyProgression(option)}
-                >
-                  <span>
-                    <strong>{option.label}</strong>
-                    {option.recommended && <em>Recommended</em>}
-                  </span>
-                  <span>{option.detail}</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <WorkoutExerciseComparison
+        item={item}
+        unit={unit}
+        previousPerformance={previousPerformance}
+        prTypesBySet={prTypesBySet}
+        onUpdateSet={onUpdateSet}
+        onDeleteSet={onDeleteSet}
+      />
 
-      {item.completedSets.length > 0 && (
-        <div className="sets-list">
-          {item.completedSets.map((set, index) => (
-            <EditableCompletedSet
-              key={set.order}
-              exerciseId={item.id}
-              set={set}
-              setNumber={index + 1}
-              unit={unit}
-              prTypes={prTypesBySet.get(activeSetKey(item.id, set.order)) ?? []}
-              onSave={onUpdateSet}
-              onDelete={onDeleteSet}
+      <div className="current-set-block">
+        <div className="set-entry">
+          <label>
+            Weight
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={weight}
+              onChange={(event) => setWeight(Number(event.target.value))}
             />
-          ))}
+          </label>
+          <label>
+            Reps
+            <input
+              type="number"
+              min="1"
+              value={reps}
+              onChange={(event) => setReps(Number(event.target.value))}
+            />
+          </label>
+          <button
+            className="primary"
+            disabled={reps < 1 || weight < 0}
+            onClick={() => onAddSet(item.id, weight, reps)}
+          >
+            Complete set
+          </button>
         </div>
-      )}
 
-      {plannedNext && (
-        <p className="plan-hint">
-          Planned next: {plannedNext.weight ?? 0} {unit.toLowerCase()} ×{" "}
-          {plannedNext.reps}
-        </p>
-      )}
-
-      <div className="set-entry">
-        <label>
-          Weight
-          <input
-            type="number"
-            min="0"
-            step="0.5"
-            value={weight}
-            onChange={(event) => setWeight(Number(event.target.value))}
-          />
+        <label className="rest-setting">
+          Rest after set
+          <select
+            value={item.plannedRestSeconds}
+            onChange={(event) =>
+              onRestChange(item.id, Number(event.target.value))
+            }
+          >
+            <option value={60}>1:00</option>
+            <option value={90}>1:30</option>
+            <option value={120}>2:00</option>
+            <option value={180}>3:00</option>
+            <option value={240}>4:00</option>
+            <option value={300}>5:00</option>
+          </select>
         </label>
-        <label>
-          Reps
-          <input
-            type="number"
-            min="1"
-            value={reps}
-            onChange={(event) => setReps(Number(event.target.value))}
-          />
-        </label>
-        <button
-          className="primary"
-          disabled={reps < 1 || weight < 0}
-          onClick={() => onAddSet(item.id, weight, reps)}
-        >
-          Complete set
-        </button>
       </div>
 
-      <label className="rest-setting">
-        Rest after set
-        <select
-          value={item.plannedRestSeconds}
-          onChange={(event) =>
-            onRestChange(item.id, Number(event.target.value))
-          }
-        >
-          <option value={60}>1:00</option>
-          <option value={90}>1:30</option>
-          <option value={120}>2:00</option>
-          <option value={180}>3:00</option>
-          <option value={240}>4:00</option>
-          <option value={300}>5:00</option>
-        </select>
-      </label>
+      {progressionOpen && progressionRecommendation && (
+        <ProgressionPopup
+          exerciseName={exercise.name}
+          unit={unit}
+          updatesTemplate={updatesTemplate}
+          recommendation={progressionRecommendation}
+          onSelect={handleApplyProgression}
+          onClose={() => setProgressionOpen(false)}
+        />
+      )}
     </article>
   );
 }

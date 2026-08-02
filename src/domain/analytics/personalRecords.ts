@@ -1,10 +1,11 @@
 import type { CompletedSet, Workout } from "../entities/workout";
 
-export type PRType = "weight" | "estimated1RM";
+export type PRType = "estimated1RM" | "repPR" | "weight";
 
 export type ExercisePRBaseline = {
   maxWeight: number;
   maxEstimated1RM: number;
+  maxWeightByReps: Map<number, number>;
 };
 
 export type SetPR = {
@@ -15,29 +16,78 @@ export type SetPR = {
   types: PRType[];
 };
 
+const PR_PRIORITY: PRType[] = ["estimated1RM", "repPR", "weight"];
+
 export function estimated1RM(set: Pick<CompletedSet, "weight" | "reps">): number {
   if (set.weight <= 0 || set.reps < 1) return 0;
   return set.weight * (1 + set.reps / 30);
+}
+
+function emptyBaseline(): ExercisePRBaseline {
+  return {
+    maxWeight: 0,
+    maxEstimated1RM: 0,
+    maxWeightByReps: new Map(),
+  };
+}
+
+function detectPRTypes(
+  set: Pick<CompletedSet, "weight" | "reps">,
+  baseline: ExercisePRBaseline,
+): PRType[] {
+  const types: PRType[] = [];
+  const e1rm = estimated1RM(set);
+
+  if (e1rm > baseline.maxEstimated1RM) types.push("estimated1RM");
+
+  const priorAtReps = baseline.maxWeightByReps.get(set.reps) ?? 0;
+  if (priorAtReps > 0 && set.weight > priorAtReps) types.push("repPR");
+
+  if (set.weight > baseline.maxWeight) types.push("weight");
+
+  return types;
+}
+
+function updateBaseline(
+  baseline: ExercisePRBaseline,
+  set: Pick<CompletedSet, "weight" | "reps">,
+): void {
+  baseline.maxWeight = Math.max(baseline.maxWeight, set.weight);
+  baseline.maxEstimated1RM = Math.max(
+    baseline.maxEstimated1RM,
+    estimated1RM(set),
+  );
+
+  const priorAtReps = baseline.maxWeightByReps.get(set.reps) ?? 0;
+  baseline.maxWeightByReps.set(
+    set.reps,
+    Math.max(priorAtReps, set.weight),
+  );
+}
+
+export function getHighestPriorityPRType(types: PRType[]): PRType | null {
+  for (const type of PR_PRIORITY) {
+    if (types.includes(type)) return type;
+  }
+  return null;
 }
 
 export function getExerciseBaseline(
   workouts: Workout[],
   exerciseId: string,
 ): ExercisePRBaseline {
-  let maxWeight = 0;
-  let maxEstimated1RM = 0;
+  const baseline = emptyBaseline();
 
   for (const workout of workouts) {
     for (const item of workout.exercises) {
       if (item.exerciseId !== exerciseId) continue;
       for (const set of item.completedSets) {
-        maxWeight = Math.max(maxWeight, set.weight);
-        maxEstimated1RM = Math.max(maxEstimated1RM, estimated1RM(set));
+        updateBaseline(baseline, set);
       }
     }
   }
 
-  return { maxWeight, maxEstimated1RM };
+  return baseline;
 }
 
 export function getWorkoutPRs(workouts: Workout[]): Map<string, SetPR> {
@@ -51,17 +101,10 @@ export function getWorkoutPRs(workouts: Workout[]): Map<string, SetPR> {
     const items = [...workout.exercises].sort((a, b) => a.order - b.order);
 
     for (const item of items) {
-      const baseline = records.get(item.exerciseId) ?? {
-        maxWeight: 0,
-        maxEstimated1RM: 0,
-      };
+      const baseline = records.get(item.exerciseId) ?? emptyBaseline();
 
       for (const set of [...item.completedSets].sort((a, b) => a.order - b.order)) {
-        const types: PRType[] = [];
-        const e1rm = estimated1RM(set);
-
-        if (set.weight > baseline.maxWeight) types.push("weight");
-        if (e1rm > baseline.maxEstimated1RM) types.push("estimated1RM");
+        const types = detectPRTypes(set, baseline);
 
         if (types.length > 0) {
           result.set(setKey(workout.id, item.id, set.order), {
@@ -73,8 +116,7 @@ export function getWorkoutPRs(workouts: Workout[]): Map<string, SetPR> {
           });
         }
 
-        baseline.maxWeight = Math.max(baseline.maxWeight, set.weight);
-        baseline.maxEstimated1RM = Math.max(baseline.maxEstimated1RM, e1rm);
+        updateBaseline(baseline, set);
       }
 
       records.set(item.exerciseId, baseline);
@@ -93,23 +135,21 @@ export function getActiveWorkoutPRs(
 
   for (const item of activeWorkout.exercises) {
     if (!baselines.has(item.exerciseId)) {
-      baselines.set(item.exerciseId, getExerciseBaseline(history, item.exerciseId));
+      baselines.set(
+        item.exerciseId,
+        getExerciseBaseline(history, item.exerciseId),
+      );
     }
 
     const baseline = baselines.get(item.exerciseId)!;
     for (const set of [...item.completedSets].sort((a, b) => a.order - b.order)) {
-      const types: PRType[] = [];
-      const e1rm = estimated1RM(set);
-
-      if (set.weight > baseline.maxWeight) types.push("weight");
-      if (e1rm > baseline.maxEstimated1RM) types.push("estimated1RM");
+      const types = detectPRTypes(set, baseline);
 
       if (types.length > 0) {
         result.set(activeSetKey(item.id, set.order), types);
       }
 
-      baseline.maxWeight = Math.max(baseline.maxWeight, set.weight);
-      baseline.maxEstimated1RM = Math.max(baseline.maxEstimated1RM, e1rm);
+      updateBaseline(baseline, set);
     }
   }
 
@@ -129,9 +169,15 @@ export function activeSetKey(workoutExerciseId: string, setOrder: number): strin
 }
 
 export function prLabel(types: PRType[]): string {
-  if (types.includes("weight") && types.includes("estimated1RM")) {
-    return "1RM + Weight PR";
+  const top = getHighestPriorityPRType(types);
+  if (!top) return "";
+
+  switch (top) {
+    case "estimated1RM":
+      return "1RM PR";
+    case "repPR":
+      return "Rep PR";
+    case "weight":
+      return "Weight PR";
   }
-  if (types.includes("weight")) return "Weight PR";
-  return "1RM PR";
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { db } from "../data/database/db";
+import { getDb } from "../data/database/databaseManager";
 import type { Profile } from "../domain/entities/Profile";
 
 type SettingsPageProps = {
@@ -18,6 +18,7 @@ export function SettingsPage({
   const importRef = useRef<HTMLInputElement>(null);
 
   async function exportBackup() {
+    const db = getDb();
     const backup: LiftLogBackup = {
       app: "LiftLog",
       version: 1,
@@ -62,6 +63,7 @@ export function SettingsPage({
   async function importBackup(mode: "merge" | "replace") {
     if (!pendingBackup) return;
     const data = pendingBackup.data;
+    const db = getDb();
 
     await db.transaction(
       "rw",
@@ -154,14 +156,31 @@ export function SettingsPage({
         </div>
 
         <div className="backup-actions">
-          <button className="secondary" onClick={exportBackup}>
-            Export backup
+          <button
+            type="button"
+            className="backup-action-button backup-export"
+            onClick={exportBackup}
+          >
+            <span className="backup-action-icon" aria-hidden="true">
+              ↓
+            </span>
+            <span className="backup-action-copy">
+              <strong>Export backup</strong>
+              <small>Download a JSON file</small>
+            </span>
           </button>
           <button
-            className="secondary"
+            type="button"
+            className="backup-action-button backup-import"
             onClick={() => importRef.current?.click()}
           >
-            Import backup
+            <span className="backup-action-icon" aria-hidden="true">
+              ↑
+            </span>
+            <span className="backup-action-copy">
+              <strong>Import backup</strong>
+              <small>Restore from a file</small>
+            </span>
           </button>
           <input
             ref={importRef}
@@ -189,13 +208,15 @@ export function SettingsPage({
             </small>
             <div className="backup-import-actions">
               <button
-                className="secondary"
+                type="button"
+                className="backup-confirm-button backup-merge"
                 onClick={() => void importBackup("merge")}
               >
                 Merge with current data
               </button>
               <button
-                className="danger-text"
+                type="button"
+                className="backup-confirm-button backup-replace"
                 onClick={() => {
                   if (
                     window.confirm(

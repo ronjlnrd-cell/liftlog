@@ -1,4 +1,4 @@
-import { db } from "../database/db";
+import { getDb } from "../database/databaseManager";
 import type { Profile } from "../../domain/entities/Profile";
 
 const defaultProfile: Profile = {
@@ -10,11 +10,11 @@ const defaultProfile: Profile = {
 
 export class ProfileRepository {
   async get(): Promise<Profile> {
-    return (await db.profile.get("profile")) ?? defaultProfile;
+    return (await getDb().profile.get("profile")) ?? defaultProfile;
   }
 
   async save(profile: Profile): Promise<void> {
-    await db.profile.put(profile);
+    await getDb().profile.put(profile);
   }
 }
 

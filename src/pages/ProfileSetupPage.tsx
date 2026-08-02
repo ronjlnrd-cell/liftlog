@@ -29,6 +29,7 @@ export function ProfileSetupPage({
     initial.weightUnit,
   );
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const parsed = Number(bodyweight);
   const valid = Number.isFinite(parsed) && parsed > 0;
@@ -36,15 +37,25 @@ export function ProfileSetupPage({
   async function complete() {
     if (!valid) return;
     setBusy(true);
-    await onComplete({
-      profile: {
-        id: "profile",
-        gender,
-        weightUnit,
-      },
-      bodyweight: parsed,
-    });
-    setBusy(false);
+    setError("");
+    try {
+      await onComplete({
+        profile: {
+          id: "profile",
+          gender,
+          weightUnit,
+        },
+        bodyweight: parsed,
+      });
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not save your profile. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -107,6 +118,8 @@ export function ProfileSetupPage({
         >
           {busy ? "Saving…" : "Continue"}
         </button>
+
+        {error && <p className="error">{error}</p>}
       </section>
     </main>
   );

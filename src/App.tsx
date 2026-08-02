@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import type { Exercise } from "./domain/entities/Exercise";
 import type { Profile } from "./domain/entities/Profile";
@@ -26,6 +26,10 @@ import { CloudMigrationPage } from "./pages/CloudMigrationPage";
 import { WeightPage } from "./pages/WeightPage";
 import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
+import {
+  closeUserDatabase,
+  openUserDatabase,
+} from "./data/database/databaseManager";
 import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight, type CloudWorkout } from "./data/cloud/cloudData";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
@@ -90,6 +94,17 @@ function chooseWorkout(
   return localTime >= cloudTime ? local : cloud.workout;
 }
 
+function compareWorkoutsNewestFirst(a: Workout, b: Workout): number {
+  return (
+    new Date(b.completedAt ?? b.startedAt).getTime() -
+    new Date(a.completedAt ?? a.startedAt).getTime()
+  );
+}
+
+function sortWorkoutsByDate(workouts: Workout[]): Workout[] {
+  return [...workouts].sort(compareWorkoutsNewestFirst);
+}
+
 function mergeWorkouts(
   localWorkouts: Workout[],
   cloudWorkouts: CloudWorkout[],
@@ -111,14 +126,11 @@ function mergeWorkouts(
     merged.set(cloud.workout.id, chooseWorkout(local, cloud, pending));
   }
 
-  return Array.from(merged.values()).sort(
-    (a, b) =>
-      new Date(b.completedAt ?? b.startedAt).getTime() -
-      new Date(a.completedAt ?? a.startedAt).getTime(),
-  );
+  return sortWorkoutsByDate(Array.from(merged.values()));
 }
 
 function App() {
+  const activeUserIdRef = useRef<string | null>(null);
   const [page, setPage] = useState<Page>("home");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -127,6 +139,7 @@ function App() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dbReady, setDbReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
@@ -144,6 +157,25 @@ function App() {
 
   function getLatestBodyweight() {
   return bodyweights.length > 0 ? bodyweights[0].weight : null;
+  }
+
+  function resetAppState() {
+    setPage("home");
+    setExercises([]);
+    setWorkouts([]);
+    setTemplates([]);
+    setActiveWorkout(null);
+    setProfile(emptyProfile);
+    setBodyweights([]);
+    setEditingTemplateId(null);
+    setEditingWorkoutId(null);
+    setHistorySummaryId(null);
+    setSelectedExerciseId(null);
+    setSummaryWorkout(null);
+    setMigrationNeeded(false);
+    setMigrationError("");
+    setSyncMessage("");
+    setCloudLoadError("");
   }
 
   async function refreshData() {
@@ -183,10 +215,6 @@ function App() {
   }
 
   useEffect(() => {
-    refreshData().finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
     if (!supabase) {
       setAuthLoading(false);
       return;
@@ -201,6 +229,59 @@ function App() {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    let cancelled = false;
+    const userId = session?.user.id ?? null;
+
+    if (userId === activeUserIdRef.current && dbReady) {
+      return;
+    }
+
+    async function syncDatabaseToSession() {
+      setDbReady(false);
+      setCloudReady(false);
+
+      try {
+        if (!userId) {
+          await closeUserDatabase();
+          if (cancelled) return;
+          activeUserIdRef.current = null;
+          resetAppState();
+          return;
+        }
+
+        await openUserDatabase(userId);
+        if (cancelled) return;
+
+        activeUserIdRef.current = userId;
+        resetAppState();
+        await refreshData();
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          setCloudLoadError(
+            error instanceof Error
+              ? error.message
+              : "Could not open local database.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setDbReady(true);
+          setLoading(false);
+        }
+      }
+    }
+
+    void syncDatabaseToSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user.id, authLoading]);
 
   async function connectCloud(userId: string) {
     const cloud = await loadCloudData(userId);
@@ -222,7 +303,6 @@ function App() {
     }
     const builtIns = exercises.filter((exercise) => exercise.source === "BUILT_IN");
 
-    // Local completed workouts may include offline entries that have not reached Supabase yet.
     // Merge by id: keep local when a pending sync exists, otherwise prefer the newest revision.
     const localWorkouts = (await workoutRepository.getAll()).map(ensureWorkoutExerciseIds);
     const cloudWorkouts: CloudWorkout[] = cloud.workouts.map(({ workout, updatedAt }) => ({
@@ -305,7 +385,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (!session || loading || cloudReady) return;
+    if (!session || !dbReady || cloudReady) return;
     void connectCloud(session.user.id).catch((error) => {
       console.error(error);
       setCloudLoadError(error instanceof Error ? error.message : "Could not load cloud data.");
@@ -313,7 +393,7 @@ function App() {
       // so this effect does not continuously retry and disrupt local History.
       setCloudReady(true);
     });
-  }, [session, loading, cloudReady]);
+  }, [session?.user.id, dbReady, cloudReady]);
 
   async function cloudAction(action: () => Promise<void>) {
     try {
@@ -397,12 +477,12 @@ function App() {
   }
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !dbReady) return;
     const handleOnline = () => void flushPendingSync();
     window.addEventListener("online", handleOnline);
     if (navigator.onLine) void flushPendingSync();
     return () => window.removeEventListener("online", handleOnline);
-  }, [session]);
+  }, [session?.user.id, dbReady]);
 
   async function startWorkout(template?: WorkoutTemplate) {
     const workout: Workout = {
@@ -558,13 +638,23 @@ function App() {
 
     await templateRepository.save(updated);
     setTemplates(await templateRepository.getAll());
+
+    if (session) {
+      const synced = await cloudAction(() =>
+        saveCloudTemplate(session.user.id, updated),
+      );
+      if (!synced) {
+        addPending({ kind: "template", id: updated.id });
+        setSyncMessage("Template updated on device — cloud sync pending");
+      }
+    }
   }
 
   const profileNeedsSetup =
     Boolean(session) &&
     !profile.setupCompleted;
 
-  if (loading || authLoading) {
+  if (authLoading || loading || (session && !dbReady)) {
     return <div className="loading">Loading LiftLog…</div>;
   }
 
@@ -688,6 +778,15 @@ function App() {
             onChange={updateActiveWorkout}
             onFinish={finishWorkout}
             onCancel={cancelWorkout}
+            onProgressionApplied={(exerciseId, option) => {
+              if (activeWorkout) {
+                return applyProgressionToSourceTemplate(
+                  activeWorkout,
+                  exerciseId,
+                  option,
+                );
+              }
+            }}
           />
         )}
 
@@ -704,9 +803,21 @@ function App() {
                   ) ?? null
                 : null
             }
-            onApplyProgression={(exerciseId, option) =>
-              applyProgressionToSourceTemplate(summaryWorkout, exerciseId, option)
-            }
+            onApplyProgression={(exerciseId, suggestion) => {
+              const workoutExercise = summaryWorkout.exercises.find(
+                (item) => item.exerciseId === exerciseId,
+              );
+              return applyProgressionToSourceTemplate(
+                summaryWorkout,
+                exerciseId,
+                {
+                  nextWeight: suggestion.nextWeight,
+                  reps: suggestion.reps,
+                  sets: suggestion.sets,
+                  restSeconds: workoutExercise?.plannedRestSeconds,
+                },
+              );
+            }}
             onDone={() => {
               setSummaryWorkout(null);
               setPage("history");
@@ -805,6 +916,7 @@ function App() {
           <HistoryPage
             workouts={workouts}
             exercises={exercises}
+            templates={templates}
             unit={profile.weightUnit}
             onOpen={(workout) => {
               setHistorySummaryId(workout.id);
@@ -825,14 +937,7 @@ function App() {
               }
 
               await workoutRepository.remove(workout.id);
-              const updated = await workoutRepository.getAll();
-              updated.sort(
-                (a, b) =>
-                  new Date(b.completedAt ?? b.startedAt).getTime() -
-                  new Date(a.completedAt ?? a.startedAt).getTime(),
-              );
-
-              setWorkouts(updated);
+              setWorkouts(sortWorkoutsByDate(await workoutRepository.getAll()));
               if (session) {
                 const deleted = await cloudAction(() =>
                   deleteCloudWorkout(session.user.id, workout.id),
@@ -855,8 +960,6 @@ function App() {
               workouts={workouts}
               exercises={exercises}
               unit={profile.weightUnit}
-              sourceTemplate={null}
-              onApplyProgression={async () => {}}
               historical
               onEdit={() => {
                 setEditingWorkoutId(historicalWorkout.id);
@@ -907,13 +1010,7 @@ function App() {
               const toSave: Workout = { ...workout, updatedAt: new Date() };
               await workoutRepository.save(toSave);
 
-              const updated = await workoutRepository.getAll();
-              updated.sort(
-                (a, b) =>
-                  new Date(b.completedAt ?? b.startedAt).getTime() -
-                  new Date(a.completedAt ?? a.startedAt).getTime(),
-              );
-              setWorkouts(updated);
+              setWorkouts(sortWorkoutsByDate(await workoutRepository.getAll()));
 
               if (session) {
                 const synced = await cloudAction(() =>
@@ -989,7 +1086,6 @@ function App() {
         {(
           [
             "home",
-            "workout",
             "exercises",
             "templates",
             "history",

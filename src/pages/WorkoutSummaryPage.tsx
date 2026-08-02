@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { WorkoutTemplate } from "../domain/entities/Template";
-import type { ProgressionOption } from "../domain/analytics/progression";
 import type { Workout } from "../domain/entities/workout";
 import {
   estimated1RM,
@@ -9,16 +8,22 @@ import {
   prLabel,
   setKey,
 } from "../domain/analytics/personalRecords";
+import {
+  getProgressionCoachPlan,
+  type ProgressionCoachSuggestion,
+} from "../domain/analytics/progressionCoach";
 import { formatDate } from "../shared";
-import { getProgressionRecommendation } from "../domain/analytics/progression";
 
 type WorkoutSummaryPageProps = {
   workout: Workout;
   workouts: Workout[];
   exercises: Exercise[];
   unit: "KG" | "LB";
-  sourceTemplate: WorkoutTemplate | null;
-  onApplyProgression: (exerciseId: string, option: ProgressionOption) => Promise<void>;
+  sourceTemplate?: WorkoutTemplate | null;
+  onApplyProgression?: (
+    exerciseId: string,
+    suggestion: ProgressionCoachSuggestion,
+  ) => Promise<void>;
   historical?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -65,7 +70,7 @@ export function WorkoutSummaryPage({
   workouts,
   exercises,
   unit,
-  sourceTemplate,
+  sourceTemplate = null,
   onApplyProgression,
   historical = false,
   onEdit,
@@ -73,11 +78,48 @@ export function WorkoutSummaryPage({
   onDone,
   onSaveTemplate,
 }: WorkoutSummaryPageProps) {
-  const [updatedExercises, setUpdatedExercises] = useState<Set<string>>(new Set());
+  const [declinedExerciseIds, setDeclinedExerciseIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [appliedExerciseIds, setAppliedExerciseIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [applyingExerciseId, setApplyingExerciseId] = useState<string | null>(
+    null,
+  );
+
   const allPRs = getWorkoutPRs(workouts);
   const workoutPRs = [...allPRs.values()].filter(
     (record) => record.workoutId === workout.id,
   );
+
+  const progressionCoachPlan = useMemo(
+    () => (historical ? [] : getProgressionCoachPlan(workout, exercises)),
+    [historical, workout, exercises],
+  );
+
+  const visibleCoachPlan = progressionCoachPlan.filter(
+    (advice) => !declinedExerciseIds.has(advice.exerciseId),
+  );
+
+  async function handleApplyProgression(
+    exerciseId: string,
+    suggestion: ProgressionCoachSuggestion,
+  ) {
+    if (!onApplyProgression || appliedExerciseIds.has(exerciseId)) return;
+
+    setApplyingExerciseId(exerciseId);
+    try {
+      await onApplyProgression(exerciseId, suggestion);
+      setAppliedExerciseIds((current) => new Set(current).add(exerciseId));
+    } finally {
+      setApplyingExerciseId(null);
+    }
+  }
+
+  function declineProgression(exerciseId: string) {
+    setDeclinedExerciseIds((current) => new Set(current).add(exerciseId));
+  }
 
   const achievements: Achievement[] = [];
   const completedCount = workouts.filter((item) => item.completedAt).length;
@@ -217,6 +259,104 @@ export function WorkoutSummaryPage({
         </article>
       )}
 
+      {!historical && visibleCoachPlan.length > 0 && (
+        <article className="card summary-section progression-coach-section">
+          <h2>Progression Coach</h2>
+          <p className="section-subtitle">
+            Suggested targets for your next session.
+            {sourceTemplate && " Apply to update your template."}
+          </p>
+          <div className="progression-coach-list">
+            {visibleCoachPlan.map((advice) => {
+              const exercise = exercises.find(
+                (candidate) => candidate.id === advice.exerciseId,
+              );
+              const canApplyToTemplate =
+                sourceTemplate != null &&
+                sourceTemplate.exercises.some(
+                  (item) => item.exerciseId === advice.exerciseId,
+                );
+              const applied = appliedExerciseIds.has(advice.exerciseId);
+              const applying = applyingExerciseId === advice.exerciseId;
+
+              return (
+                <div className="progression-coach-exercise" key={advice.exerciseId}>
+                  <div className="progression-coach-header">
+                    <strong>{exercise?.name ?? "Exercise"}</strong>
+                    <span className="progression-coach-status">
+                      {applied ? "Template updated" : advice.comparison.headline}
+                    </span>
+                  </div>
+                  <p className="progression-coach-comparison">
+                    {advice.comparison.detail}
+                  </p>
+                  <div className="progression-coach-suggestions">
+                    {advice.suggestions.map((suggestion, index) => (
+                      <div key={suggestion.type}>
+                        {index > 0 && <div className="progression-or">or</div>}
+                        {canApplyToTemplate && onApplyProgression ? (
+                          <button
+                            type="button"
+                            className={`progression-coach-suggestion apply${
+                              suggestion.recommended ? " recommended" : ""
+                            }${applied ? " applied" : ""}`}
+                            disabled={applied || applying}
+                            onClick={() =>
+                              void handleApplyProgression(
+                                advice.exerciseId,
+                                suggestion,
+                              )
+                            }
+                          >
+                            <strong>{suggestion.label}</strong>
+                            <p>
+                              {suggestion.detail} {unit.toLowerCase()}
+                              {suggestion.recommended && (
+                                <em> · Recommended</em>
+                              )}
+                            </p>
+                            <span className="progression-coach-apply-label">
+                              {applied
+                                ? "Applied to template"
+                                : applying
+                                  ? "Updating template…"
+                                  : `Apply to ${sourceTemplate.name}`}
+                            </span>
+                          </button>
+                        ) : (
+                          <div
+                            className={`progression-coach-suggestion${
+                              suggestion.recommended ? " recommended" : ""
+                            }`}
+                          >
+                            <strong>{suggestion.label}</strong>
+                            <p>
+                              {suggestion.detail} {unit.toLowerCase()}
+                              {suggestion.recommended && (
+                                <em> · Recommended</em>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {!applied && (
+                    <button
+                      type="button"
+                      className="text-button progression-coach-decline"
+                      onClick={() => declineProgression(advice.exerciseId)}
+                    >
+                      Decline progression
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </article>
+      )}
+
       <article className="card summary-section">
         <h2>Exercises</h2>
         <div className="summary-exercises">
@@ -224,9 +364,6 @@ export function WorkoutSummaryPage({
             const exercise = exercises.find(
               (candidate) => candidate.id === item.exerciseId,
             );
-            const recommendation = !historical && exercise
-              ? getProgressionRecommendation(item, exercise)
-              : null;
 
             return (
               <div className="summary-exercise" key={item.id}>
@@ -242,55 +379,6 @@ export function WorkoutSummaryPage({
                     )
                     .join("  ·  ")}
                 </p>
-
-                {recommendation && (
-                  <div className="progression-recommendation">
-                    <strong className="progression-title">
-                      Choose one progression
-                    </strong>
-                    <div className="progression-options">
-                      {recommendation.options.map((option, index) => (
-                        <div key={option.label}>
-                          {index > 0 && <div className="progression-or">or</div>}
-                          <div className="progression-option">
-                            <span>•</span>
-                            <div>
-                              <strong>{option.label}</strong>
-                              <p>
-                                {option.detail} {unit.toLowerCase()}
-                                {option.recommended && (
-                                  <em> · Recommended</em>
-                                )}
-                              </p>
-                              {sourceTemplate &&
-                                sourceTemplate.exercises.some(
-                                  (templateExercise) =>
-                                    templateExercise.exerciseId === item.exerciseId,
-                                ) && (
-                                  <button
-                                    className="template-progression-button"
-                                    disabled={updatedExercises.has(item.exerciseId)}
-                                    onClick={async () => {
-                                      await onApplyProgression(item.exerciseId, option);
-                                      setUpdatedExercises((current) => {
-                                        const next = new Set(current);
-                                        next.add(item.exerciseId);
-                                        return next;
-                                      });
-                                    }}
-                                  >
-                                    {updatedExercises.has(item.exerciseId)
-                                      ? "Template updated"
-                                      : `Apply to ${sourceTemplate.name}`}
-                                  </button>
-                                )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -298,9 +386,11 @@ export function WorkoutSummaryPage({
       </article>
 
       <div className="summary-actions">
-        <button className="text-button" onClick={onSaveTemplate}>
-          Save as template
-        </button>
+        {!workout.sourceTemplateId && (
+          <button className="text-button" onClick={onSaveTemplate}>
+            Save as template
+          </button>
+        )}
         {historical && onEdit && (
           <button className="text-button" onClick={onEdit}>
             Edit workout

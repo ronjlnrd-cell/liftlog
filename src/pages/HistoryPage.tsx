@@ -1,4 +1,5 @@
 import type { Exercise } from "../domain/entities/Exercise";
+import type { WorkoutTemplate } from "../domain/entities/Template";
 import type { Workout } from "../domain/entities/workout";
 import { estimated1RM, getWorkoutPRs, prLabel, setKey } from "../domain/analytics/personalRecords";
 import { formatDate } from "../shared";
@@ -7,6 +8,7 @@ import { EmptyState } from "./components/EmptyState";
 type HistoryPageProps = {
   workouts: Workout[];
   exercises: Exercise[];
+  templates: WorkoutTemplate[];
   unit: "KG" | "LB";
   onOpen: (workout: Workout) => void;
   onSaveTemplate: (workout: Workout) => void;
@@ -17,6 +19,7 @@ type HistoryPageProps = {
 export function HistoryPage({
   workouts,
   exercises,
+  templates,
   unit,
   onOpen,
   onSaveTemplate,
@@ -45,6 +48,9 @@ export function HistoryPage({
                 ).length,
               0,
             );
+            const sourceTemplate = workout.sourceTemplateId
+              ? templates.find((template) => template.id === workout.sourceTemplateId)
+              : null;
 
             return (
               <article
@@ -54,7 +60,15 @@ export function HistoryPage({
               >
                 <div className="section-heading history-heading">
                   <div>
-                    <strong>{formatDate(workout.startedAt)}</strong>
+                    <strong>
+                      {formatDate(workout.startedAt)}
+                      {sourceTemplate && (
+                        <span className="history-template-label">
+                          {" "}
+                          · {sourceTemplate.name}
+                        </span>
+                      )}
+                    </strong>
                     <p>
                       {workout.exercises.reduce(
                         (sum, exercise) => sum + exercise.completedSets.length,
@@ -68,9 +82,11 @@ export function HistoryPage({
                   </div>
 
                   <div className="header-actions history-actions">
-                    <button className="text-button" onClick={(event) => { event.stopPropagation(); onSaveTemplate(workout); }}>
-                      Save as template
-                    </button>
+                    {!workout.sourceTemplateId && (
+                      <button className="text-button" onClick={(event) => { event.stopPropagation(); onSaveTemplate(workout); }}>
+                        Save as template
+                      </button>
+                    )}
                     <button className="text-button" onClick={(event) => { event.stopPropagation(); onEdit(workout); }}>
                       Edit
                     </button>
@@ -94,7 +110,7 @@ export function HistoryPage({
                             {pr && (
                               <span className="pr-badge" title={prLabel(pr.types)}>
                                 🏆 {pr.types.includes("estimated1RM")
-                                  ? `1RM PR · ${estimated1RM(set).toFixed(1)} ${unit.toLowerCase()}`
+                                  ? `${prLabel(pr.types)} · ${estimated1RM(set).toFixed(1)} ${unit.toLowerCase()}`
                                   : prLabel(pr.types)}
                               </span>
                             )}
