@@ -130,24 +130,7 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
 
     <article className="card template-editor-card"><label>Template name<input value={name} onChange={e=>setName(e.target.value)} maxLength={80}/></label></article>
 
-    <div className="template-add-row">
-      <h2>Exercises</h2>
-      <button
-        type="button"
-        className="add-custom-button"
-        onClick={() => setAdding((current) => !current)}
-        aria-expanded={adding}
-      >
-        <span className="add-custom-icon" aria-hidden="true">
-          +
-        </span>
-        {adding ? "Close picker" : "Add exercise"}
-      </button>
-    </div>
-    {adding && <article className="card template-picker">
-      <input autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>
-      <div className="template-picker-list">{available.slice(0,30).map(ex => <button key={ex.id} className="template-picker-item" onClick={()=>addExercise(ex.id)}><strong>{ex.name}</strong><span>{String(ex.primaryMuscle).replaceAll("_"," ")}</span></button>)}</div>
-    </article>}
+    <h2 className="template-exercises-heading">Exercises</h2>
 
     <div className="stack template-exercise-stack">{items.map((item,index) => {
       const exercise=exercises.find(x=>x.id===item.exerciseId);
@@ -200,14 +183,16 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
                 <strong aria-label={`Set ${setIndex + 1}`}>{setIndex + 1}</strong>
                 <button className="icon-button set-remove" disabled={item.plannedSets.length===1} onClick={()=>updateItem(index,{plannedSets:item.plannedSets.filter((_,i)=>i!==setIndex).map((s,i)=>({...s,order:i}))})} aria-label={`Remove set ${setIndex+1}`}>×</button>
               </div>
-              <div className="template-weight-field">
-                <input type="number" step="0.5" value={set.weight ?? ""} placeholder="From history" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
-                <span>kg</span>
+              <div className="template-set-fields">
+                <div className="template-weight-field">
+                  <input type="number" step="0.5" value={set.weight ?? ""} placeholder="From history" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
+                  <span>kg</span>
+                </div>
+                <label className="template-reps-wrap">
+                  <span className="template-mobile-field-label">Reps</span>
+                  <input className="template-reps-field" type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
+                </label>
               </div>
-              <label className="template-reps-wrap">
-                <span className="template-mobile-field-label">Reps</span>
-                <input className="template-reps-field" type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
-              </label>
             </div>)}
         </div>
 
@@ -219,5 +204,23 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
     })}</div>
 
     {items.length===0 && <p className="muted-center">This template has no exercises yet.</p>}
+
+    <div className="template-add-row template-add-row-bottom">
+      <button
+        type="button"
+        className="add-custom-button"
+        onClick={() => setAdding((current) => !current)}
+        aria-expanded={adding}
+      >
+        <span className="add-custom-icon" aria-hidden="true">
+          +
+        </span>
+        {adding ? "Close picker" : "Add exercise"}
+      </button>
+    </div>
+    {adding && <article className="card template-picker">
+      <input autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>
+      <div className="template-picker-list">{available.slice(0,30).map(ex => <button key={ex.id} className="template-picker-item" onClick={()=>addExercise(ex.id)}><strong>{ex.name}</strong><span>{String(ex.primaryMuscle).replaceAll("_"," ")}</span></button>)}</div>
+    </article>}
   </section>;
 }
