@@ -1,3 +1,5 @@
+export const APP_NAME = "Stronger!";
+
 export function formatLabel(value: string): string {
   return value
     .toLowerCase()

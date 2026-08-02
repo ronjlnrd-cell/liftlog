@@ -9,7 +9,7 @@ import { workoutRepository } from "./data/repositories/WorkoutRepository";
 import { profileRepository } from "./data/repositories/ProfileRepository";
 import { templateRepository } from "./data/repositories/TemplateRepository";
 import { seedExercises } from "./data/seedExercises";
-import { formatLabel } from "./shared";
+import { formatLabel, APP_NAME } from "./shared";
 import { WorkoutPage } from "./components/workout/WorkoutPage";
 import { HomePage } from "./pages/HomePage";
 import { ExercisesPage } from "./pages/ExercisesPage";
@@ -655,14 +655,14 @@ function App() {
     !profile.setupCompleted;
 
   if (authLoading || loading || (session && !dbReady)) {
-    return <div className="loading">Loading LiftLog…</div>;
+    return <div className="loading">Loading {APP_NAME}…</div>;
   }
 
   if (!supabaseConfigured) {
     return (
       <main className="auth-shell">
         <section className="card auth-card">
-          <h1>Connect LiftLog authentication</h1>
+          <h1>Connect {APP_NAME} authentication</h1>
           <p>Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your .env file, then restart Vite.</p>
         </section>
       </main>
@@ -731,7 +731,7 @@ function App() {
     <div className="app-shell">
       <header className="topbar">
         <button className="brand" onClick={() => setPage("home")}>
-          LiftLog
+          {APP_NAME}
         </button>
         {(syncMessage || cloudLoadError) && (
           <span className="sync-status">

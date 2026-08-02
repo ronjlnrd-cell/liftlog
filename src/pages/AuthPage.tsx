@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { APP_NAME } from "../shared";
 
 export function AuthPage() {
   const [email, setEmail] = useState("");
@@ -37,7 +38,7 @@ export function AuthPage() {
     <main className="auth-shell">
       <section className="card auth-card">
         <div>
-          <p className="eyebrow">LiftLog</p>
+          <p className="eyebrow">{APP_NAME}</p>
           <h1>{sent ? "Enter your code" : "Sign in"}</h1>
           <p>{sent ? `We sent a code to ${email}` : "Enter your email to continue. No password needed."}</p>
         </div>

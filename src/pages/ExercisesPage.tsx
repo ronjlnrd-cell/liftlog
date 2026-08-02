@@ -91,11 +91,14 @@ export function ExercisesPage({
       <div className="exercise-page-header">
         <h1 className="page-title">Exercises</h1>
         <button
-          className="secondary add-custom-button"
+          type="button"
+          className="add-custom-button"
           onClick={() => setShowAddCustom((current) => !current)}
           aria-expanded={showAddCustom}
         >
-          <span aria-hidden="true">+</span>
+          <span className="add-custom-icon" aria-hidden="true">
+            +
+          </span>
           Add custom
         </button>
       </div>

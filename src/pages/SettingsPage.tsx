@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
 import { getDb } from "../data/database/databaseManager";
 import type { Profile } from "../domain/entities/Profile";
+import { APP_NAME } from "../shared";
+
+const LEGACY_BACKUP_APP_NAME = "LiftLog";
 
 type SettingsPageProps = {
   profile: Profile;
@@ -20,7 +23,7 @@ export function SettingsPage({
   async function exportBackup() {
     const db = getDb();
     const backup: LiftLogBackup = {
-      app: "LiftLog",
+      app: APP_NAME,
       version: 1,
       exportedAt: new Date().toISOString(),
       data: {
@@ -38,7 +41,7 @@ export function SettingsPage({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `liftlog-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = `stronger-backup-${new Date().toISOString().slice(0, 10)}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
     setBackupMessage("Backup exported.");
@@ -50,7 +53,7 @@ export function SettingsPage({
       const parsed: unknown = JSON.parse(await file.text());
       if (!isLiftLogBackup(parsed)) {
         setPendingBackup(null);
-        setBackupMessage("This is not a valid LiftLog backup.");
+        setBackupMessage(`This is not a valid ${APP_NAME} backup.`);
         return;
       }
       setPendingBackup(parsed);
@@ -89,8 +92,8 @@ export function SettingsPage({
     setPendingBackup(null);
     setBackupMessage(
       mode === "replace"
-        ? "Backup restored. Reloading LiftLog…"
-        : "Backup merged. Reloading LiftLog…",
+        ? `Backup restored. Reloading ${APP_NAME}…`
+        : `Backup merged. Reloading ${APP_NAME}…`,
     );
     window.setTimeout(() => window.location.reload(), 500);
   }
@@ -220,7 +223,7 @@ export function SettingsPage({
                 onClick={() => {
                   if (
                     window.confirm(
-                      "Replace all current LiftLog data with this backup? This cannot be undone.",
+                      `Replace all current ${APP_NAME} data with this backup? This cannot be undone.`,
                     )
                   ) {
                     void importBackup("replace");
@@ -241,7 +244,7 @@ export function SettingsPage({
 
 
 type LiftLogBackup = {
-  app: "LiftLog";
+  app: typeof APP_NAME | typeof LEGACY_BACKUP_APP_NAME;
   version: 1;
   exportedAt: string;
   data: {
@@ -257,7 +260,7 @@ function isLiftLogBackup(value: unknown): value is LiftLogBackup {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<LiftLogBackup>;
   if (
-    candidate.app !== "LiftLog" ||
+    (candidate.app !== APP_NAME && candidate.app !== LEGACY_BACKUP_APP_NAME) ||
     candidate.version !== 1 ||
     typeof candidate.exportedAt !== "string" ||
     !candidate.data

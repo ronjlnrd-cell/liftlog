@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Profile } from "../domain/entities/Profile";
+import { APP_NAME } from "../shared";
 
 type ProfileSetupResult = {
   profile: Profile;
@@ -62,7 +63,7 @@ export function ProfileSetupPage({
     <main className="auth-shell">
       <section className="card auth-card profile-setup-card">
         <div>
-          <p className="eyebrow">Welcome to LiftLog</p>
+          <p className="eyebrow">Welcome to {APP_NAME}</p>
           <h1>Set up your profile</h1>
           <p>{email}</p>
         </div>
