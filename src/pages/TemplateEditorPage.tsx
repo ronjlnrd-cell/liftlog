@@ -185,8 +185,9 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
               </div>
               <div className="template-set-fields">
                 <div className="template-weight-field">
+                  <span className="template-mobile-field-label">Weight (kg)</span>
                   <input type="number" step="0.5" value={set.weight ?? ""} placeholder="From history" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
-                  <span>kg</span>
+                  <span className="template-weight-unit">kg</span>
                 </div>
                 <label className="template-reps-wrap">
                   <span className="template-mobile-field-label">Reps</span>

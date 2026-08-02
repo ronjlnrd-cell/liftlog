@@ -1128,7 +1128,6 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .template-add-row h2{margin:0;font-size:20px;letter-spacing:-.3px}
 .template-add-row-bottom{margin-top:14px;justify-content:stretch}
 .template-add-row-bottom .add-custom-button{width:100%;justify-content:center}
-.template-set-fields{display:contents}
 .templates-page-heading{align-items:flex-end;margin-bottom:8px}
 .templates-page-heading .page-title{margin-bottom:0}
 .template-picker{margin-bottom:16px}.template-picker-list{display:grid;gap:6px;max-height:320px;overflow:auto;margin-top:10px}
@@ -1156,12 +1155,62 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .clean-set-row strong{font-size:13px}
 .template-weight-field{display:flex;align-items:center;gap:7px;min-width:0}
 .template-weight-field input{width:100%;min-width:120px}
-.template-weight-field span,.rest-inline span{color:var(--muted);font-size:12px}
+.template-weight-field span.template-weight-unit,.rest-inline span{color:var(--muted);font-size:12px}
 .template-reps-field{width:100%;min-width:64px}
 .template-card-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border,#e5e5e5)}
 .rest-inline{display:flex!important;flex-direction:row!important;align-items:center;gap:7px;font-size:13px}
 .rest-inline input{width:82px}
 .template-add-bottom{width:100%;margin-top:14px;padding:13px}
+
+/* Template editor table — shared */
+.clean-template-card{max-width:none}
+.template-table{margin-top:18px;width:100%}
+.template-table-header{
+  padding:0 8px 8px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  border-bottom:1px solid var(--border,#e5e5e5);
+}
+.template-table-row{
+  padding:10px 8px;
+  border-bottom:1px solid var(--border,#ededed);
+}
+.template-table-row:last-child{border-bottom:0}
+.template-table-row strong{font-size:14px}
+.template-table-row .template-weight-field input{width:100%;min-width:0}
+.template-table-row .template-reps-field{box-sizing:border-box}
+.template-card-footer{margin-top:6px}
+
+@media(min-width:601px){
+  .template-table-header,
+  .template-table-row{
+    display:grid;
+    grid-template-columns:72px minmax(180px,1.6fr) minmax(90px,.7fr) 42px;
+    gap:14px;
+    align-items:center;
+  }
+  .template-table-row .template-weight-field{
+    width:100%;
+    max-width:280px;
+    grid-column:2;
+  }
+  .template-table-row .template-reps-field{
+    width:100%;
+    max-width:130px;
+    min-width:0;
+  }
+  .template-set-row-top{display:contents}
+  .template-set-row-top strong{grid-column:1}
+  .template-set-row-top .set-remove{grid-column:4;justify-self:end}
+  .template-set-fields{display:contents}
+  .template-reps-wrap{display:contents}
+  .template-reps-wrap .template-reps-field{grid-column:3}
+  .template-mobile-field-label{display:none}
+}
+
 @media(max-width:600px){
   .template-exercises-heading{margin:18px 0 12px}
   .template-add-row-bottom{margin-top:16px}
@@ -1172,7 +1221,6 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   .template-title-with-drag{align-items:flex-start;gap:10px}
   .clean-template-card h2{font-size:18px;line-height:1.2;word-break:break-word}
   .template-set-head,.clean-set-row{grid-template-columns:48px minmax(120px,1.5fr) 62px 30px;gap:7px}
-  .template-weight-field input{min-width:0}
   .template-card-footer{
     flex-direction:column;
     align-items:stretch;
@@ -1194,28 +1242,34 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
     gap:10px;
     padding:14px 0;
   }
+  .template-set-row-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .template-set-row-top strong{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .template-set-row-top strong::before{content:"Set "}
   .template-set-fields{
     display:flex;
     align-items:flex-end;
     gap:12px;
   }
   .template-table-row .template-weight-field{
-    grid-column:auto;
     flex:1;
     min-width:0;
     flex-direction:column;
     align-items:stretch;
     gap:6px;
   }
-  .template-table-row .template-weight-field::before{
-    content:"Weight (kg)";
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:.04em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  .template-table-row .template-weight-field span{display:none}
+  .template-table-row .template-weight-field input{min-width:0}
+  .template-table-row .template-weight-field span.template-weight-unit{display:none}
   .template-reps-wrap{
     display:flex;
     flex-direction:column;
@@ -1229,68 +1283,6 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
     width:100%;
     max-width:72px;
     min-height:45px;
-    box-sizing:border-box;
-  }
-  .template-exercise-head{align-items:flex-start}
-}
-
-/* Template editor table layout: labels sit directly above set values */
-.clean-template-card{max-width:none}
-.template-table{margin-top:18px;width:100%}
-.template-table-header,.template-table-row{
-  display:grid;
-  grid-template-columns:72px minmax(180px,1.6fr) minmax(90px,.7fr) 42px;
-  gap:14px;
-  align-items:center;
-}
-.template-table-header{
-  padding:0 8px 8px;
-  color:var(--muted);
-  font-size:11px;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  border-bottom:1px solid var(--border,#e5e5e5);
-}
-.template-table-row{
-  padding:10px 8px;
-  border-bottom:1px solid var(--border,#ededed);
-}
-.template-table-row:last-child{border-bottom:0}
-.template-table-row strong{font-size:14px}
-.template-table-row .template-weight-field{width:100%;max-width:280px;grid-column:2}
-.template-table-row .template-weight-field input{width:100%;min-width:0}
-.template-table-row .template-reps-field{width:100%;max-width:130px;min-width:0}
-.template-set-row-top{
-  display:contents;
-}
-.template-set-row-top strong{grid-column:1}
-.template-set-row-top .set-remove{grid-column:4;justify-self:end}
-.template-reps-wrap{display:contents}
-.template-reps-wrap .template-reps-field{grid-column:3}
-.template-mobile-field-label{display:none}
-.template-card-footer{margin-top:6px}
-@media(max-width:600px){
-  .template-set-row-top{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
-  .template-set-row-top strong{
-    grid-column:auto;
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:.04em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  .template-set-row-top strong::before{
-    content:"Set ";
-  }
-  .template-set-row-top .set-remove{
-    grid-column:auto;
-    justify-self:auto;
   }
   .template-mobile-field-label{
     display:block;
@@ -1300,6 +1292,9 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
     text-transform:uppercase;
     color:var(--muted);
   }
+  .template-exercise-head{align-items:flex-start}
+  .template-exercise-head{gap:8px}
+  .remove-exercise{font-size:12px}
 }
 
 /* Template editor card sizing + drag reorder */
@@ -1339,10 +1334,6 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 }
 .remove-exercise{white-space:nowrap}
 .template-add-row{margin:0}
-@media(max-width:600px){
-  .template-exercise-head{gap:8px}
-  .remove-exercise{font-size:12px}
-}
 
 .exercise-remove-x{
   width:34px;height:34px;flex:0 0 34px;
