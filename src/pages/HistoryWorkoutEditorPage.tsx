@@ -123,9 +123,9 @@ export function HistoryWorkoutEditorPage({
             exercises: current.exercises.map((item) => {
               if (item.id !== workoutExerciseId) return item;
 
-              const previous = item.completedSets.at(-1);
+              const first = item.completedSets[0];
               const plannedNext = item.plannedSets[item.completedSets.length];
-              const lastOrder = previous?.order ?? -1;
+              const lastOrder = item.completedSets.at(-1)?.order ?? -1;
 
               return {
                 ...item,
@@ -133,8 +133,8 @@ export function HistoryWorkoutEditorPage({
                   ...item.completedSets,
                   {
                     order: lastOrder + 1,
-                    weight: previous?.weight ?? 0,
-                    reps: previous?.reps ?? plannedNext?.reps ?? 5,
+                    weight: first?.weight ?? 0,
+                    reps: first?.reps ?? plannedNext?.reps ?? 5,
                   },
                 ],
               };

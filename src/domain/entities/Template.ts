@@ -15,5 +15,5 @@ export interface TemplateExercise {
 export interface TemplateSet {
   order: number;
   weight: number | null;
-  reps: number;
+  reps: number | null;
 }

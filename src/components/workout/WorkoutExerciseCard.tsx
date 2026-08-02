@@ -57,12 +57,13 @@ export function WorkoutExerciseCard({
 }: WorkoutExerciseCardProps) {
   const weightInputRef = useRef<HTMLInputElement>(null);
   const plannedNext = item.plannedSets[item.completedSets.length];
+  const firstCompleted = item.completedSets[0];
   const previous = item.completedSets.at(-1);
   const [weight, setWeight] = useState(
-    plannedNext?.weight ?? previous?.weight ?? 0,
+    firstCompleted?.weight ?? plannedNext?.weight ?? previous?.weight ?? 0,
   );
   const [reps, setReps] = useState(
-    plannedNext?.reps ?? previous?.reps ?? 5,
+    firstCompleted?.reps ?? plannedNext?.reps ?? previous?.reps ?? 5,
   );
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [progressionApplied, setProgressionApplied] = useState(false);
@@ -73,6 +74,12 @@ export function WorkoutExerciseCard({
     !progressionApplied;
 
   useEffect(() => {
+    const first = item.completedSets[0];
+    if (first) {
+      setWeight(first.weight);
+      setReps(first.reps);
+      return;
+    }
     const nextPlan = item.plannedSets[item.completedSets.length];
     if (nextPlan) {
       setWeight(nextPlan.weight ?? 0);

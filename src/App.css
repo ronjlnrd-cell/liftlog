@@ -429,10 +429,16 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .template-editor-heading .page-title { margin-bottom:0; }
 .template-editor-card { margin-bottom:16px; }
 .template-editor-card input { width:100%; font-size:18px; font-weight:700; }
-.template-editor-exercise { display:flex; justify-content:space-between; align-items:center; }
+.template-editor-exercise {
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:0;
+}
 .template-editor-exercise p { margin:6px 0 0; }
 @media (max-width:600px) {
-  .template-editor-heading { flex-direction:column; }
+  .template-editor-heading { flex-direction:column; gap:12px; }
+  .template-editor-heading .page-title { font-size:30px; letter-spacing:-1px; }
   .template-editor-heading .header-actions { width:100%; flex-direction:row; justify-content:flex-end; }
 }
 
@@ -1153,11 +1159,69 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .rest-inline input{width:82px}
 .template-add-bottom{width:100%;margin-top:14px;padding:13px}
 @media(max-width:600px){
-  .clean-template-card{padding:14px}
+  .template-add-row{
+    flex-direction:column;
+    align-items:stretch;
+    gap:12px;
+    margin:18px 0 14px;
+  }
+  .template-add-row .add-custom-button{
+    width:100%;
+    justify-content:center;
+  }
+  .template-picker{padding:16px}
+  .template-picker-list{max-height:240px}
+  .clean-template-card{padding:16px 14px 14px;padding-top:44px}
+  .clean-template-card .template-exercise-head{padding-left:0;padding-right:0}
+  .template-title-with-drag{align-items:flex-start;gap:10px}
+  .clean-template-card h2{font-size:18px;line-height:1.2;word-break:break-word}
   .template-set-head,.clean-set-row{grid-template-columns:48px minmax(120px,1.5fr) 62px 30px;gap:7px}
-  .template-weight-field input{min-width:90px}
-  .template-card-footer{align-items:center}
-  .rest-inline input{width:68px}
+  .template-weight-field input{min-width:0}
+  .template-card-footer{
+    flex-direction:column;
+    align-items:stretch;
+    gap:12px;
+  }
+  .template-card-footer .text-button{align-self:flex-start}
+  .rest-inline{
+    width:100%;
+    justify-content:space-between;
+    margin-left:0;
+  }
+  .rest-inline input{flex:1;max-width:120px}
+  .template-table{margin-top:12px}
+  .template-table-header{display:none}
+  .template-table-row{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+    padding:14px 0;
+  }
+  .template-table-row .template-weight-field,
+  .template-table-row .template-reps-field{
+    width:100%;
+    max-width:none;
+  }
+  .template-table-row .template-weight-field{
+    grid-column:auto;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+  }
+  .template-table-row .template-weight-field::before{
+    content:"Weight (kg)";
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .template-table-row .template-weight-field span{display:none}
+  .template-table-row .template-reps-field{
+    min-height:45px;
+  }
+  .template-exercise-head{align-items:flex-start}
 }
 
 /* Template editor table layout: labels sit directly above set values */
@@ -1184,18 +1248,61 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 }
 .template-table-row:last-child{border-bottom:0}
 .template-table-row strong{font-size:14px}
-.template-table-row .template-weight-field{width:100%;max-width:280px}
+.template-table-row .template-weight-field{width:100%;max-width:280px;grid-column:2}
 .template-table-row .template-weight-field input{width:100%;min-width:0}
 .template-table-row .template-reps-field{width:100%;max-width:130px;min-width:0}
+.template-set-row-top{
+  display:contents;
+}
+.template-set-row-top strong{grid-column:1}
+.template-set-row-top .set-remove{grid-column:4;justify-self:end}
+.template-reps-wrap{display:contents}
+.template-reps-wrap .template-reps-field{grid-column:3}
+.template-mobile-field-label{display:none}
 .template-card-footer{margin-top:6px}
 @media(max-width:600px){
-  .template-table-header,.template-table-row{
-    grid-template-columns:42px minmax(115px,1.5fr) minmax(62px,.65fr) 32px;
-    gap:7px;
+  .template-set-row-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
   }
-  .template-table-header{padding-left:2px;padding-right:2px}
-  .template-table-row{padding-left:2px;padding-right:2px}
-  .template-weight-field{gap:4px}
+  .template-set-row-top strong{
+    grid-column:auto;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .template-set-row-top strong::before{
+    content:"Set ";
+  }
+  .template-set-row-top .set-remove{
+    grid-column:auto;
+    justify-self:auto;
+  }
+  .template-reps-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+  }
+  .template-reps-wrap .template-reps-field{
+    grid-column:auto;
+  }
+  .template-mobile-field-label{
+    display:block;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .template-table-row .template-reps-field{
+    width:100%;
+    max-width:none;
+  }
 }
 
 /* Template editor card sizing + drag reorder */
@@ -1238,8 +1345,6 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 @media(max-width:600px){
   .template-exercise-head{gap:8px}
   .remove-exercise{font-size:12px}
-  .template-card-footer{gap:10px}
-  .rest-inline{margin-left:0}
 }
 
 .exercise-remove-x{

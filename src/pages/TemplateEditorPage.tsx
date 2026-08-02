@@ -65,19 +65,60 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
   function updateItem(index: number, patch: Partial<TemplateExercise>) {
     setItems(items.map((x,i) => i === index ? { ...x, ...patch } : x));
   }
+  function normalizeReps(reps: number | null): number {
+    return reps != null && Number.isFinite(reps) && reps >= 1 ? Math.floor(reps) : 8;
+  }
   function updateSet(itemIndex: number, setIndex: number, field: "weight"|"reps", value: string) {
     const item = items[itemIndex];
-    const sets = item.plannedSets.map((s,i) => i === setIndex ? {
-      ...s,
-      [field]: field === "weight" ? (value === "" ? null : Number(value)) : Math.max(1, Number(value) || 1),
-    } : s);
+    const sets = item.plannedSets.map((s,i) => {
+      if (i !== setIndex) return s;
+      if (field === "weight") {
+        return { ...s, weight: value === "" ? null : Number(value) };
+      }
+      if (value === "") return { ...s, reps: null };
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? { ...s, reps: parsed } : s;
+    });
     updateItem(itemIndex, { plannedSets: sets });
+  }
+  function addPlannedSet(itemIndex: number) {
+    const item = items[itemIndex];
+    const first = item.plannedSets[0];
+    updateItem(itemIndex, {
+      plannedSets: [
+        ...item.plannedSets,
+        {
+          order: item.plannedSets.length,
+          weight: first?.weight ?? null,
+          reps: first?.reps ?? 8,
+        },
+      ],
+    });
+  }
+  function commitSetReps(itemIndex: number, setIndex: number) {
+    const set = items[itemIndex].plannedSets[setIndex];
+    const normalized = normalizeReps(set.reps);
+    if (set.reps !== normalized) {
+      updateSet(itemIndex, setIndex, "reps", String(normalized));
+    }
   }
   async function save() {
     const trimmed = name.trim();
     if (!trimmed || saving) return;
     setSaving(true);
-    try { await onSave({ ...template, name: trimmed, exercises: normalize(items) }); }
+    try {
+      await onSave({
+        ...template,
+        name: trimmed,
+        exercises: normalize(items).map((item) => ({
+          ...item,
+          plannedSets: item.plannedSets.map((set) => ({
+            ...set,
+            reps: normalizeReps(set.reps),
+          })),
+        })),
+      });
+    }
     finally { setSaving(false); }
   }
 
@@ -155,18 +196,23 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
 
           {item.plannedSets.map((set,setIndex)=>
             <div className="template-table-row" key={setIndex}>
-              <strong>{setIndex+1}</strong>
+              <div className="template-set-row-top">
+                <strong aria-label={`Set ${setIndex + 1}`}>{setIndex + 1}</strong>
+                <button className="icon-button set-remove" disabled={item.plannedSets.length===1} onClick={()=>updateItem(index,{plannedSets:item.plannedSets.filter((_,i)=>i!==setIndex).map((s,i)=>({...s,order:i}))})} aria-label={`Remove set ${setIndex+1}`}>×</button>
+              </div>
               <div className="template-weight-field">
-                <input type="number" step="0.5" value={set.weight ?? ""} placeholder="History" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
+                <input type="number" step="0.5" value={set.weight ?? ""} placeholder="From history" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
                 <span>kg</span>
               </div>
-              <input className="template-reps-field" type="number" min="1" value={set.reps} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)}/>
-              <button className="icon-button set-remove" disabled={item.plannedSets.length===1} onClick={()=>updateItem(index,{plannedSets:item.plannedSets.filter((_,i)=>i!==setIndex).map((s,i)=>({...s,order:i}))})} aria-label={`Remove set ${setIndex+1}`}>×</button>
+              <label className="template-reps-wrap">
+                <span className="template-mobile-field-label">Reps</span>
+                <input className="template-reps-field" type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
+              </label>
             </div>)}
         </div>
 
         <div className="template-card-footer">
-          <button className="text-button" onClick={()=>updateItem(index,{plannedSets:[...item.plannedSets,{order:item.plannedSets.length,weight:null,reps:8}]})}>+ Add set</button>
+          <button className="text-button" onClick={()=>addPlannedSet(index)}>+ Add set</button>
           <label className="rest-inline">Rest <input type="number" min="0" step="15" value={item.plannedRestSeconds} onChange={e=>updateItem(index,{plannedRestSeconds:Math.max(0,Number(e.target.value)||0)})}/><span>sec</span></label>
         </div>
       </article>;
