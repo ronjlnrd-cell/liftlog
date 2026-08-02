@@ -91,7 +91,17 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
 
     <div className="template-add-row">
       <h2>Exercises</h2>
-      <button className="secondary compact" onClick={()=>setAdding(!adding)}>+ Add exercise</button>
+      <button
+        type="button"
+        className="add-custom-button"
+        onClick={() => setAdding((current) => !current)}
+        aria-expanded={adding}
+      >
+        <span className="add-custom-icon" aria-hidden="true">
+          +
+        </span>
+        {adding ? "Close picker" : "Add exercise"}
+      </button>
     </div>
     {adding && <article className="card template-picker">
       <input autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>

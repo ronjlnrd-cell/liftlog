@@ -1118,6 +1118,7 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 }
 
 .template-add-row,.template-exercise-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.template-add-row h2{margin:0;font-size:20px;letter-spacing:-.3px}
 .templates-page-heading{align-items:flex-end;margin-bottom:8px}
 .templates-page-heading .page-title{margin-bottom:0}
 .template-picker{margin-bottom:16px}.template-picker-list{display:grid;gap:6px;max-height:320px;overflow:auto;margin-top:10px}
