@@ -1,0 +1,25 @@
+[
+  [
+    "builtin-dumbbell-thruster",
+    "builtin-dumbbell-wrist-curl",
+    "builtin-dumbbell-wrist-extension",
+    "builtin-dumbbell-y-raise",
+    "builtin-ez-curl",
+    "builtin-ez-bar-preacher-curl"
+  ],
+  [
+    "builtin-ez-bar-reverse-curl",
+    "builtin-ez-bar-skull-crusher",
+    "builtin-face-pull",
+    "builtin-farmer-carry",
+    "builtin-frog-pump",
+    "builtin-front-raise"
+  ],
+  [
+    "builtin-front-squat",
+    "builtin-glute-bridge",
+    "builtin-glute-kickback-machine",
+    "builtin-glute-ham-raise",
+    "builtin-goblet-squat"
+  ]
+]

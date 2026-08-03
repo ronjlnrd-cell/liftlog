@@ -38,6 +38,9 @@ for (let row = 0; row < rows; row += 1) {
 
   for (let col = 0; col < columns; col += 1) {
     const exerciseId = exerciseIds[row][col];
+    if (!exerciseId) {
+      continue;
+    }
     const outputPath = join(outputDir, `${exerciseId}.png`);
 
     await sharp(sourcePath)
@@ -59,5 +62,5 @@ for (let row = 0; row < rows; row += 1) {
 }
 
 console.log(
-  `Split ${exerciseIds.reduce((count, row) => count + row.length, 0)} illustrations from ${sourcePath} at ${scale}x`,
+  `Split ${exerciseIds.reduce((count, row) => count + row.filter(Boolean).length, 0)} illustrations from ${sourcePath} at ${scale}x`,
 );

@@ -1,0 +1,23 @@
+[
+  [
+    "builtin-lying-leg-curl",
+    "builtin-machine-biceps-curl",
+    "builtin-chest-press-machine",
+    "builtin-machine-crunch",
+    "builtin-machine-decline-chest-press",
+    "builtin-machine-incline-chest-press"
+  ],
+  [
+    "builtin-machine-lateral-raise",
+    "builtin-machine-row",
+    "builtin-machine-shoulder-press",
+    "builtin-machine-shrug",
+    "builtin-machine-triceps-dip",
+    "builtin-machine-triceps-extension"
+  ],
+  [
+    "builtin-man-maker",
+    "builtin-meadows-row",
+    "builtin-mountain-climber"
+  ]
+]

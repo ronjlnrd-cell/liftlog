@@ -1,0 +1,26 @@
+[
+  [
+    "builtin-jefferson-squat",
+    "builtin-jm-press",
+    "builtin-kettlebell-clean",
+    "builtin-kettlebell-clean-and-press",
+    "builtin-kettlebell-floor-press",
+    "builtin-kettlebell-press"
+  ],
+  [
+    "builtin-kettlebell-row",
+    "builtin-kettlebell-snatch",
+    "builtin-kettlebell-swing",
+    "builtin-kettlebell-thruster",
+    "builtin-kettlebell-windmill",
+    "builtin-kroc-row"
+  ],
+  [
+    "builtin-l-sit",
+    "builtin-landmine-press",
+    "builtin-landmine-row",
+    "builtin-landmine-squat",
+    "builtin-lat-pulldown",
+    "builtin-lateral-lunge"
+  ]
+]

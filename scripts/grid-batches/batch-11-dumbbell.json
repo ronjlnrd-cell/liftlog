@@ -1,0 +1,30 @@
+[
+  [
+    "builtin-donkey-kick",
+    "builtin-drag-curl",
+    "builtin-dragon-flag",
+    "builtin-db-bench",
+    "builtin-biceps-curl"
+  ],
+  [
+    "builtin-dumbbell-decline-triceps-extension",
+    "builtin-dumbbell-external-rotation",
+    "builtin-dumbbell-floor-fly",
+    "builtin-dumbbell-floor-press",
+    "builtin-db-fly"
+  ],
+  [
+    "builtin-dumbbell-kickback",
+    "builtin-lateral-raise",
+    "builtin-pullover",
+    "builtin-db-shoulder-press",
+    "builtin-dumbbell-shrug"
+  ],
+  [
+    "builtin-dumbbell-squeeze-press",
+    null,
+    null,
+    null,
+    null
+  ]
+]
