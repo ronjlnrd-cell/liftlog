@@ -1,0 +1,18 @@
+[
+  [
+    "builtin-weighted-dip",
+    "builtin-weighted-pull-up",
+    "builtin-wide-grip-barbell-curl",
+    "builtin-cable-row-wide",
+    "builtin-wide-grip-lat-pulldown",
+    "builtin-wide-grip-pull-up"
+  ],
+  [
+    "builtin-wide-grip-push-up",
+    "builtin-wrist-roller",
+    "builtin-yates-row",
+    "builtin-z-press",
+    "builtin-zercher-squat",
+    "builtin-zottman-curl"
+  ]
+]

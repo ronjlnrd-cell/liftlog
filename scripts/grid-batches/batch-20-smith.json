@@ -1,0 +1,23 @@
+[
+  [
+    "builtin-resistance-band-good-morning",
+    "builtin-seated-good-morning",
+    "builtin-seated-leg-curl",
+    "builtin-slider-leg-curl",
+    "builtin-smith-bench"
+  ],
+  [
+    "builtin-smith-machine-calf-raise",
+    "builtin-smith-close-grip-bench-press",
+    "builtin-smith-decline-bench-press",
+    "builtin-smith-machine-hip-thrust",
+    "builtin-smith-incline-bench-press"
+  ],
+  [
+    "builtin-smith-machine-lunge",
+    "builtin-smith-machine-overhead-press",
+    "builtin-smith-machine-row",
+    "builtin-smith-machine-shrug",
+    "builtin-smith-squat"
+  ]
+]

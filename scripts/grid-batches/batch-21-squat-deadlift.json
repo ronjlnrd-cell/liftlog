@@ -1,0 +1,23 @@
+[
+  [
+    "builtin-smith-machine-upright-row",
+    "builtin-snatch-grip-deadlift",
+    "builtin-spanish-squat",
+    "builtin-spider-curl",
+    "builtin-split-squat",
+    "builtin-spoto-press"
+  ],
+  [
+    "builtin-squat",
+    "builtin-standing-calf-raise",
+    "builtin-step-down",
+    "builtin-step-up",
+    "builtin-stiff-leg-deadlift",
+    "builtin-stiff-leg-dumbbell-deadlift"
+  ],
+  [
+    "builtin-straight-arm-pulldown",
+    "builtin-suitcase-carry",
+    "builtin-sumo-deadlift"
+  ]
+]

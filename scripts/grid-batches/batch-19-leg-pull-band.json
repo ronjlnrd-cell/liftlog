@@ -1,0 +1,23 @@
+[
+  [
+    "builtin-leg-extension",
+    "builtin-leg-press",
+    "builtin-leg-press-calf-raise",
+    "builtin-low-cable-fly",
+    "builtin-lying-dumbbell-leg-curl"
+  ],
+  [
+    "builtin-muscle-up",
+    "builtin-lat-pulldown-neutral",
+    "builtin-neutral-pull-up",
+    "builtin-nordic-curl",
+    "builtin-oblique-crunch"
+  ],
+  [
+    "builtin-rack-pull",
+    "builtin-rear-delt-machine",
+    "builtin-resistance-band-chest-press",
+    "builtin-resistance-band-curl",
+    "builtin-resistance-band-face-pull"
+  ]
+]
