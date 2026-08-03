@@ -1,0 +1,23 @@
+[
+  [
+    "builtin-cable-woodchop",
+    "builtin-cable-wrist-curl",
+    "builtin-cable-y-raise",
+    "builtin-calf-press-on-leg-press",
+    "builtin-captains-chair-knee-raise"
+  ],
+  [
+    "builtin-captains-chair-leg-raise",
+    "builtin-chest-supported-dumbbell-row",
+    "builtin-chest-supported-row",
+    "builtin-chin-up",
+    "builtin-close-grip-bench"
+  ],
+  [
+    "builtin-lat-pulldown-close",
+    "builtin-close-grip-push-up",
+    "builtin-concentration-curl",
+    "builtin-cossack-squat",
+    "builtin-cross-body-hammer-curl"
+  ]
+]

@@ -1,0 +1,23 @@
+[
+  [
+    "builtin-crunch",
+    "builtin-cuban-press",
+    "builtin-curtsy-lunge",
+    "builtin-cyclist-squat",
+    "builtin-dead-bug",
+    "builtin-dead-hang"
+  ],
+  [
+    "builtin-deadlift",
+    "builtin-decline-bench",
+    "builtin-decline-crunch",
+    "builtin-decline-dumbbell-bench-press",
+    "builtin-decline-dumbbell-fly",
+    "builtin-decline-push-up"
+  ],
+  [
+    "builtin-diamond-push-up",
+    "builtin-dips",
+    "builtin-donkey-calf-raise"
+  ]
+]

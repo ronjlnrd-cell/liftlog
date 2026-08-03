@@ -1,34 +1,4 @@
 exercise id,exercise name,primary muscle,movement pattern
-builtin-cable-woodchop,Cable Woodchop,Core,Isolation
-builtin-cable-wrist-curl,Cable Wrist Curl,Biceps,Isolation
-builtin-cable-y-raise,Cable Y-Raise,Shoulders,Isolation
-builtin-calf-press-on-leg-press,Calf Press on Leg Press,Calves,Isolation
-builtin-captains-chair-knee-raise,Captain's Chair Knee Raise,Core,Isolation
-builtin-captains-chair-leg-raise,Captain's Chair Leg Raise,Core,Isolation
-builtin-chest-supported-dumbbell-row,Chest-Supported Dumbbell Row,Back,Horizontal Pull
-builtin-chest-supported-row,Chest-Supported Row,Back,Horizontal Pull
-builtin-chin-up,Chin-Up,Back,Vertical Pull
-builtin-close-grip-bench,Close-Grip Bench Press,Triceps,Horizontal Push
-builtin-lat-pulldown-close,Close-Grip Lat Pulldown,Back,Vertical Pull
-builtin-close-grip-push-up,Close-Grip Push-Up,Triceps,Horizontal Push
-builtin-concentration-curl,Concentration Curl,Biceps,Isolation
-builtin-cossack-squat,Cossack Squat,Quadriceps,Squat
-builtin-cross-body-hammer-curl,Cross-Body Hammer Curl,Biceps,Isolation
-builtin-crunch,Crunch,Core,Isolation
-builtin-cuban-press,Cuban Press,Shoulders,Isolation
-builtin-curtsy-lunge,Curtsy Lunge,Glutes,Squat
-builtin-cyclist-squat,Cyclist Squat,Quadriceps,Squat
-builtin-dead-bug,Dead Bug,Core,Isolation
-builtin-dead-hang,Dead Hang,Back,Isolation
-builtin-deadlift,Deadlift,Hamstrings,Hinge
-builtin-decline-bench,Decline Bench Press,Chest,Horizontal Push
-builtin-decline-crunch,Decline Crunch,Core,Isolation
-builtin-decline-dumbbell-bench-press,Decline Dumbbell Bench Press,Chest,Horizontal Push
-builtin-decline-dumbbell-fly,Decline Dumbbell Fly,Chest,Isolation
-builtin-decline-push-up,Decline Push-Up,Chest,Horizontal Push
-builtin-diamond-push-up,Diamond Push-Up,Triceps,Horizontal Push
-builtin-dips,Dips,Chest,Horizontal Push
-builtin-donkey-calf-raise,Donkey Calf Raise,Calves,Isolation
 builtin-donkey-kick,Donkey Kick,Glutes,Isolation
 builtin-drag-curl,Drag Curl,Biceps,Isolation
 builtin-dragon-flag,Dragon Flag,Core,Isolation
