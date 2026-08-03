@@ -53,7 +53,6 @@ for (let row = 0; row < rows; row += 1) {
       .resize(cellWidth * scale, cellHeight * scale, {
         kernel: sharp.kernel.lanczos3,
       })
-      .sharpen({ sigma: 1, m1: 0.8, m2: 0.35 })
       .png({ compressionLevel: 6, effort: 10 })
       .toFile(outputPath);
 

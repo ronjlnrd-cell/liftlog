@@ -3,10 +3,24 @@ import { readdirSync } from "node:fs";
 import { rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
+// Do not run this on the full library — repeated sharpening degrades line art.
+// Only use on specific files if needed: node scripts/sharpen-exercise-illustrations.mjs <file.png>
 const illustrationDir = join(process.cwd(), "src/assets/exercises");
+const targetFiles = process.argv.slice(2);
 
-for (const file of readdirSync(illustrationDir)) {
-  if (!file.endsWith(".png")) continue;
+const files =
+  targetFiles.length > 0
+    ? targetFiles.map((file) => (file.endsWith(".png") ? file : `${file}.png`))
+    : readdirSync(illustrationDir).filter((file) => file.endsWith(".png"));
+
+if (targetFiles.length === 0 && files.length > 10) {
+  console.error(
+    "Refusing to sharpen the entire library. Pass specific filenames, or run on <=10 files only.",
+  );
+  process.exit(1);
+}
+
+for (const file of files) {
 
   const path = join(illustrationDir, file);
   const tempPath = `${path}.tmp.png`;
