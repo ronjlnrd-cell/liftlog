@@ -1,0 +1,22 @@
+[
+  [
+    "builtin-cable-crunch",
+    "builtin-cable-curl",
+    "builtin-cable-external-rotation",
+    "builtin-cable-fly"
+  ],
+  [
+    "builtin-cable-kickback",
+    "builtin-cable-hammer-curl",
+    "builtin-cable-hip-abduction",
+    "builtin-cable-incline-fly"
+  ],
+  [
+    "builtin-cable-internal-rotation",
+    "builtin-cable-lateral-raise",
+    "builtin-cable-pull-through",
+    "builtin-cable-pullover",
+    "builtin-cable-rear-delt-fly",
+    "builtin-cable-shrug"
+  ]
+]

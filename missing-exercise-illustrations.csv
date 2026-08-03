@@ -1,18 +1,4 @@
 exercise id,exercise name,primary muscle,movement pattern
-builtin-cable-crunch,Cable Crunch,Core,Isolation
-builtin-cable-curl,Cable Curl,Biceps,Isolation
-builtin-cable-external-rotation,Cable External Rotation,Shoulders,Isolation
-builtin-cable-fly,Cable Fly,Chest,Isolation
-builtin-cable-kickback,Cable Glute Kickback,Glutes,Isolation
-builtin-cable-hammer-curl,Cable Hammer Curl,Biceps,Isolation
-builtin-cable-hip-abduction,Cable Hip Abduction,Glutes,Isolation
-builtin-cable-incline-fly,Cable Incline Fly,Chest,Isolation
-builtin-cable-internal-rotation,Cable Internal Rotation,Shoulders,Isolation
-builtin-cable-lateral-raise,Cable Lateral Raise,Shoulders,Isolation
-builtin-cable-pull-through,Cable Pull-Through,Glutes,Hinge
-builtin-cable-pullover,Cable Pullover,Back,Isolation
-builtin-cable-rear-delt-fly,Cable Rear Delt Fly,Shoulders,Isolation
-builtin-cable-shrug,Cable Shrug,Shoulders,Isolation
 builtin-cable-woodchop,Cable Woodchop,Core,Isolation
 builtin-cable-wrist-curl,Cable Wrist Curl,Biceps,Isolation
 builtin-cable-y-raise,Cable Y-Raise,Shoulders,Isolation
