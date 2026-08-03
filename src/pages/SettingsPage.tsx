@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { getDb } from "../data/database/databaseManager";
 import type { Profile } from "../domain/entities/Profile";
+import { exportTrainingDataToExcel } from "../export/excelExporter";
 import { APP_NAME } from "../shared";
 
 const LEGACY_BACKUP_APP_NAME = "LiftLog";
@@ -19,6 +20,16 @@ export function SettingsPage({
   const [backupMessage, setBackupMessage] = useState("");
   const [pendingBackup, setPendingBackup] = useState<LiftLogBackup | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+
+  async function exportExcel() {
+    setBackupMessage("");
+    try {
+      await exportTrainingDataToExcel();
+      setBackupMessage("Excel export downloaded.");
+    } catch {
+      setBackupMessage("Could not export to Excel.");
+    }
+  }
 
   async function exportBackup() {
     const db = getDb();
@@ -159,6 +170,19 @@ export function SettingsPage({
         </div>
 
         <div className="backup-actions">
+          <button
+            type="button"
+            className="backup-action-button backup-export"
+            onClick={() => void exportExcel()}
+          >
+            <span className="backup-action-icon" aria-hidden="true">
+              ↓
+            </span>
+            <span className="backup-action-copy">
+              <strong>Export to Excel</strong>
+              <small>Download a multi-sheet workbook</small>
+            </span>
+          </button>
           <button
             type="button"
             className="backup-action-button backup-export"
