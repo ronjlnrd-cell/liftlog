@@ -1,15 +1,4 @@
 exercise id,exercise name,primary muscle,movement pattern
-builtin-belt-squat,Belt Squat,Quadriceps,Squat
-builtin-bench-dip,Bench Dip,Triceps,Horizontal Push
-builtin-bench-pin-press,Bench Pin Press,Chest,Horizontal Push
-builtin-bicycle-crunch,Bicycle Crunch,Core,Isolation
-builtin-block-clean,Block Clean,Quadriceps,Squat
-builtin-box-squat,Box Squat,Quadriceps,Squat
-builtin-bradford-press,Bradford Press,Shoulders,Vertical Push
-builtin-bulgarian-split-squat,Bulgarian Split Squat,Quadriceps,Squat
-builtin-burpee,Burpee,Core,Squat
-builtin-cable-bench-press,Cable Bench Press,Chest,Horizontal Push
-builtin-cable-crossover,Cable Crossover,Chest,Isolation
 builtin-cable-crunch,Cable Crunch,Core,Isolation
 builtin-cable-curl,Cable Curl,Biceps,Isolation
 builtin-cable-external-rotation,Cable External Rotation,Shoulders,Isolation

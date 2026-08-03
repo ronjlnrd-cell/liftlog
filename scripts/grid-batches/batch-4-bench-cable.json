@@ -1,0 +1,19 @@
+[
+  [
+    "builtin-belt-squat",
+    "builtin-bench-dip",
+    "builtin-bench-pin-press",
+    "builtin-bicycle-crunch"
+  ],
+  [
+    "builtin-block-clean",
+    "builtin-box-squat",
+    "builtin-bradford-press",
+    "builtin-bulgarian-split-squat"
+  ],
+  [
+    "builtin-burpee",
+    "builtin-cable-bench-press",
+    "builtin-cable-crossover"
+  ]
+]
