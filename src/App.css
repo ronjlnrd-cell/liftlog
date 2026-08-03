@@ -1100,6 +1100,38 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .auth-card label { display:flex; flex-direction:column; gap:7px; }
 .otp-input { font-size:28px; letter-spacing:.3em; text-align:center; font-weight:700; }
 .auth-message { margin:0; color:var(--muted); }
+.google-auth-button {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px 18px;
+  background:#fff;
+  color:var(--ink);
+  font-weight:750;
+  cursor:pointer;
+}
+.google-auth-button:hover:not(:disabled) { background:#faf7f7; }
+.google-auth-button:disabled { opacity:.45; cursor:not-allowed; }
+.google-auth-icon { display:inline-flex; flex-shrink:0; }
+.auth-divider {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:650;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content:"";
+  flex:1;
+  height:1px;
+  background:var(--line);
+}
 .account-header { display:flex; align-items:center; gap:12px; }
 @media(max-width:600px){ .account-header .tagline{display:none;} }
 
