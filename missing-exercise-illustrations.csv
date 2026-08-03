@@ -1,17 +1,4 @@
 exercise id,exercise name,primary muscle,movement pattern
-builtin-barbell-pullover,Barbell Pullover,Back,Isolation
-builtin-barbell-reverse-curl,Barbell Reverse Curl,Biceps,Isolation
-builtin-barbell-reverse-wrist-curl,Barbell Reverse Wrist Curl,Biceps,Isolation
-builtin-barbell-rollout,Barbell Rollout,Core,Isolation
-builtin-row,Barbell Row,Back,Horizontal Pull
-builtin-barbell-shrug,Barbell Shrug,Shoulders,Isolation
-builtin-barbell-snatch,Barbell Snatch,Quadriceps,Squat
-builtin-barbell-thruster,Barbell Thruster,Quadriceps,Squat
-builtin-barbell-wrist-curl,Barbell Wrist Curl,Biceps,Isolation
-builtin-barbell-wrist-extension,Barbell Wrist Extension,Biceps,Isolation
-builtin-bayesian-cable-curl,Bayesian Cable Curl,Biceps,Isolation
-builtin-behind-back-barbell-shrug,Behind-the-Back Barbell Shrug,Shoulders,Isolation
-builtin-behind-neck-lat-pulldown,Behind-the-Neck Lat Pulldown,Back,Vertical Pull
 builtin-belt-squat,Belt Squat,Quadriceps,Squat
 builtin-bench-dip,Bench Dip,Triceps,Horizontal Push
 builtin-bench-pin-press,Bench Pin Press,Chest,Horizontal Push

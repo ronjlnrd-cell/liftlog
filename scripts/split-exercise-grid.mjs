@@ -25,16 +25,17 @@ if (!width || !height) {
 }
 
 const rows = exerciseIds.length;
-const columns = exerciseIds[0]?.length ?? 0;
 
-if (!rows || !columns || exerciseIds.some((row) => row.length !== columns)) {
-  throw new Error("Batch JSON must be a rectangular grid of exercise ids.");
+if (!rows || exerciseIds.some((row) => !Array.isArray(row) || row.length === 0)) {
+  throw new Error("Batch JSON must be an array of exercise id rows.");
 }
 
-const cellWidth = Math.floor(width / columns);
 const cellHeight = Math.floor(height / rows);
 
 for (let row = 0; row < rows; row += 1) {
+  const columns = exerciseIds[row].length;
+  const cellWidth = Math.floor(width / columns);
+
   for (let col = 0; col < columns; col += 1) {
     const exerciseId = exerciseIds[row][col];
     const outputPath = join(outputDir, `${exerciseId}.png`);
@@ -57,4 +58,6 @@ for (let row = 0; row < rows; row += 1) {
   }
 }
 
-console.log(`Split ${rows * columns} illustrations from ${sourcePath} at ${scale}x`);
+console.log(
+  `Split ${exerciseIds.reduce((count, row) => count + row.length, 0)} illustrations from ${sourcePath} at ${scale}x`,
+);

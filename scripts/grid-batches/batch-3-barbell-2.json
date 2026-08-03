@@ -1,0 +1,21 @@
+[
+  [
+    "builtin-barbell-pullover",
+    "builtin-barbell-reverse-curl",
+    "builtin-barbell-reverse-wrist-curl",
+    "builtin-barbell-rollout"
+  ],
+  [
+    "builtin-row",
+    "builtin-barbell-shrug",
+    "builtin-barbell-snatch",
+    "builtin-barbell-thruster"
+  ],
+  [
+    "builtin-barbell-wrist-curl",
+    "builtin-barbell-wrist-extension",
+    "builtin-bayesian-cable-curl",
+    "builtin-behind-back-barbell-shrug",
+    "builtin-behind-neck-lat-pulldown"
+  ]
+]
