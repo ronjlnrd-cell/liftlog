@@ -1,24 +1,90 @@
-[
-  [
-    "builtin-side-plank",
-    "builtin-single-arm-cable-crossover",
-    "builtin-single-arm-cable-pushdown",
-    "builtin-single-arm-dumbbell-pullover",
-    "builtin-single-arm-kettlebell-press",
-    "builtin-single-arm-landmine-press"
-  ],
-  [
-    "builtin-single-arm-pulldown",
-    "builtin-single-leg-calf",
-    "builtin-single-leg-glute-bridge",
-    "builtin-single-leg-hip-thrust",
-    "builtin-single-leg-leg-press",
-    "builtin-single-leg-press-calf-raise"
-  ],
-  [
-    "builtin-single-leg-rdl",
-    "builtin-sissy-squat",
-    "builtin-sit-up",
-    "builtin-skull-crusher"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-side-plank",
+        "left": 0,
+        "width": 173
+      },
+      {
+        "id": "builtin-single-arm-cable-crossover",
+        "left": 174,
+        "width": 164
+      },
+      {
+        "id": "builtin-single-arm-cable-pushdown",
+        "left": 339,
+        "width": 164
+      },
+      {
+        "id": "builtin-single-arm-dumbbell-pullover",
+        "left": 504,
+        "width": 171
+      },
+      {
+        "id": "builtin-single-arm-kettlebell-press",
+        "left": 676,
+        "width": 168
+      },
+      {
+        "id": "builtin-single-arm-landmine-press",
+        "left": 845,
+        "width": 179
+      }
+    ],
+    [
+      {
+        "id": "builtin-single-arm-pulldown",
+        "left": 0,
+        "width": 173
+      },
+      {
+        "id": "builtin-single-leg-calf",
+        "left": 174,
+        "width": 164
+      },
+      {
+        "id": "builtin-single-leg-glute-bridge",
+        "left": 339,
+        "width": 164
+      },
+      {
+        "id": "builtin-single-leg-hip-thrust",
+        "left": 504,
+        "width": 170
+      },
+      {
+        "id": "builtin-single-leg-leg-press",
+        "left": 675,
+        "width": 169
+      },
+      {
+        "id": "builtin-single-leg-press-calf-raise",
+        "left": 845,
+        "width": 179
+      }
+    ],
+    [
+      {
+        "id": "builtin-single-leg-rdl",
+        "left": 0,
+        "width": 173
+      },
+      {
+        "id": "builtin-sissy-squat",
+        "left": 174,
+        "width": 164
+      },
+      {
+        "id": "builtin-sit-up",
+        "left": 339,
+        "width": 164
+      },
+      {
+        "id": "builtin-skull-crusher",
+        "left": 504,
+        "width": 171
+      }
+    ]
   ]
-]
+}

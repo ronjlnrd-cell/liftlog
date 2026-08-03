@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-resistance-band-good-morning",
-    "builtin-seated-good-morning",
-    "builtin-seated-leg-curl",
-    "builtin-slider-leg-curl",
-    "builtin-smith-bench"
-  ],
-  [
-    "builtin-smith-machine-calf-raise",
-    "builtin-smith-close-grip-bench-press",
-    "builtin-smith-decline-bench-press",
-    "builtin-smith-machine-hip-thrust",
-    "builtin-smith-incline-bench-press"
-  ],
-  [
-    "builtin-smith-machine-lunge",
-    "builtin-smith-machine-overhead-press",
-    "builtin-smith-machine-row",
-    "builtin-smith-machine-shrug",
-    "builtin-smith-squat"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-resistance-band-good-morning",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-seated-good-morning",
+        "left": 205,
+        "width": 188
+      },
+      {
+        "id": "builtin-seated-leg-curl",
+        "left": 394,
+        "width": 184
+      },
+      {
+        "id": "builtin-slider-leg-curl",
+        "left": 579,
+        "width": 184
+      },
+      {
+        "id": "builtin-smith-bench",
+        "left": 764,
+        "width": 260
+      }
+    ],
+    [
+      {
+        "id": "builtin-smith-machine-calf-raise",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-smith-close-grip-bench-press",
+        "left": 205,
+        "width": 188
+      },
+      {
+        "id": "builtin-smith-decline-bench-press",
+        "left": 394,
+        "width": 183
+      },
+      {
+        "id": "builtin-smith-machine-hip-thrust",
+        "left": 578,
+        "width": 190
+      },
+      {
+        "id": "builtin-smith-incline-bench-press",
+        "left": 769,
+        "width": 255
+      }
+    ],
+    [
+      {
+        "id": "builtin-smith-machine-lunge",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-smith-machine-overhead-press",
+        "left": 205,
+        "width": 188
+      },
+      {
+        "id": "builtin-smith-machine-row",
+        "left": 394,
+        "width": 182
+      },
+      {
+        "id": "builtin-smith-machine-shrug",
+        "left": 577,
+        "width": 191
+      },
+      {
+        "id": "builtin-smith-squat",
+        "left": 769,
+        "width": 255
+      }
+    ]
   ]
-]
+}

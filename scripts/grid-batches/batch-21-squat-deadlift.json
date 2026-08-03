@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-smith-machine-upright-row",
-    "builtin-snatch-grip-deadlift",
-    "builtin-spanish-squat",
-    "builtin-spider-curl",
-    "builtin-split-squat",
-    "builtin-spoto-press"
-  ],
-  [
-    "builtin-squat",
-    "builtin-standing-calf-raise",
-    "builtin-step-down",
-    "builtin-step-up",
-    "builtin-stiff-leg-deadlift",
-    "builtin-stiff-leg-dumbbell-deadlift"
-  ],
-  [
-    "builtin-straight-arm-pulldown",
-    "builtin-suitcase-carry",
-    "builtin-sumo-deadlift"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-smith-machine-upright-row",
+        "left": 0,
+        "width": 193
+      },
+      {
+        "id": "builtin-snatch-grip-deadlift",
+        "left": 194,
+        "width": 180
+      },
+      {
+        "id": "builtin-spanish-squat",
+        "left": 375,
+        "width": 174
+      },
+      {
+        "id": "builtin-spider-curl",
+        "left": 550,
+        "width": 157
+      },
+      {
+        "id": "builtin-split-squat",
+        "left": 708,
+        "width": 151
+      },
+      {
+        "id": "builtin-spoto-press",
+        "left": 860,
+        "width": 164
+      }
+    ],
+    [
+      {
+        "id": "builtin-squat",
+        "left": 0,
+        "width": 192
+      },
+      {
+        "id": "builtin-standing-calf-raise",
+        "left": 193,
+        "width": 181
+      },
+      {
+        "id": "builtin-step-down",
+        "left": 375,
+        "width": 173
+      },
+      {
+        "id": "builtin-step-up",
+        "left": 549,
+        "width": 157
+      },
+      {
+        "id": "builtin-stiff-leg-deadlift",
+        "left": 707,
+        "width": 151
+      },
+      {
+        "id": "builtin-stiff-leg-dumbbell-deadlift",
+        "left": 859,
+        "width": 165
+      }
+    ],
+    [
+      {
+        "left": 0,
+        "width": 193,
+        "id": "builtin-straight-arm-pulldown"
+      },
+      {
+        "left": 194,
+        "width": 180,
+        "id": "builtin-suitcase-carry"
+      },
+      {
+        "left": 375,
+        "width": 174,
+        "id": "builtin-sumo-deadlift"
+      }
+    ]
   ]
-]
+}

@@ -1,26 +1,100 @@
-[
-  [
-    "builtin-jefferson-squat",
-    "builtin-jm-press",
-    "builtin-kettlebell-clean",
-    "builtin-kettlebell-clean-and-press",
-    "builtin-kettlebell-floor-press",
-    "builtin-kettlebell-press"
-  ],
-  [
-    "builtin-kettlebell-row",
-    "builtin-kettlebell-snatch",
-    "builtin-kettlebell-swing",
-    "builtin-kettlebell-thruster",
-    "builtin-kettlebell-windmill",
-    "builtin-kroc-row"
-  ],
-  [
-    "builtin-l-sit",
-    "builtin-landmine-press",
-    "builtin-landmine-row",
-    "builtin-landmine-squat",
-    "builtin-lat-pulldown",
-    "builtin-lateral-lunge"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-jefferson-squat",
+        "left": 0,
+        "width": 181
+      },
+      {
+        "id": "builtin-jm-press",
+        "left": 182,
+        "width": 159
+      },
+      {
+        "id": "builtin-kettlebell-clean",
+        "left": 342,
+        "width": 182
+      },
+      {
+        "id": "builtin-kettlebell-clean-and-press",
+        "left": 525,
+        "width": 164
+      },
+      {
+        "id": "builtin-kettlebell-floor-press",
+        "left": 690,
+        "width": 166
+      },
+      {
+        "id": "builtin-kettlebell-press",
+        "left": 857,
+        "width": 167
+      }
+    ],
+    [
+      {
+        "id": "builtin-kettlebell-row",
+        "left": 0,
+        "width": 181
+      },
+      {
+        "id": "builtin-kettlebell-snatch",
+        "left": 182,
+        "width": 183
+      },
+      {
+        "id": "builtin-kettlebell-swing",
+        "left": 366,
+        "width": 158
+      },
+      {
+        "id": "builtin-kettlebell-thruster",
+        "left": 525,
+        "width": 164
+      },
+      {
+        "id": "builtin-kettlebell-windmill",
+        "left": 690,
+        "width": 165
+      },
+      {
+        "id": "builtin-kroc-row",
+        "left": 856,
+        "width": 168
+      }
+    ],
+    [
+      {
+        "id": "builtin-l-sit",
+        "left": 0,
+        "width": 182
+      },
+      {
+        "id": "builtin-landmine-press",
+        "left": 183,
+        "width": 182
+      },
+      {
+        "id": "builtin-landmine-row",
+        "left": 366,
+        "width": 158
+      },
+      {
+        "id": "builtin-landmine-squat",
+        "left": 525,
+        "width": 164
+      },
+      {
+        "id": "builtin-lat-pulldown",
+        "left": 690,
+        "width": 165
+      },
+      {
+        "id": "builtin-lateral-lunge",
+        "left": 856,
+        "width": 168
+      }
+    ]
   ]
-]
+}

@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-cable-woodchop",
-    "builtin-cable-wrist-curl",
-    "builtin-cable-y-raise",
-    "builtin-calf-press-on-leg-press",
-    "builtin-captains-chair-knee-raise"
-  ],
-  [
-    "builtin-captains-chair-leg-raise",
-    "builtin-chest-supported-dumbbell-row",
-    "builtin-chest-supported-row",
-    "builtin-chin-up",
-    "builtin-close-grip-bench"
-  ],
-  [
-    "builtin-lat-pulldown-close",
-    "builtin-close-grip-push-up",
-    "builtin-concentration-curl",
-    "builtin-cossack-squat",
-    "builtin-cross-body-hammer-curl"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-cable-woodchop",
+        "left": 0,
+        "width": 206
+      },
+      {
+        "id": "builtin-cable-wrist-curl",
+        "left": 207,
+        "width": 200
+      },
+      {
+        "id": "builtin-cable-y-raise",
+        "left": 408,
+        "width": 198
+      },
+      {
+        "id": "builtin-calf-press-on-leg-press",
+        "left": 607,
+        "width": 201
+      },
+      {
+        "id": "builtin-captains-chair-knee-raise",
+        "left": 809,
+        "width": 215
+      }
+    ],
+    [
+      {
+        "id": "builtin-captains-chair-leg-raise",
+        "left": 0,
+        "width": 206
+      },
+      {
+        "id": "builtin-chest-supported-dumbbell-row",
+        "left": 207,
+        "width": 200
+      },
+      {
+        "id": "builtin-chest-supported-row",
+        "left": 408,
+        "width": 198
+      },
+      {
+        "id": "builtin-chin-up",
+        "left": 607,
+        "width": 201
+      },
+      {
+        "id": "builtin-close-grip-bench",
+        "left": 809,
+        "width": 215
+      }
+    ],
+    [
+      {
+        "id": "builtin-lat-pulldown-close",
+        "left": 0,
+        "width": 206
+      },
+      {
+        "id": "builtin-close-grip-push-up",
+        "left": 207,
+        "width": 200
+      },
+      {
+        "id": "builtin-concentration-curl",
+        "left": 408,
+        "width": 198
+      },
+      {
+        "id": "builtin-cossack-squat",
+        "left": 607,
+        "width": 201
+      },
+      {
+        "id": "builtin-cross-body-hammer-curl",
+        "left": 809,
+        "width": 215
+      }
+    ]
   ]
-]
+}

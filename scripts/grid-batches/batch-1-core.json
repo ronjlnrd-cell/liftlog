@@ -1,20 +1,70 @@
-[
-  [
-    "builtin-45-degree-back-extension",
-    "builtin-ab-coaster",
-    "builtin-ab-wheel",
-    "builtin-alternate-dumbbell-curl"
-  ],
-  [
-    "builtin-archer-push-up",
-    "builtin-arnold-press",
-    "builtin-assisted-dip",
-    "builtin-assisted-pull-up"
-  ],
-  [
-    "builtin-back-extension",
-    "builtin-band-pull-apart",
-    "builtin-banded-glute-bridge",
-    "builtin-bar-muscle-up"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-45-degree-back-extension",
+        "left": 0,
+        "width": 281
+      },
+      {
+        "id": "builtin-ab-coaster",
+        "left": 282,
+        "width": 231
+      },
+      {
+        "id": "builtin-ab-wheel",
+        "left": 514,
+        "width": 256
+      },
+      {
+        "id": "builtin-alternate-dumbbell-curl",
+        "left": 771,
+        "width": 253
+      }
+    ],
+    [
+      {
+        "id": "builtin-archer-push-up",
+        "left": 0,
+        "width": 281
+      },
+      {
+        "id": "builtin-arnold-press",
+        "left": 282,
+        "width": 231
+      },
+      {
+        "id": "builtin-assisted-dip",
+        "left": 514,
+        "width": 256
+      },
+      {
+        "id": "builtin-assisted-pull-up",
+        "left": 771,
+        "width": 253
+      }
+    ],
+    [
+      {
+        "id": "builtin-back-extension",
+        "left": 0,
+        "width": 281
+      },
+      {
+        "id": "builtin-band-pull-apart",
+        "left": 282,
+        "width": 231
+      },
+      {
+        "id": "builtin-banded-glute-bridge",
+        "left": 514,
+        "width": 256
+      },
+      {
+        "id": "builtin-bar-muscle-up",
+        "left": 771,
+        "width": 253
+      }
+    ]
   ]
-]
+}

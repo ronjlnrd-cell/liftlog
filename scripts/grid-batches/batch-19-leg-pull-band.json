@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-leg-extension",
-    "builtin-leg-press",
-    "builtin-leg-press-calf-raise",
-    "builtin-low-cable-fly",
-    "builtin-lying-dumbbell-leg-curl"
-  ],
-  [
-    "builtin-muscle-up",
-    "builtin-lat-pulldown-neutral",
-    "builtin-neutral-pull-up",
-    "builtin-nordic-curl",
-    "builtin-oblique-crunch"
-  ],
-  [
-    "builtin-rack-pull",
-    "builtin-rear-delt-machine",
-    "builtin-resistance-band-chest-press",
-    "builtin-resistance-band-curl",
-    "builtin-resistance-band-face-pull"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-leg-extension",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-leg-press",
+        "left": 205,
+        "width": 187
+      },
+      {
+        "id": "builtin-leg-press-calf-raise",
+        "left": 393,
+        "width": 199
+      },
+      {
+        "id": "builtin-low-cable-fly",
+        "left": 593,
+        "width": 207
+      },
+      {
+        "id": "builtin-lying-dumbbell-leg-curl",
+        "left": 801,
+        "width": 223
+      }
+    ],
+    [
+      {
+        "id": "builtin-muscle-up",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-lat-pulldown-neutral",
+        "left": 205,
+        "width": 186
+      },
+      {
+        "id": "builtin-neutral-pull-up",
+        "left": 392,
+        "width": 200
+      },
+      {
+        "id": "builtin-nordic-curl",
+        "left": 593,
+        "width": 207
+      },
+      {
+        "id": "builtin-oblique-crunch",
+        "left": 801,
+        "width": 223
+      }
+    ],
+    [
+      {
+        "id": "builtin-rack-pull",
+        "left": 0,
+        "width": 203
+      },
+      {
+        "id": "builtin-rear-delt-machine",
+        "left": 204,
+        "width": 186
+      },
+      {
+        "id": "builtin-resistance-band-chest-press",
+        "left": 391,
+        "width": 200
+      },
+      {
+        "id": "builtin-resistance-band-curl",
+        "left": 592,
+        "width": 208
+      },
+      {
+        "id": "builtin-resistance-band-face-pull",
+        "left": 801,
+        "width": 223
+      }
+    ]
   ]
-]
+}

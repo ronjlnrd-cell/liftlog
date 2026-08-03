@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-resistance-band-lateral-raise",
-    "builtin-resistance-band-leg-curl",
-    "builtin-resistance-band-pallof-press",
-    "builtin-resistance-band-row",
-    "builtin-resistance-band-squat"
-  ],
-  [
-    "builtin-reverse-crunch",
-    "builtin-reverse-fly",
-    "builtin-reverse-hyperextension",
-    "builtin-reverse-lunge",
-    "builtin-romanian-deadlift"
-  ],
-  [
-    "builtin-rope-pushdown",
-    "builtin-russian-twist",
-    "builtin-safety-bar-squat",
-    "builtin-seal-row",
-    "builtin-seated-barbell-calf-raise"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-resistance-band-lateral-raise",
+        "left": 0,
+        "width": 206
+      },
+      {
+        "id": "builtin-resistance-band-leg-curl",
+        "left": 207,
+        "width": 191
+      },
+      {
+        "id": "builtin-resistance-band-pallof-press",
+        "left": 399,
+        "width": 178
+      },
+      {
+        "id": "builtin-resistance-band-row",
+        "left": 578,
+        "width": 219
+      },
+      {
+        "id": "builtin-resistance-band-squat",
+        "left": 798,
+        "width": 226
+      }
+    ],
+    [
+      {
+        "id": "builtin-reverse-crunch",
+        "left": 0,
+        "width": 206
+      },
+      {
+        "id": "builtin-reverse-fly",
+        "left": 207,
+        "width": 191
+      },
+      {
+        "id": "builtin-reverse-hyperextension",
+        "left": 399,
+        "width": 197
+      },
+      {
+        "id": "builtin-reverse-lunge",
+        "left": 597,
+        "width": 200
+      },
+      {
+        "id": "builtin-romanian-deadlift",
+        "left": 798,
+        "width": 226
+      }
+    ],
+    [
+      {
+        "id": "builtin-rope-pushdown",
+        "left": 0,
+        "width": 206
+      },
+      {
+        "id": "builtin-russian-twist",
+        "left": 207,
+        "width": 191
+      },
+      {
+        "id": "builtin-safety-bar-squat",
+        "left": 399,
+        "width": 197
+      },
+      {
+        "id": "builtin-seal-row",
+        "left": 597,
+        "width": 200
+      },
+      {
+        "id": "builtin-seated-barbell-calf-raise",
+        "left": 798,
+        "width": 226
+      }
+    ]
   ]
-]
+}

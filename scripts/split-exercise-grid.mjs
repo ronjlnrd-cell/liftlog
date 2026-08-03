@@ -15,7 +15,9 @@ if (!sourcePath || !batchPath) {
   process.exit(1);
 }
 
-const exerciseIds = JSON.parse(readFileSync(batchPath, "utf8"));
+const batch = JSON.parse(readFileSync(batchPath, "utf8"));
+const gridColumns = batch.columns ?? null;
+const exerciseRows = batch.rows ?? batch;
 
 const image = sharp(sourcePath);
 const { width, height } = await image.metadata();
@@ -24,42 +26,66 @@ if (!width || !height) {
   throw new Error("Could not read image dimensions.");
 }
 
-const rows = exerciseIds.length;
+const rows = exerciseRows.length;
 
-if (!rows || exerciseIds.some((row) => !Array.isArray(row) || row.length === 0)) {
+if (!rows || exerciseRows.some((row) => !Array.isArray(row) || row.length === 0)) {
   throw new Error("Batch JSON must be an array of exercise id rows.");
 }
 
+function parseCell(cell) {
+  if (!cell) {
+    return { id: null, span: 1 };
+  }
+  if (typeof cell === "string") {
+    return { id: cell, span: 1 };
+  }
+  return {
+    id: cell.id ?? null,
+    span: cell.span ?? 1,
+    left: cell.left,
+    width: cell.width,
+  };
+}
+
 const cellHeight = Math.floor(height / rows);
+let illustrationCount = 0;
 
 for (let row = 0; row < rows; row += 1) {
-  const columns = exerciseIds[row].length;
+  const rowCells = exerciseRows[row].map(parseCell);
+  const columns = gridColumns ?? rowCells.length;
   const cellWidth = Math.floor(width / columns);
+  let column = 0;
 
-  for (let col = 0; col < columns; col += 1) {
-    const exerciseId = exerciseIds[row][col];
-    if (!exerciseId) {
-      continue;
+  for (let index = 0; index < rowCells.length; index += 1) {
+    const { id, span, left: explicitLeft, width: explicitWidth } = rowCells[index];
+    const left =
+      explicitLeft ?? column * cellWidth;
+    const isLastCell = index === rowCells.length - 1;
+    const extractWidth =
+      explicitWidth ?? (isLastCell ? width - left : span * cellWidth);
+
+    if (id) {
+      const outputPath = join(outputDir, `${id}.png`);
+
+      await sharp(sourcePath)
+        .extract({
+          left,
+          top: row * cellHeight,
+          width: extractWidth,
+          height: cellHeight,
+        })
+        .resize(extractWidth * scale, cellHeight * scale, {
+          kernel: sharp.kernel.lanczos3,
+        })
+        .png({ compressionLevel: 6, effort: 10 })
+        .toFile(outputPath);
+
+      illustrationCount += 1;
+      console.log(`Saved ${id}.png (${extractWidth * scale}x${cellHeight * scale})`);
     }
-    const outputPath = join(outputDir, `${exerciseId}.png`);
 
-    await sharp(sourcePath)
-      .extract({
-        left: col * cellWidth,
-        top: row * cellHeight,
-        width: cellWidth,
-        height: cellHeight,
-      })
-      .resize(cellWidth * scale, cellHeight * scale, {
-        kernel: sharp.kernel.lanczos3,
-      })
-      .png({ compressionLevel: 6, effort: 10 })
-      .toFile(outputPath);
-
-    console.log(`Saved ${exerciseId}.png (${cellWidth * scale}x${cellHeight * scale})`);
+    column += explicitWidth ? Math.ceil(explicitWidth / cellWidth) : span;
   }
 }
 
-console.log(
-  `Split ${exerciseIds.reduce((count, row) => count + row.filter(Boolean).length, 0)} illustrations from ${sourcePath} at ${scale}x`,
-);
+console.log(`Split ${illustrationCount} illustrations from ${sourcePath} at ${scale}x`);

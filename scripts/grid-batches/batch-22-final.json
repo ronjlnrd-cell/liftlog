@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-superman",
-    "builtin-svend-press",
-    "builtin-tbar-row",
-    "builtin-tate-press",
-    "builtin-tibialis-raise"
-  ],
-  [
-    "builtin-toes-to-bar",
-    "builtin-trap-bar-deadlift",
-    "builtin-trap-bar-shrug",
-    "builtin-triceps-dip",
-    "builtin-underhand-barbell-row"
-  ],
-  [
-    "builtin-upright-row",
-    "builtin-v-bar-triceps-pushdown",
-    "builtin-v-up",
-    "builtin-walking-lunge",
-    "builtin-wall-ball"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-superman",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-svend-press",
+        "left": 205,
+        "width": 180
+      },
+      {
+        "id": "builtin-tbar-row",
+        "left": 386,
+        "width": 202
+      },
+      {
+        "id": "builtin-tate-press",
+        "left": 589,
+        "width": 217
+      },
+      {
+        "id": "builtin-tibialis-raise",
+        "left": 807,
+        "width": 217
+      }
+    ],
+    [
+      {
+        "id": "builtin-toes-to-bar",
+        "left": 0,
+        "width": 200
+      },
+      {
+        "id": "builtin-trap-bar-deadlift",
+        "left": 201,
+        "width": 206
+      },
+      {
+        "id": "builtin-trap-bar-shrug",
+        "left": 408,
+        "width": 189
+      },
+      {
+        "id": "builtin-triceps-dip",
+        "left": 598,
+        "width": 195
+      },
+      {
+        "id": "builtin-underhand-barbell-row",
+        "left": 794,
+        "width": 230
+      }
+    ],
+    [
+      {
+        "id": "builtin-upright-row",
+        "left": 0,
+        "width": 203
+      },
+      {
+        "id": "builtin-v-bar-triceps-pushdown",
+        "left": 204,
+        "width": 196
+      },
+      {
+        "id": "builtin-v-up",
+        "left": 401,
+        "width": 199
+      },
+      {
+        "id": "builtin-walking-lunge",
+        "left": 601,
+        "width": 201
+      },
+      {
+        "id": "builtin-wall-ball",
+        "left": 803,
+        "width": 221
+      }
+    ]
   ]
-]
+}

@@ -1,22 +1,80 @@
-[
-  [
-    "builtin-cable-crunch",
-    "builtin-cable-curl",
-    "builtin-cable-external-rotation",
-    "builtin-cable-fly"
-  ],
-  [
-    "builtin-cable-kickback",
-    "builtin-cable-hammer-curl",
-    "builtin-cable-hip-abduction",
-    "builtin-cable-incline-fly"
-  ],
-  [
-    "builtin-cable-internal-rotation",
-    "builtin-cable-lateral-raise",
-    "builtin-cable-pull-through",
-    "builtin-cable-pullover",
-    "builtin-cable-rear-delt-fly",
-    "builtin-cable-shrug"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-cable-crunch",
+        "left": 0,
+        "width": 217
+      },
+      {
+        "id": "builtin-cable-curl",
+        "left": 218,
+        "width": 189
+      },
+      {
+        "id": "builtin-cable-external-rotation",
+        "left": 408,
+        "width": 190
+      },
+      {
+        "id": "builtin-cable-fly",
+        "left": 599,
+        "width": 207
+      },
+      {
+        "id": "builtin-cable-kickback",
+        "left": 807,
+        "width": 217
+      }
+    ],
+    [
+      {
+        "id": "builtin-cable-hammer-curl",
+        "left": 0,
+        "width": 217
+      },
+      {
+        "id": "builtin-cable-hip-abduction",
+        "left": 218,
+        "width": 189
+      },
+      {
+        "id": "builtin-cable-incline-fly",
+        "left": 408,
+        "width": 205
+      },
+      {
+        "id": "builtin-cable-internal-rotation",
+        "left": 614,
+        "width": 191
+      },
+      {
+        "id": "builtin-cable-lateral-raise",
+        "left": 806,
+        "width": 218
+      }
+    ],
+    [
+      {
+        "id": "builtin-cable-pull-through",
+        "left": 0,
+        "width": 227
+      },
+      {
+        "id": "builtin-cable-pullover",
+        "left": 228,
+        "width": 259
+      },
+      {
+        "id": "builtin-cable-rear-delt-fly",
+        "left": 488,
+        "width": 237
+      },
+      {
+        "id": "builtin-cable-shrug",
+        "left": 726,
+        "width": 298
+      }
+    ]
   ]
-]
+}

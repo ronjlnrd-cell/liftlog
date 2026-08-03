@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-crunch",
-    "builtin-cuban-press",
-    "builtin-curtsy-lunge",
-    "builtin-cyclist-squat",
-    "builtin-dead-bug",
-    "builtin-dead-hang"
-  ],
-  [
-    "builtin-deadlift",
-    "builtin-decline-bench",
-    "builtin-decline-crunch",
-    "builtin-decline-dumbbell-bench-press",
-    "builtin-decline-dumbbell-fly",
-    "builtin-decline-push-up"
-  ],
-  [
-    "builtin-diamond-push-up",
-    "builtin-dips",
-    "builtin-donkey-calf-raise"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-crunch",
+        "left": 0,
+        "width": 171
+      },
+      {
+        "id": "builtin-cuban-press",
+        "left": 172,
+        "width": 197
+      },
+      {
+        "id": "builtin-curtsy-lunge",
+        "left": 370,
+        "width": 142
+      },
+      {
+        "id": "builtin-cyclist-squat",
+        "left": 513,
+        "width": 187
+      },
+      {
+        "id": "builtin-dead-bug",
+        "left": 701,
+        "width": 155
+      },
+      {
+        "id": "builtin-dead-hang",
+        "left": 857,
+        "width": 167
+      }
+    ],
+    [
+      {
+        "id": "builtin-deadlift",
+        "left": 0,
+        "width": 171
+      },
+      {
+        "id": "builtin-decline-bench",
+        "left": 172,
+        "width": 197
+      },
+      {
+        "id": "builtin-decline-crunch",
+        "left": 370,
+        "width": 164
+      },
+      {
+        "id": "builtin-decline-dumbbell-bench-press",
+        "left": 535,
+        "width": 165
+      },
+      {
+        "id": "builtin-decline-dumbbell-fly",
+        "left": 701,
+        "width": 154
+      },
+      {
+        "id": "builtin-decline-push-up",
+        "left": 856,
+        "width": 168
+      }
+    ],
+    [
+      {
+        "id": "builtin-diamond-push-up",
+        "left": 0,
+        "width": 171
+      },
+      {
+        "id": "builtin-dips",
+        "left": 172,
+        "width": 197
+      },
+      {
+        "id": "builtin-donkey-calf-raise",
+        "left": 370,
+        "width": 280
+      }
+    ]
   ]
-]
+}

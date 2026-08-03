@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-lying-leg-curl",
-    "builtin-machine-biceps-curl",
-    "builtin-chest-press-machine",
-    "builtin-machine-crunch",
-    "builtin-machine-decline-chest-press",
-    "builtin-machine-incline-chest-press"
-  ],
-  [
-    "builtin-machine-lateral-raise",
-    "builtin-machine-row",
-    "builtin-machine-shoulder-press",
-    "builtin-machine-shrug",
-    "builtin-machine-triceps-dip",
-    "builtin-machine-triceps-extension"
-  ],
-  [
-    "builtin-man-maker",
-    "builtin-meadows-row",
-    "builtin-mountain-climber"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-lying-leg-curl",
+        "left": 0,
+        "width": 180
+      },
+      {
+        "id": "builtin-machine-biceps-curl",
+        "left": 181,
+        "width": 151
+      },
+      {
+        "id": "builtin-chest-press-machine",
+        "left": 333,
+        "width": 160
+      },
+      {
+        "id": "builtin-machine-crunch",
+        "left": 494,
+        "width": 145
+      },
+      {
+        "id": "builtin-machine-decline-chest-press",
+        "left": 640,
+        "width": 195
+      },
+      {
+        "id": "builtin-machine-incline-chest-press",
+        "left": 836,
+        "width": 188
+      }
+    ],
+    [
+      {
+        "id": "builtin-machine-lateral-raise",
+        "left": 0,
+        "width": 180
+      },
+      {
+        "id": "builtin-machine-row",
+        "left": 181,
+        "width": 151
+      },
+      {
+        "id": "builtin-machine-shoulder-press",
+        "left": 333,
+        "width": 160
+      },
+      {
+        "id": "builtin-machine-shrug",
+        "left": 494,
+        "width": 145
+      },
+      {
+        "id": "builtin-machine-triceps-dip",
+        "left": 640,
+        "width": 195
+      },
+      {
+        "id": "builtin-machine-triceps-extension",
+        "left": 836,
+        "width": 188
+      }
+    ],
+    [
+      {
+        "id": "builtin-man-maker",
+        "left": 0,
+        "width": 331
+      },
+      {
+        "id": "builtin-meadows-row",
+        "left": 333,
+        "width": 160
+      },
+      {
+        "id": "builtin-mountain-climber",
+        "left": 494,
+        "width": 340
+      }
+    ]
   ]
-]
+}

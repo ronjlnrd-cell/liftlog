@@ -1,30 +1,92 @@
-[
-  [
-    "builtin-good-morning",
-    "builtin-hack-squat",
-    "builtin-hammer-curl",
-    "builtin-jefferson-squat",
-    "builtin-jm-press"
-  ],
-  [
-    "builtin-kettlebell-clean",
-    "builtin-kettlebell-clean-and-press",
-    "builtin-kettlebell-floor-press",
-    "builtin-kettlebell-press",
-    "builtin-kettlebell-row"
-  ],
-  [
-    "builtin-kettlebell-snatch",
-    "builtin-kettlebell-swing",
-    "builtin-kettlebell-thruster",
-    "builtin-kettlebell-windmill",
-    "builtin-kroc-row"
-  ],
-  [
-    "builtin-l-sit",
-    null,
-    null,
-    null,
-    null
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-good-morning",
+        "left": 0,
+        "width": 214
+      },
+      {
+        "id": "builtin-hack-squat",
+        "left": 215,
+        "width": 208
+      },
+      {
+        "id": "builtin-hammer-curl",
+        "left": 424,
+        "width": 155
+      },
+      {
+        "id": "builtin-jefferson-squat",
+        "left": 580,
+        "width": 199
+      },
+      {
+        "id": "builtin-jm-press",
+        "left": 780,
+        "width": 244
+      }
+    ],
+    [
+      {
+        "id": "builtin-kettlebell-clean",
+        "left": 0,
+        "width": 212
+      },
+      {
+        "id": "builtin-kettlebell-clean-and-press",
+        "left": 213,
+        "width": 209
+      },
+      {
+        "id": "builtin-kettlebell-floor-press",
+        "left": 423,
+        "width": 156
+      },
+      {
+        "id": "builtin-kettlebell-press",
+        "left": 580,
+        "width": 199
+      },
+      {
+        "id": "builtin-kettlebell-row",
+        "left": 780,
+        "width": 244
+      }
+    ],
+    [
+      {
+        "id": "builtin-kettlebell-snatch",
+        "left": 0,
+        "width": 212
+      },
+      {
+        "id": "builtin-kettlebell-swing",
+        "left": 213,
+        "width": 209
+      },
+      {
+        "id": "builtin-kettlebell-thruster",
+        "left": 423,
+        "width": 156
+      },
+      {
+        "id": "builtin-kettlebell-windmill",
+        "left": 580,
+        "width": 199
+      },
+      {
+        "id": "builtin-kroc-row",
+        "left": 780,
+        "width": 244
+      }
+    ],
+    [
+      {
+        "id": "builtin-l-sit",
+        "left": 0,
+        "width": 214
+      }
+    ]
   ]
-]
+}

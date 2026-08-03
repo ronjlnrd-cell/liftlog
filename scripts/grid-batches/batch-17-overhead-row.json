@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-db-row",
-    "builtin-overhead-cable-extension",
-    "builtin-overhead-db-extension",
-    "builtin-ohp",
-    "builtin-overhead-squat",
-    "builtin-pallof-press"
-  ],
-  [
-    "builtin-paused-bench-press",
-    "builtin-paused-squat",
-    "builtin-pec-deck",
-    "builtin-pendlay-row",
-    "builtin-pendulum-squat",
-    "builtin-pistol-squat"
-  ],
-  [
-    "builtin-plank",
-    "builtin-plate-pin-hold",
-    "builtin-power-clean"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-db-row",
+        "left": 0,
+        "width": 174
+      },
+      {
+        "id": "builtin-overhead-cable-extension",
+        "left": 175,
+        "width": 164
+      },
+      {
+        "id": "builtin-overhead-db-extension",
+        "left": 340,
+        "width": 165
+      },
+      {
+        "id": "builtin-ohp",
+        "left": 506,
+        "width": 160
+      },
+      {
+        "id": "builtin-overhead-squat",
+        "left": 667,
+        "width": 176
+      },
+      {
+        "id": "builtin-pallof-press",
+        "left": 844,
+        "width": 180
+      }
+    ],
+    [
+      {
+        "id": "builtin-paused-bench-press",
+        "left": 0,
+        "width": 174
+      },
+      {
+        "id": "builtin-paused-squat",
+        "left": 175,
+        "width": 164
+      },
+      {
+        "id": "builtin-pec-deck",
+        "left": 340,
+        "width": 165
+      },
+      {
+        "id": "builtin-pendlay-row",
+        "left": 506,
+        "width": 160
+      },
+      {
+        "id": "builtin-pendulum-squat",
+        "left": 667,
+        "width": 176
+      },
+      {
+        "id": "builtin-pistol-squat",
+        "left": 844,
+        "width": 180
+      }
+    ],
+    [
+      {
+        "id": "builtin-plank",
+        "left": 0,
+        "width": 174
+      },
+      {
+        "id": "builtin-plate-pin-hold",
+        "left": 175,
+        "width": 164
+      },
+      {
+        "id": "builtin-power-clean",
+        "left": 340,
+        "width": 325
+      }
+    ]
   ]
-]
+}

@@ -1,24 +1,90 @@
-[
-  [
-    "builtin-ohp",
-    "builtin-overhead-squat",
-    "builtin-pallof-press",
-    "builtin-paused-bench-press",
-    "builtin-paused-squat",
-    "builtin-pec-deck"
-  ],
-  [
-    "builtin-pendlay-row",
-    "builtin-pendulum-squat",
-    "builtin-pistol-squat",
-    "builtin-plank",
-    "builtin-plate-pin-hold",
-    "builtin-power-clean"
-  ],
-  [
-    "builtin-preacher-curl",
-    "builtin-pull-up",
-    "builtin-push-press",
-    "builtin-push-up"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-ohp",
+        "left": 0,
+        "width": 183
+      },
+      {
+        "id": "builtin-overhead-squat",
+        "left": 184,
+        "width": 156
+      },
+      {
+        "id": "builtin-pallof-press",
+        "left": 341,
+        "width": 171
+      },
+      {
+        "id": "builtin-paused-bench-press",
+        "left": 513,
+        "width": 170
+      },
+      {
+        "id": "builtin-paused-squat",
+        "left": 684,
+        "width": 173
+      },
+      {
+        "id": "builtin-pec-deck",
+        "left": 858,
+        "width": 166
+      }
+    ],
+    [
+      {
+        "id": "builtin-pendlay-row",
+        "left": 0,
+        "width": 183
+      },
+      {
+        "id": "builtin-pendulum-squat",
+        "left": 184,
+        "width": 157
+      },
+      {
+        "id": "builtin-pistol-squat",
+        "left": 342,
+        "width": 170
+      },
+      {
+        "id": "builtin-plank",
+        "left": 513,
+        "width": 170
+      },
+      {
+        "id": "builtin-plate-pin-hold",
+        "left": 684,
+        "width": 174
+      },
+      {
+        "id": "builtin-power-clean",
+        "left": 859,
+        "width": 165
+      }
+    ],
+    [
+      {
+        "id": "builtin-preacher-curl",
+        "left": 0,
+        "width": 204
+      },
+      {
+        "id": "builtin-pull-up",
+        "left": 205,
+        "width": 198
+      },
+      {
+        "id": "builtin-push-press",
+        "left": 404,
+        "width": 219
+      },
+      {
+        "id": "builtin-push-up",
+        "left": 624,
+        "width": 234
+      }
+    ]
   ]
-]
+}

@@ -1,19 +1,65 @@
-[
-  [
-    "builtin-belt-squat",
-    "builtin-bench-dip",
-    "builtin-bench-pin-press",
-    "builtin-bicycle-crunch"
-  ],
-  [
-    "builtin-block-clean",
-    "builtin-box-squat",
-    "builtin-bradford-press",
-    "builtin-bulgarian-split-squat"
-  ],
-  [
-    "builtin-burpee",
-    "builtin-cable-bench-press",
-    "builtin-cable-crossover"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-belt-squat",
+        "left": 0,
+        "width": 269
+      },
+      {
+        "id": "builtin-bench-dip",
+        "left": 270,
+        "width": 250
+      },
+      {
+        "id": "builtin-bench-pin-press",
+        "left": 521,
+        "width": 262
+      },
+      {
+        "id": "builtin-bicycle-crunch",
+        "left": 784,
+        "width": 240
+      }
+    ],
+    [
+      {
+        "id": "builtin-block-clean",
+        "left": 0,
+        "width": 269
+      },
+      {
+        "id": "builtin-box-squat",
+        "left": 270,
+        "width": 250
+      },
+      {
+        "id": "builtin-bradford-press",
+        "left": 521,
+        "width": 262
+      },
+      {
+        "id": "builtin-bulgarian-split-squat",
+        "left": 784,
+        "width": 240
+      }
+    ],
+    [
+      {
+        "id": "builtin-burpee",
+        "left": 0,
+        "width": 366
+      },
+      {
+        "id": "builtin-cable-bench-press",
+        "left": 367,
+        "width": 307
+      },
+      {
+        "id": "builtin-cable-crossover",
+        "left": 675,
+        "width": 349
+      }
+    ]
   ]
-]
+}

@@ -1,25 +1,95 @@
-[
-  [
-    "builtin-dumbbell-thruster",
-    "builtin-dumbbell-wrist-curl",
-    "builtin-dumbbell-wrist-extension",
-    "builtin-dumbbell-y-raise",
-    "builtin-ez-curl",
-    "builtin-ez-bar-preacher-curl"
-  ],
-  [
-    "builtin-ez-bar-reverse-curl",
-    "builtin-ez-bar-skull-crusher",
-    "builtin-face-pull",
-    "builtin-farmer-carry",
-    "builtin-frog-pump",
-    "builtin-front-raise"
-  ],
-  [
-    "builtin-front-squat",
-    "builtin-glute-bridge",
-    "builtin-glute-kickback-machine",
-    "builtin-glute-ham-raise",
-    "builtin-goblet-squat"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-dumbbell-thruster",
+        "left": 0,
+        "width": 183
+      },
+      {
+        "id": "builtin-dumbbell-wrist-curl",
+        "left": 184,
+        "width": 159
+      },
+      {
+        "id": "builtin-dumbbell-wrist-extension",
+        "left": 344,
+        "width": 159
+      },
+      {
+        "id": "builtin-dumbbell-y-raise",
+        "left": 504,
+        "width": 178
+      },
+      {
+        "id": "builtin-ez-curl",
+        "left": 683,
+        "width": 181
+      },
+      {
+        "id": "builtin-ez-bar-preacher-curl",
+        "left": 865,
+        "width": 159
+      }
+    ],
+    [
+      {
+        "id": "builtin-ez-bar-reverse-curl",
+        "left": 0,
+        "width": 183
+      },
+      {
+        "id": "builtin-ez-bar-skull-crusher",
+        "left": 184,
+        "width": 159
+      },
+      {
+        "id": "builtin-face-pull",
+        "left": 344,
+        "width": 159
+      },
+      {
+        "id": "builtin-farmer-carry",
+        "left": 504,
+        "width": 178
+      },
+      {
+        "id": "builtin-frog-pump",
+        "left": 683,
+        "width": 181
+      },
+      {
+        "id": "builtin-front-raise",
+        "left": 865,
+        "width": 159
+      }
+    ],
+    [
+      {
+        "id": "builtin-front-squat",
+        "left": 0,
+        "width": 182
+      },
+      {
+        "id": "builtin-glute-bridge",
+        "left": 183,
+        "width": 159
+      },
+      {
+        "id": "builtin-glute-kickback-machine",
+        "left": 343,
+        "width": 179
+      },
+      {
+        "id": "builtin-glute-ham-raise",
+        "left": 523,
+        "width": 202
+      },
+      {
+        "id": "builtin-goblet-squat",
+        "left": 726,
+        "width": 181
+      }
+    ]
   ]
-]
+}

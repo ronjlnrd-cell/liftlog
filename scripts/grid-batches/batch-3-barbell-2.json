@@ -1,21 +1,75 @@
-[
-  [
-    "builtin-barbell-pullover",
-    "builtin-barbell-reverse-curl",
-    "builtin-barbell-reverse-wrist-curl",
-    "builtin-barbell-rollout"
-  ],
-  [
-    "builtin-row",
-    "builtin-barbell-shrug",
-    "builtin-barbell-snatch",
-    "builtin-barbell-thruster"
-  ],
-  [
-    "builtin-barbell-wrist-curl",
-    "builtin-barbell-wrist-extension",
-    "builtin-bayesian-cable-curl",
-    "builtin-behind-back-barbell-shrug",
-    "builtin-behind-neck-lat-pulldown"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-barbell-pullover",
+        "left": 0,
+        "width": 258
+      },
+      {
+        "id": "builtin-barbell-reverse-curl",
+        "left": 259,
+        "width": 202
+      },
+      {
+        "id": "builtin-barbell-reverse-wrist-curl",
+        "left": 462,
+        "width": 222
+      },
+      {
+        "id": "builtin-barbell-rollout",
+        "left": 685,
+        "width": 339
+      }
+    ],
+    [
+      {
+        "id": "builtin-row",
+        "left": 0,
+        "width": 258
+      },
+      {
+        "id": "builtin-barbell-shrug",
+        "left": 259,
+        "width": 202
+      },
+      {
+        "id": "builtin-barbell-snatch",
+        "left": 462,
+        "width": 222
+      },
+      {
+        "id": "builtin-barbell-thruster",
+        "left": 685,
+        "width": 339
+      }
+    ],
+    [
+      {
+        "id": "builtin-barbell-wrist-curl",
+        "left": 0,
+        "width": 232
+      },
+      {
+        "id": "builtin-barbell-wrist-extension",
+        "left": 233,
+        "width": 227
+      },
+      {
+        "id": "builtin-bayesian-cable-curl",
+        "left": 461,
+        "width": 149
+      },
+      {
+        "id": "builtin-behind-back-barbell-shrug",
+        "left": 611,
+        "width": 204
+      },
+      {
+        "id": "builtin-behind-neck-lat-pulldown",
+        "left": 816,
+        "width": 208
+      }
+    ]
   ]
-]
+}

@@ -1,23 +1,85 @@
-[
-  [
-    "builtin-hang-clean",
-    "builtin-hang-snatch",
-    "builtin-hanging-leg-raise",
-    "builtin-heel-elevated-goblet-squat",
-    "builtin-high-pull"
-  ],
-  [
-    "builtin-hip-abduction",
-    "builtin-hip-adduction-machine",
-    "builtin-hollow-body-hold",
-    "builtin-hyperextension",
-    "builtin-incline-bench"
-  ],
-  [
-    "builtin-incline-cable-fly",
-    "builtin-incline-db-bench",
-    "builtin-incline-curl",
-    "builtin-incline-push-up",
-    "builtin-inverted-row"
+{
+  "rows": [
+    [
+      {
+        "id": "builtin-hang-clean",
+        "left": 0,
+        "width": 227
+      },
+      {
+        "id": "builtin-hang-snatch",
+        "left": 228,
+        "width": 197
+      },
+      {
+        "id": "builtin-hanging-leg-raise",
+        "left": 426,
+        "width": 179
+      },
+      {
+        "id": "builtin-heel-elevated-goblet-squat",
+        "left": 606,
+        "width": 195
+      },
+      {
+        "id": "builtin-high-pull",
+        "left": 802,
+        "width": 222
+      }
+    ],
+    [
+      {
+        "id": "builtin-hip-abduction",
+        "left": 0,
+        "width": 227
+      },
+      {
+        "id": "builtin-hip-adduction-machine",
+        "left": 228,
+        "width": 196
+      },
+      {
+        "id": "builtin-hollow-body-hold",
+        "left": 425,
+        "width": 180
+      },
+      {
+        "id": "builtin-hyperextension",
+        "left": 606,
+        "width": 194
+      },
+      {
+        "id": "builtin-incline-bench",
+        "left": 801,
+        "width": 223
+      }
+    ],
+    [
+      {
+        "id": "builtin-incline-cable-fly",
+        "left": 0,
+        "width": 227
+      },
+      {
+        "id": "builtin-incline-db-bench",
+        "left": 228,
+        "width": 195
+      },
+      {
+        "id": "builtin-incline-curl",
+        "left": 424,
+        "width": 181
+      },
+      {
+        "id": "builtin-incline-push-up",
+        "left": 606,
+        "width": 194
+      },
+      {
+        "id": "builtin-inverted-row",
+        "left": 801,
+        "width": 223
+      }
+    ]
   ]
-]
+}
