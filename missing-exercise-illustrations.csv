@@ -1,0 +1,279 @@
+exercise id,exercise name,primary muscle,movement pattern
+builtin-barbell-pullover,Barbell Pullover,Back,Isolation
+builtin-barbell-reverse-curl,Barbell Reverse Curl,Biceps,Isolation
+builtin-barbell-reverse-wrist-curl,Barbell Reverse Wrist Curl,Biceps,Isolation
+builtin-barbell-rollout,Barbell Rollout,Core,Isolation
+builtin-row,Barbell Row,Back,Horizontal Pull
+builtin-barbell-shrug,Barbell Shrug,Shoulders,Isolation
+builtin-barbell-snatch,Barbell Snatch,Quadriceps,Squat
+builtin-barbell-thruster,Barbell Thruster,Quadriceps,Squat
+builtin-barbell-wrist-curl,Barbell Wrist Curl,Biceps,Isolation
+builtin-barbell-wrist-extension,Barbell Wrist Extension,Biceps,Isolation
+builtin-bayesian-cable-curl,Bayesian Cable Curl,Biceps,Isolation
+builtin-behind-back-barbell-shrug,Behind-the-Back Barbell Shrug,Shoulders,Isolation
+builtin-behind-neck-lat-pulldown,Behind-the-Neck Lat Pulldown,Back,Vertical Pull
+builtin-belt-squat,Belt Squat,Quadriceps,Squat
+builtin-bench-dip,Bench Dip,Triceps,Horizontal Push
+builtin-bench-pin-press,Bench Pin Press,Chest,Horizontal Push
+builtin-bicycle-crunch,Bicycle Crunch,Core,Isolation
+builtin-block-clean,Block Clean,Quadriceps,Squat
+builtin-box-squat,Box Squat,Quadriceps,Squat
+builtin-bradford-press,Bradford Press,Shoulders,Vertical Push
+builtin-bulgarian-split-squat,Bulgarian Split Squat,Quadriceps,Squat
+builtin-burpee,Burpee,Core,Squat
+builtin-cable-bench-press,Cable Bench Press,Chest,Horizontal Push
+builtin-cable-crossover,Cable Crossover,Chest,Isolation
+builtin-cable-crunch,Cable Crunch,Core,Isolation
+builtin-cable-curl,Cable Curl,Biceps,Isolation
+builtin-cable-external-rotation,Cable External Rotation,Shoulders,Isolation
+builtin-cable-fly,Cable Fly,Chest,Isolation
+builtin-cable-kickback,Cable Glute Kickback,Glutes,Isolation
+builtin-cable-hammer-curl,Cable Hammer Curl,Biceps,Isolation
+builtin-cable-hip-abduction,Cable Hip Abduction,Glutes,Isolation
+builtin-cable-incline-fly,Cable Incline Fly,Chest,Isolation
+builtin-cable-internal-rotation,Cable Internal Rotation,Shoulders,Isolation
+builtin-cable-lateral-raise,Cable Lateral Raise,Shoulders,Isolation
+builtin-cable-pull-through,Cable Pull-Through,Glutes,Hinge
+builtin-cable-pullover,Cable Pullover,Back,Isolation
+builtin-cable-rear-delt-fly,Cable Rear Delt Fly,Shoulders,Isolation
+builtin-cable-shrug,Cable Shrug,Shoulders,Isolation
+builtin-cable-woodchop,Cable Woodchop,Core,Isolation
+builtin-cable-wrist-curl,Cable Wrist Curl,Biceps,Isolation
+builtin-cable-y-raise,Cable Y-Raise,Shoulders,Isolation
+builtin-calf-press-on-leg-press,Calf Press on Leg Press,Calves,Isolation
+builtin-captains-chair-knee-raise,Captain's Chair Knee Raise,Core,Isolation
+builtin-captains-chair-leg-raise,Captain's Chair Leg Raise,Core,Isolation
+builtin-chest-supported-dumbbell-row,Chest-Supported Dumbbell Row,Back,Horizontal Pull
+builtin-chest-supported-row,Chest-Supported Row,Back,Horizontal Pull
+builtin-chin-up,Chin-Up,Back,Vertical Pull
+builtin-close-grip-bench,Close-Grip Bench Press,Triceps,Horizontal Push
+builtin-lat-pulldown-close,Close-Grip Lat Pulldown,Back,Vertical Pull
+builtin-close-grip-push-up,Close-Grip Push-Up,Triceps,Horizontal Push
+builtin-concentration-curl,Concentration Curl,Biceps,Isolation
+builtin-cossack-squat,Cossack Squat,Quadriceps,Squat
+builtin-cross-body-hammer-curl,Cross-Body Hammer Curl,Biceps,Isolation
+builtin-crunch,Crunch,Core,Isolation
+builtin-cuban-press,Cuban Press,Shoulders,Isolation
+builtin-curtsy-lunge,Curtsy Lunge,Glutes,Squat
+builtin-cyclist-squat,Cyclist Squat,Quadriceps,Squat
+builtin-dead-bug,Dead Bug,Core,Isolation
+builtin-dead-hang,Dead Hang,Back,Isolation
+builtin-deadlift,Deadlift,Hamstrings,Hinge
+builtin-decline-bench,Decline Bench Press,Chest,Horizontal Push
+builtin-decline-crunch,Decline Crunch,Core,Isolation
+builtin-decline-dumbbell-bench-press,Decline Dumbbell Bench Press,Chest,Horizontal Push
+builtin-decline-dumbbell-fly,Decline Dumbbell Fly,Chest,Isolation
+builtin-decline-push-up,Decline Push-Up,Chest,Horizontal Push
+builtin-diamond-push-up,Diamond Push-Up,Triceps,Horizontal Push
+builtin-dips,Dips,Chest,Horizontal Push
+builtin-donkey-calf-raise,Donkey Calf Raise,Calves,Isolation
+builtin-donkey-kick,Donkey Kick,Glutes,Isolation
+builtin-drag-curl,Drag Curl,Biceps,Isolation
+builtin-dragon-flag,Dragon Flag,Core,Isolation
+builtin-db-bench,Dumbbell Bench Press,Chest,Horizontal Push
+builtin-biceps-curl,Dumbbell Biceps Curl,Biceps,Isolation
+builtin-dumbbell-decline-triceps-extension,Dumbbell Decline Triceps Extension,Triceps,Isolation
+builtin-dumbbell-external-rotation,Dumbbell External Rotation,Shoulders,Isolation
+builtin-dumbbell-floor-fly,Dumbbell Floor Fly,Chest,Isolation
+builtin-dumbbell-floor-press,Dumbbell Floor Press,Chest,Horizontal Push
+builtin-db-fly,Dumbbell Fly,Chest,Isolation
+builtin-dumbbell-kickback,Dumbbell Kickback,Triceps,Isolation
+builtin-lateral-raise,Dumbbell Lateral Raise,Shoulders,Isolation
+builtin-pullover,Dumbbell Pullover,Back,Isolation
+builtin-db-shoulder-press,Dumbbell Shoulder Press,Shoulders,Vertical Push
+builtin-dumbbell-shrug,Dumbbell Shrug,Shoulders,Isolation
+builtin-dumbbell-squeeze-press,Dumbbell Squeeze Press,Chest,Horizontal Push
+builtin-dumbbell-thruster,Dumbbell Thruster,Quadriceps,Squat
+builtin-dumbbell-wrist-curl,Dumbbell Wrist Curl,Biceps,Isolation
+builtin-dumbbell-wrist-extension,Dumbbell Wrist Extension,Biceps,Isolation
+builtin-dumbbell-y-raise,Dumbbell Y-Raise,Shoulders,Isolation
+builtin-ez-curl,EZ-Bar Curl,Biceps,Isolation
+builtin-ez-bar-preacher-curl,EZ-Bar Preacher Curl,Biceps,Isolation
+builtin-ez-bar-reverse-curl,EZ-Bar Reverse Curl,Biceps,Isolation
+builtin-ez-bar-skull-crusher,EZ-Bar Skull Crusher,Triceps,Isolation
+builtin-face-pull,Face Pull,Shoulders,Horizontal Pull
+builtin-farmer-carry,Farmer's Carry,Core,Carry
+builtin-frog-pump,Frog Pump,Glutes,Hinge
+builtin-front-raise,Front Raise,Shoulders,Isolation
+builtin-front-squat,Front Squat,Quadriceps,Squat
+builtin-glute-bridge,Glute Bridge,Glutes,Hinge
+builtin-glute-kickback-machine,Glute Kickback Machine,Glutes,Isolation
+builtin-glute-ham-raise,Glute-Ham Raise,Hamstrings,Isolation
+builtin-goblet-squat,Goblet Squat,Quadriceps,Squat
+builtin-good-morning,Good Morning,Hamstrings,Hinge
+builtin-hack-squat,Hack Squat,Quadriceps,Squat
+builtin-hammer-curl,Hammer Curl,Biceps,Isolation
+builtin-hang-clean,Hang Clean,Quadriceps,Squat
+builtin-hang-snatch,Hang Snatch,Quadriceps,Squat
+builtin-hanging-leg-raise,Hanging Leg Raise,Core,Isolation
+builtin-heel-elevated-goblet-squat,Heel-Elevated Goblet Squat,Quadriceps,Squat
+builtin-high-pull,High Pull,Shoulders,Vertical Pull
+builtin-hip-abduction,Hip Abduction Machine,Glutes,Isolation
+builtin-hip-adduction-machine,Hip Adduction Machine,Quadriceps,Isolation
+builtin-hollow-body-hold,Hollow Body Hold,Core,Isolation
+builtin-hyperextension,Hyperextension,Back,Hinge
+builtin-incline-bench,Incline Bench Press,Chest,Horizontal Push
+builtin-incline-cable-fly,Incline Cable Fly,Chest,Isolation
+builtin-incline-db-bench,Incline Dumbbell Bench Press,Chest,Horizontal Push
+builtin-incline-curl,Incline Dumbbell Curl,Biceps,Isolation
+builtin-incline-push-up,Incline Push-Up,Chest,Horizontal Push
+builtin-inverted-row,Inverted Row,Back,Horizontal Pull
+builtin-jefferson-squat,Jefferson Squat,Quadriceps,Squat
+builtin-jm-press,JM Press,Triceps,Horizontal Push
+builtin-kettlebell-clean,Kettlebell Clean,Quadriceps,Squat
+builtin-kettlebell-clean-and-press,Kettlebell Clean and Press,Shoulders,Vertical Push
+builtin-kettlebell-floor-press,Kettlebell Floor Press,Chest,Horizontal Push
+builtin-kettlebell-press,Kettlebell Press,Shoulders,Vertical Push
+builtin-kettlebell-row,Kettlebell Row,Back,Horizontal Pull
+builtin-kettlebell-snatch,Kettlebell Snatch,Quadriceps,Squat
+builtin-kettlebell-swing,Kettlebell Swing,Hamstrings,Hinge
+builtin-kettlebell-thruster,Kettlebell Thruster,Quadriceps,Squat
+builtin-kettlebell-windmill,Kettlebell Windmill,Shoulders,Isolation
+builtin-kroc-row,Kroc Row,Back,Horizontal Pull
+builtin-l-sit,L-Sit,Core,Isolation
+builtin-landmine-press,Landmine Press,Shoulders,Vertical Push
+builtin-landmine-row,Landmine Row,Back,Horizontal Pull
+builtin-landmine-squat,Landmine Squat,Quadriceps,Squat
+builtin-lat-pulldown,Lat Pulldown,Back,Vertical Pull
+builtin-lateral-lunge,Lateral Lunge,Quadriceps,Squat
+builtin-leg-extension,Leg Extension,Quadriceps,Isolation
+builtin-leg-press,Leg Press,Quadriceps,Squat
+builtin-leg-press-calf-raise,Leg Press Calf Raise,Calves,Isolation
+builtin-low-cable-fly,Low Cable Fly,Chest,Isolation
+builtin-lying-dumbbell-leg-curl,Lying Dumbbell Leg Curl,Hamstrings,Isolation
+builtin-lying-leg-curl,Lying Leg Curl,Hamstrings,Isolation
+builtin-machine-biceps-curl,Machine Biceps Curl,Biceps,Isolation
+builtin-chest-press-machine,Machine Chest Press,Chest,Horizontal Push
+builtin-machine-crunch,Machine Crunch,Core,Isolation
+builtin-machine-decline-chest-press,Machine Decline Chest Press,Chest,Horizontal Push
+builtin-machine-incline-chest-press,Machine Incline Chest Press,Chest,Horizontal Push
+builtin-machine-lateral-raise,Machine Lateral Raise,Shoulders,Isolation
+builtin-machine-row,Machine Row,Back,Horizontal Pull
+builtin-machine-shoulder-press,Machine Shoulder Press,Shoulders,Vertical Push
+builtin-machine-shrug,Machine Shrug,Shoulders,Isolation
+builtin-machine-triceps-dip,Machine Triceps Dip,Triceps,Horizontal Push
+builtin-machine-triceps-extension,Machine Triceps Extension,Triceps,Isolation
+builtin-man-maker,Man Maker,Core,Squat
+builtin-meadows-row,Meadows Row,Back,Horizontal Pull
+builtin-mountain-climber,Mountain Climber,Core,Isolation
+builtin-muscle-up,Muscle-Up,Back,Vertical Pull
+builtin-lat-pulldown-neutral,Neutral-Grip Lat Pulldown,Back,Vertical Pull
+builtin-neutral-pull-up,Neutral-Grip Pull-Up,Back,Vertical Pull
+builtin-nordic-curl,Nordic Hamstring Curl,Hamstrings,Isolation
+builtin-oblique-crunch,Oblique Crunch,Core,Isolation
+builtin-db-row,One-Arm Dumbbell Row,Back,Horizontal Pull
+builtin-overhead-cable-extension,Overhead Cable Triceps Extension,Triceps,Isolation
+builtin-overhead-db-extension,Overhead Dumbbell Triceps Extension,Triceps,Isolation
+builtin-ohp,Overhead Press,Shoulders,Vertical Push
+builtin-overhead-squat,Overhead Squat,Quadriceps,Squat
+builtin-pallof-press,Pallof Press,Core,Isolation
+builtin-paused-bench-press,Paused Bench Press,Chest,Horizontal Push
+builtin-paused-squat,Paused Squat,Quadriceps,Squat
+builtin-pec-deck,Pec Deck,Chest,Isolation
+builtin-pendlay-row,Pendlay Row,Back,Horizontal Pull
+builtin-pendulum-squat,Pendulum Squat,Quadriceps,Squat
+builtin-pistol-squat,Pistol Squat,Quadriceps,Squat
+builtin-plank,Plank,Core,Isolation
+builtin-plate-pin-hold,Plate Pinch Hold,Biceps,Isolation
+builtin-power-clean,Power Clean,Quadriceps,Squat
+builtin-preacher-curl,Preacher Curl,Biceps,Isolation
+builtin-pull-up,Pull-Up,Back,Vertical Pull
+builtin-push-press,Push Press,Shoulders,Vertical Push
+builtin-push-up,Push-Up,Chest,Horizontal Push
+builtin-rack-pull,Rack Pull,Back,Hinge
+builtin-rear-delt-machine,Rear Delt Machine,Shoulders,Isolation
+builtin-resistance-band-chest-press,Resistance Band Chest Press,Chest,Horizontal Push
+builtin-resistance-band-curl,Resistance Band Curl,Biceps,Isolation
+builtin-resistance-band-face-pull,Resistance Band Face Pull,Shoulders,Horizontal Pull
+builtin-resistance-band-good-morning,Resistance Band Good Morning,Hamstrings,Hinge
+builtin-resistance-band-lateral-raise,Resistance Band Lateral Raise,Shoulders,Isolation
+builtin-resistance-band-leg-curl,Resistance Band Leg Curl,Hamstrings,Isolation
+builtin-resistance-band-pallof-press,Resistance Band Pallof Press,Core,Isolation
+builtin-resistance-band-row,Resistance Band Row,Back,Horizontal Pull
+builtin-resistance-band-squat,Resistance Band Squat,Quadriceps,Squat
+builtin-reverse-crunch,Reverse Crunch,Core,Isolation
+builtin-reverse-fly,Reverse Fly,Shoulders,Isolation
+builtin-reverse-hyperextension,Reverse Hyperextension,Back,Hinge
+builtin-reverse-lunge,Reverse Lunge,Quadriceps,Squat
+builtin-romanian-deadlift,Romanian Deadlift,Hamstrings,Hinge
+builtin-rope-pushdown,Rope Triceps Pushdown,Triceps,Isolation
+builtin-russian-twist,Russian Twist,Core,Isolation
+builtin-safety-bar-squat,Safety Bar Squat,Quadriceps,Squat
+builtin-seal-row,Seal Row,Back,Horizontal Pull
+builtin-seated-barbell-calf-raise,Seated Barbell Calf Raise,Calves,Isolation
+builtin-seated-ohp,Seated Barbell Shoulder Press,Shoulders,Vertical Push
+builtin-seated-cable-face-pull,Seated Cable Face Pull,Shoulders,Horizontal Pull
+builtin-seated-cable-row,Seated Cable Row,Back,Horizontal Pull
+builtin-seated-calf-raise,Seated Calf Raise,Calves,Isolation
+builtin-seated-good-morning,Seated Good Morning,Hamstrings,Hinge
+builtin-seated-leg-curl,Seated Leg Curl,Hamstrings,Isolation
+builtin-side-plank,Side Plank,Core,Isolation
+builtin-single-arm-cable-crossover,Single-Arm Cable Crossover,Chest,Isolation
+builtin-single-arm-cable-pushdown,Single-Arm Cable Pushdown,Triceps,Isolation
+builtin-single-arm-dumbbell-pullover,Single-Arm Dumbbell Pullover,Back,Isolation
+builtin-single-arm-kettlebell-press,Single-Arm Kettlebell Press,Shoulders,Vertical Push
+builtin-single-arm-landmine-press,Single-Arm Landmine Press,Shoulders,Vertical Push
+builtin-single-arm-pulldown,Single-Arm Lat Pulldown,Back,Vertical Pull
+builtin-single-leg-calf,Single-Leg Calf Raise,Calves,Isolation
+builtin-single-leg-glute-bridge,Single-Leg Glute Bridge,Glutes,Hinge
+builtin-single-leg-hip-thrust,Single-Leg Hip Thrust,Glutes,Hinge
+builtin-single-leg-leg-press,Single-Leg Leg Press,Quadriceps,Squat
+builtin-single-leg-press-calf-raise,Single-Leg Press Calf Raise,Calves,Isolation
+builtin-single-leg-rdl,Single-Leg Romanian Deadlift,Hamstrings,Hinge
+builtin-sissy-squat,Sissy Squat,Quadriceps,Isolation
+builtin-sit-up,Sit-Up,Core,Isolation
+builtin-skull-crusher,Skull Crusher,Triceps,Isolation
+builtin-slider-leg-curl,Slider Leg Curl,Hamstrings,Isolation
+builtin-smith-bench,Smith Machine Bench Press,Chest,Horizontal Push
+builtin-smith-machine-calf-raise,Smith Machine Calf Raise,Calves,Isolation
+builtin-smith-close-grip-bench-press,Smith Machine Close-Grip Bench Press,Triceps,Horizontal Push
+builtin-smith-decline-bench-press,Smith Machine Decline Bench Press,Chest,Horizontal Push
+builtin-smith-machine-hip-thrust,Smith Machine Hip Thrust,Glutes,Hinge
+builtin-smith-incline-bench-press,Smith Machine Incline Bench Press,Chest,Horizontal Push
+builtin-smith-machine-lunge,Smith Machine Lunge,Quadriceps,Squat
+builtin-smith-machine-overhead-press,Smith Machine Overhead Press,Shoulders,Vertical Push
+builtin-smith-machine-row,Smith Machine Row,Back,Horizontal Pull
+builtin-smith-machine-shrug,Smith Machine Shrug,Shoulders,Isolation
+builtin-smith-squat,Smith Machine Squat,Quadriceps,Squat
+builtin-smith-machine-upright-row,Smith Machine Upright Row,Shoulders,Vertical Pull
+builtin-snatch-grip-deadlift,Snatch-Grip Deadlift,Back,Hinge
+builtin-spanish-squat,Spanish Squat,Quadriceps,Squat
+builtin-spider-curl,Spider Curl,Biceps,Isolation
+builtin-split-squat,Split Squat,Quadriceps,Squat
+builtin-spoto-press,Spoto Press,Chest,Horizontal Push
+builtin-squat,Squat,Quadriceps,Squat
+builtin-standing-calf-raise,Standing Calf Raise,Calves,Isolation
+builtin-step-down,Step-Down,Quadriceps,Squat
+builtin-step-up,Step-Up,Quadriceps,Squat
+builtin-stiff-leg-deadlift,Stiff-Leg Deadlift,Hamstrings,Hinge
+builtin-stiff-leg-dumbbell-deadlift,Stiff-Leg Dumbbell Deadlift,Hamstrings,Hinge
+builtin-straight-arm-pulldown,Straight-Arm Pulldown,Back,Isolation
+builtin-suitcase-carry,Suitcase Carry,Core,Carry
+builtin-sumo-deadlift,Sumo Deadlift,Glutes,Hinge
+builtin-superman,Superman,Back,Isolation
+builtin-svend-press,Svend Press,Chest,Isolation
+builtin-tbar-row,T-Bar Row,Back,Horizontal Pull
+builtin-tate-press,Tate Press,Triceps,Isolation
+builtin-tibialis-raise,Tibialis Raise,Calves,Isolation
+builtin-toes-to-bar,Toes to Bar,Core,Isolation
+builtin-trap-bar-deadlift,Trap Bar Deadlift,Hamstrings,Hinge
+builtin-trap-bar-shrug,Trap Bar Shrug,Shoulders,Isolation
+builtin-triceps-dip,Triceps Dip,Triceps,Horizontal Push
+builtin-underhand-barbell-row,Underhand Barbell Row,Back,Horizontal Pull
+builtin-upright-row,Upright Row,Shoulders,Vertical Pull
+builtin-v-bar-triceps-pushdown,V-Bar Triceps Pushdown,Triceps,Isolation
+builtin-v-up,V-Up,Core,Isolation
+builtin-walking-lunge,Walking Lunge,Quadriceps,Squat
+builtin-wall-ball,Wall Ball,Quadriceps,Squat
+builtin-weighted-dip,Weighted Dip,Chest,Horizontal Push
+builtin-weighted-pull-up,Weighted Pull-Up,Back,Vertical Pull
+builtin-wide-grip-barbell-curl,Wide-Grip Barbell Curl,Biceps,Isolation
+builtin-cable-row-wide,Wide-Grip Cable Row,Back,Horizontal Pull
+builtin-wide-grip-lat-pulldown,Wide-Grip Lat Pulldown,Back,Vertical Pull
+builtin-wide-grip-pull-up,Wide-Grip Pull-Up,Back,Vertical Pull
+builtin-wide-grip-push-up,Wide-Grip Push-Up,Chest,Horizontal Push
+builtin-wrist-roller,Wrist Roller,Biceps,Isolation
+builtin-yates-row,Yates Row,Back,Horizontal Pull
+builtin-z-press,Z-Press,Shoulders,Vertical Push
+builtin-zercher-squat,Zercher Squat,Quadriceps,Squat
+builtin-zottman-curl,Zottman Curl,Biceps,Isolation

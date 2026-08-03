@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none" aria-hidden="true">
+  <rect width="640" height="400" fill="#faf7f7" />
+  <circle cx="320" cy="108" r="28" stroke="#c9baba" stroke-width="8" />
+  <path d="M320 136v92" stroke="#c9baba" stroke-width="8" stroke-linecap="round" />
+  <path d="M320 164H228M320 164H412" stroke="#c9baba" stroke-width="8" stroke-linecap="round" />
+  <path d="M320 228l-52 84M320 228l52 84" stroke="#c9baba" stroke-width="8" stroke-linecap="round" />
+  <path d="M250 320h180" stroke="#e8dede" stroke-width="4" stroke-linecap="round" />
+  <text x="320" y="360" fill="#7a6868" font-family="system-ui, sans-serif" font-size="20" font-weight="600" text-anchor="middle">
+    Illustration coming soon
+  </text>
+</svg>

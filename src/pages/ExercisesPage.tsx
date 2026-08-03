@@ -6,6 +6,7 @@ import { MovementPattern } from "../domain/types/MovementPattern";
 import { LoadType } from "../domain/types/LoadType";
 import { ExerciseSource } from "../domain/types/exercise-source";
 import { exerciseRepository } from "../data/repositories/ExerciseRepository";
+import { ExerciseIllustration } from "../components/ExerciseIllustration";
 import { formatLabel } from "../shared";
 
 type ExercisesPageProps = {
@@ -150,12 +151,18 @@ export function ExercisesPage({
               }
             }}
           >
-            <div>
-              <strong>{exercise.name}</strong>
-              <p>
-                {formatLabel(exercise.primaryMuscle)} ·{" "}
-                {formatLabel(exercise.loadType)}
-              </p>
+            <div className="exercise-row-main">
+              <ExerciseIllustration
+                exerciseId={exercise.id}
+                className="exercise-row-thumbnail"
+              />
+              <div>
+                <strong>{exercise.name}</strong>
+                <p>
+                  {formatLabel(exercise.primaryMuscle)} ·{" "}
+                  {formatLabel(exercise.loadType)}
+                </p>
+              </div>
             </div>
 
             <span className="exercise-usage-number" title={`${usageCounts.get(exercise.id) ?? 0} workouts performed`}>
