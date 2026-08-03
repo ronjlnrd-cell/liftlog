@@ -1382,9 +1382,39 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   font-size:12px;
 }
 
-.exercise-sort-control{display:flex;gap:6px;margin:10px 0 14px}
-.exercise-sort-control button{border:1px solid var(--border,#ddd);background:transparent;border-radius:999px;padding:7px 12px;cursor:pointer}
-.exercise-sort-control button.active{font-weight:700;background:var(--surface,#fff)}
+.exercise-sort-control{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4px;
+  margin:12px 0 14px;
+  padding:4px;
+  border-radius:12px;
+  background:#f5eaea;
+  width:100%;
+}
+.exercise-sort-control button{
+  border:0;
+  background:transparent;
+  color:#8a6d6d;
+  border-radius:9px;
+  padding:9px 14px;
+  font-size:13px;
+  font-weight:650;
+  line-height:1;
+  cursor:pointer;
+  transition:background .12s ease,color .12s ease,box-shadow .12s ease;
+}
+.exercise-sort-control button:hover{color:var(--green-dark)}
+.exercise-sort-control button.active{
+  background:#fff;
+  color:var(--green-dark);
+  font-weight:800;
+  box-shadow:0 2px 8px rgba(74,21,21,.1);
+}
+.exercise-sort-control button:focus-visible{
+  outline:2px solid rgba(180,35,24,.35);
+  outline-offset:1px;
+}
 .exercise-row-clickable{position:relative;padding-right:72px}
 .exercise-usage-number{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .exercise-row-clickable .danger-text{margin-right:44px}

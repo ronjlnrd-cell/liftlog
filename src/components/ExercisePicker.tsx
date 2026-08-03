@@ -63,9 +63,9 @@ export function ExercisePicker({ exercises, excludedExerciseIds, onSelect, worko
             placeholder="Search by exercise or muscle…"
           />
 
-          <div className="exercise-sort-toggle" role="group" aria-label="Sort exercises">
-            <button className={sortMode === "frequency" ? "active" : ""} onClick={() => setSortMode("frequency")}>Most used</button>
-            <button className={sortMode === "az" ? "active" : ""} onClick={() => setSortMode("az")}>A–Z</button>
+          <div className="exercise-sort-control" role="group" aria-label="Sort exercises">
+            <button type="button" className={sortMode === "frequency" ? "active" : ""} onClick={() => setSortMode("frequency")}>Most used</button>
+            <button type="button" className={sortMode === "az" ? "active" : ""} onClick={() => setSortMode("az")}>A–Z</button>
           </div>
 
           <div className="exercise-list">

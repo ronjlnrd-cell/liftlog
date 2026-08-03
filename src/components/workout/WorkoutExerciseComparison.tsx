@@ -91,7 +91,7 @@ export function WorkoutExerciseComparison({
                       ) ?? []
                     }
                     onSave={onUpdateSet}
-                    onDeleteSet={onDeleteSet}
+                    onDelete={onDeleteSet}
                   />
                 ) : (
                   <span className="set-table-completed-empty" />
@@ -125,7 +125,7 @@ export function WorkoutExerciseComparison({
                   []
                 }
                 onSave={onUpdateSet}
-                onDeleteSet={onDeleteSet}
+                onDelete={onDeleteSet}
               />
             </div>
           );

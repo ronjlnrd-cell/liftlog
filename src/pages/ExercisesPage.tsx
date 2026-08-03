@@ -112,8 +112,8 @@ export function ExercisesPage({
         autoFocus
       />
       <div className="exercise-sort-control" role="group" aria-label="Sort exercises">
-        <button className={sortMode === "frequency" ? "active" : ""} onClick={() => setSortMode("frequency")}>Most used</button>
-        <button className={sortMode === "alphabetical" ? "active" : ""} onClick={() => setSortMode("alphabetical")}>A–Z</button>
+        <button type="button" className={sortMode === "frequency" ? "active" : ""} onClick={() => setSortMode("frequency")}>Most used</button>
+        <button type="button" className={sortMode === "alphabetical" ? "active" : ""} onClick={() => setSortMode("alphabetical")}>A–Z</button>
       </div>
 
       {showAddCustom && (
