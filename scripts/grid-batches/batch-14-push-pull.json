@@ -1,0 +1,24 @@
+[
+  [
+    "builtin-ohp",
+    "builtin-overhead-squat",
+    "builtin-pallof-press",
+    "builtin-paused-bench-press",
+    "builtin-paused-squat",
+    "builtin-pec-deck"
+  ],
+  [
+    "builtin-pendlay-row",
+    "builtin-pendulum-squat",
+    "builtin-pistol-squat",
+    "builtin-plank",
+    "builtin-plate-pin-hold",
+    "builtin-power-clean"
+  ],
+  [
+    "builtin-preacher-curl",
+    "builtin-pull-up",
+    "builtin-push-press",
+    "builtin-push-up"
+  ]
+]

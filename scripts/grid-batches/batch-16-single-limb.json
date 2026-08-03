@@ -1,0 +1,24 @@
+[
+  [
+    "builtin-side-plank",
+    "builtin-single-arm-cable-crossover",
+    "builtin-single-arm-cable-pushdown",
+    "builtin-single-arm-dumbbell-pullover",
+    "builtin-single-arm-kettlebell-press",
+    "builtin-single-arm-landmine-press"
+  ],
+  [
+    "builtin-single-arm-pulldown",
+    "builtin-single-leg-calf",
+    "builtin-single-leg-glute-bridge",
+    "builtin-single-leg-hip-thrust",
+    "builtin-single-leg-leg-press",
+    "builtin-single-leg-press-calf-raise"
+  ],
+  [
+    "builtin-single-leg-rdl",
+    "builtin-sissy-squat",
+    "builtin-sit-up",
+    "builtin-skull-crusher"
+  ]
+]
