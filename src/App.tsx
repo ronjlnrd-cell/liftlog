@@ -11,6 +11,7 @@ import { templateRepository } from "./data/repositories/TemplateRepository";
 import { seedExercises } from "./data/seedExercises";
 import { formatLabel, APP_NAME } from "./shared";
 import { WorkoutPage } from "./components/workout/WorkoutPage";
+import { ActiveWorkoutBar } from "./components/workout/ActiveWorkoutBar";
 import { HomePage } from "./pages/HomePage";
 import { ExercisesPage } from "./pages/ExercisesPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
@@ -755,7 +756,13 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${
+        activeWorkout && page !== "workout" && page !== "workout-summary"
+          ? " has-active-workout-bar"
+          : ""
+      }`}
+    >
       <header className="topbar">
         <button className="brand" onClick={() => setPage("home")}>
           {APP_NAME}
@@ -1122,6 +1129,14 @@ function App() {
           />
         )}
       </main>
+
+      {activeWorkout && page !== "workout" && page !== "workout-summary" && (
+        <ActiveWorkoutBar
+          workout={activeWorkout}
+          exercises={exercises}
+          onResume={() => setPage("workout")}
+        />
+      )}
 
       <nav className="bottom-nav" aria-label="Main navigation">
         {(

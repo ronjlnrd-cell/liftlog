@@ -8,6 +8,62 @@
   --card:#fff;
 }
 .app-shell { min-height:100vh; padding-bottom:82px; }
+.app-shell.has-active-workout-bar { padding-bottom:148px; }
+.active-workout-bar {
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:72px;
+  z-index:19;
+  padding:0 14px 10px;
+  pointer-events:none;
+}
+.active-workout-bar-button {
+  pointer-events:auto;
+  width:min(780px, 100%);
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 16px;
+  border:1px solid #e0c0c0;
+  border-radius:16px;
+  background:linear-gradient(135deg,#fffbfb,#fef5f5);
+  box-shadow:0 10px 28px rgba(74,21,21,.12);
+  cursor:pointer;
+  text-align:left;
+}
+.active-workout-bar-button:hover {
+  border-color:var(--green);
+  box-shadow:0 12px 32px rgba(74,21,21,.16);
+}
+.active-workout-bar-copy {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.active-workout-bar-copy strong {
+  color:var(--green-dark);
+  font-size:15px;
+}
+.active-workout-bar-copy span {
+  color:var(--muted);
+  font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.active-workout-bar-action {
+  flex-shrink:0;
+  color:#fff;
+  background:var(--green);
+  border-radius:999px;
+  padding:8px 14px;
+  font-size:13px;
+  font-weight:750;
+}
 .topbar { height:68px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10; }
 .brand { border:0; background:none; color:var(--green-dark); font-size:25px; font-weight:850; letter-spacing:-1px; }
 .tagline { color:var(--muted); font-size:13px; }
