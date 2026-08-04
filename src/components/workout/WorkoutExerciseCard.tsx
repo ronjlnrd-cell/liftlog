@@ -68,6 +68,13 @@ export function WorkoutExerciseCard({
   );
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [progressionApplied, setProgressionApplied] = useState(false);
+  const [showExtraSetEntry, setShowExtraSetEntry] = useState(false);
+
+  const hasTemplatePlan = item.plannedSets.length > 0;
+  const templatePlanComplete =
+    hasTemplatePlan &&
+    item.completedSets.length >= item.plannedSets.length;
+  const showSetEntry = !templatePlanComplete || showExtraSetEntry;
 
   const showProgressionIcon =
     progressionRecommendation != null &&
@@ -94,6 +101,28 @@ export function WorkoutExerciseCard({
     weightInputRef.current.select();
     onWeightFocused?.();
   }, [focusWeight, onWeightFocused]);
+
+  useEffect(() => {
+    if (!templatePlanComplete) {
+      setShowExtraSetEntry(false);
+    }
+  }, [templatePlanComplete]);
+
+  useEffect(() => {
+    if (!showExtraSetEntry || !weightInputRef.current) return;
+    weightInputRef.current.focus();
+    weightInputRef.current.select();
+  }, [showExtraSetEntry]);
+
+  function handleCompleteSet() {
+    onAddSet(item.id, weight, reps);
+    if (
+      hasTemplatePlan &&
+      item.completedSets.length + 1 >= item.plannedSets.length
+    ) {
+      setShowExtraSetEntry(false);
+    }
+  }
 
   function handleApplyProgression(option: ProgressionOption) {
     onApplyProgression(option);
@@ -171,56 +200,68 @@ export function WorkoutExerciseCard({
       )}
 
       <div className="current-set-block">
-        <div className="set-entry">
-          <label>
-            Weight
-            <input
-              ref={weightInputRef}
-              type="number"
-              min="0"
-              step="0.5"
-              value={weight}
-              onFocus={selectInputOnFocus}
-              onClick={selectInputOnClick}
-              onChange={(event) => setWeight(Number(event.target.value))}
-            />
-          </label>
-          <label>
-            Reps
-            <input
-              type="number"
-              min="1"
-              value={reps}
-              onFocus={selectInputOnFocus}
-              onClick={selectInputOnClick}
-              onChange={(event) => setReps(Number(event.target.value))}
-            />
-          </label>
-          <button
-            className="primary"
-            disabled={reps < 1 || weight < 0}
-            onClick={() => onAddSet(item.id, weight, reps)}
-          >
-            Complete set
-          </button>
-        </div>
+        {showSetEntry ? (
+          <>
+            <div className="set-entry">
+              <label>
+                Weight
+                <input
+                  ref={weightInputRef}
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={weight}
+                  onFocus={selectInputOnFocus}
+                  onClick={selectInputOnClick}
+                  onChange={(event) => setWeight(Number(event.target.value))}
+                />
+              </label>
+              <label>
+                Reps
+                <input
+                  type="number"
+                  min="1"
+                  value={reps}
+                  onFocus={selectInputOnFocus}
+                  onClick={selectInputOnClick}
+                  onChange={(event) => setReps(Number(event.target.value))}
+                />
+              </label>
+              <button
+                className="primary"
+                disabled={reps < 1 || weight < 0}
+                onClick={handleCompleteSet}
+              >
+                Complete set
+              </button>
+            </div>
 
-        <label className="rest-setting">
-          Rest after set
-          <select
-            value={item.plannedRestSeconds}
-            onChange={(event) =>
-              onRestChange(item.id, Number(event.target.value))
-            }
+            <label className="rest-setting">
+              Rest after set
+              <select
+                value={item.plannedRestSeconds}
+                onChange={(event) =>
+                  onRestChange(item.id, Number(event.target.value))
+                }
+              >
+                <option value={60}>1:00</option>
+                <option value={90}>1:30</option>
+                <option value={120}>2:00</option>
+                <option value={180}>3:00</option>
+                <option value={240}>4:00</option>
+                <option value={300}>5:00</option>
+              </select>
+            </label>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="text-button add-extra-set-button"
+            onClick={() => setShowExtraSetEntry(true)}
           >
-            <option value={60}>1:00</option>
-            <option value={90}>1:30</option>
-            <option value={120}>2:00</option>
-            <option value={180}>3:00</option>
-            <option value={240}>4:00</option>
-            <option value={300}>5:00</option>
-          </select>
-        </label>
+            + Add set
+          </button>
+        )}
       </div>
 
       {progressionOpen && progressionRecommendation && (
