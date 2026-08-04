@@ -17,6 +17,19 @@ export type CloudWorkout = {
   updatedAt: string;
 };
 
+function normalizeGender(value: string | null | undefined): Profile["gender"] {
+  const upper = value?.toUpperCase();
+  if (
+    upper === "MALE" ||
+    upper === "FEMALE" ||
+    upper === "OTHER" ||
+    upper === "UNSPECIFIED"
+  ) {
+    return upper;
+  }
+  return "UNSPECIFIED";
+}
+
 export async function loadCloudData(userId: string) {
   const db = client();
   const [profiles, workouts, templates, customExercises] = await Promise.all([
@@ -34,7 +47,7 @@ export async function loadCloudData(userId: string) {
   const row = profiles.data;
   const profile: Profile | null = row ? {
     id: "profile",
-    gender: row.gender,
+    gender: normalizeGender(row.gender),
     weightUnit: row.weight_unit,
     userId,
     setupCompleted: true,

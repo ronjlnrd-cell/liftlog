@@ -33,6 +33,14 @@ export function SettingsPage({
 
   const isFemale = draft.gender === "FEMALE";
 
+  function handleGenderChange(gender: Profile["gender"]) {
+    setDraft((current) => ({
+      ...current,
+      gender,
+      ...(gender !== "FEMALE" ? { cycleTrackingEnabled: false } : {}),
+    }));
+  }
+
   async function exportExcel() {
     setBackupMessage("");
     try {
@@ -192,10 +200,7 @@ export function SettingsPage({
           <select
             value={draft.gender}
             onChange={(event) =>
-              setDraft({
-                ...draft,
-                gender: event.target.value as Profile["gender"],
-              })
+              handleGenderChange(event.target.value as Profile["gender"])
             }
           >
             <option value="UNSPECIFIED">Prefer not to say</option>
@@ -204,6 +209,29 @@ export function SettingsPage({
             <option value="OTHER">Other</option>
           </select>
         </label>
+
+        {isFemale ? (
+          <div className="settings-health-block">
+            <h2>Health</h2>
+            <label className="settings-toggle-row">
+              <span>Track menstrual cycle</span>
+              <span className="settings-toggle">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Track menstrual cycle"
+                  checked={draft.cycleTrackingEnabled === true}
+                  onChange={(event) => handleCycleToggle(event.target.checked)}
+                />
+                <span className="settings-toggle-track" aria-hidden="true" />
+              </span>
+            </label>
+          </div>
+        ) : (
+          <p className="settings-health-note muted">
+            Menstrual cycle tracking is available when gender is set to Female.
+          </p>
+        )}
 
         <label>
           Weight unit
@@ -231,22 +259,6 @@ export function SettingsPage({
 
         {saved && <p className="success">Saved.</p>}
       </div>
-
-      {isFemale && (
-        <div className="card settings-card">
-          <h2>Health</h2>
-          <label className="settings-toggle-row">
-            <span>Track menstrual cycle</span>
-            <input
-              type="checkbox"
-              role="switch"
-              aria-label="Track menstrual cycle"
-              checked={draft.cycleTrackingEnabled === true}
-              onChange={(event) => handleCycleToggle(event.target.checked)}
-            />
-          </label>
-        </div>
-      )}
 
       <div className="card settings-card backup-card">
         <div>
