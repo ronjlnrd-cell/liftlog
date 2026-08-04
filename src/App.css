@@ -1659,6 +1659,41 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   outline:2px solid rgba(180,35,24,.35);
   outline-offset:1px;
 }
+.exercise-picker-modal{
+  width:min(480px,100%);
+  max-height:min(85vh,720px);
+  display:flex;
+  flex-direction:column;
+  padding-top:22px;
+}
+.exercise-picker-modal h3{
+  margin:0 36px 12px 0;
+}
+.exercise-picker-modal .search{
+  margin-bottom:0;
+  flex-shrink:0;
+}
+.exercise-picker-modal .exercise-sort-control{
+  margin-bottom:10px;
+  flex-shrink:0;
+}
+.exercise-picker-modal-list{
+  overflow-y:auto;
+  flex:1;
+  min-height:0;
+  max-height:min(52vh,520px);
+  margin-top:0;
+}
+.workout-add-exercise-row{
+  margin-top:16px;
+}
+.workout-add-exercise-row .add-custom-button{
+  width:100%;
+  justify-content:center;
+}
+.workout-empty-hint{
+  margin:8px 0 0;
+}
 .exercise-row-clickable{position:relative;padding-right:72px}
 .exercise-usage-number{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .exercise-row-clickable .danger-text{margin-right:44px}

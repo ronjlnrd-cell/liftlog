@@ -12,6 +12,16 @@ function client() {
   return supabase;
 }
 
+function isSchemaColumnError(error: { code?: string; message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+  return (
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    message.includes("could not find") ||
+    message.includes("column") && message.includes("does not exist")
+  );
+}
+
 export type CloudWorkout = {
   workout: Workout;
   updatedAt: string;
@@ -66,15 +76,40 @@ export async function loadCloudData(userId: string) {
 }
 
 export async function saveCloudProfile(userId: string, profile: Profile) {
-  const { error } = await client().from("profiles").upsert({
-    user_id: userId,
-    gender: profile.gender,
-    weight_unit: profile.weightUnit,
-    cycle_tracking_enabled: profile.cycleTrackingEnabled ?? false,
-    cycle_tracking_consent_completed: profile.cycleTrackingConsentCompleted ?? false,
-    updated_at: new Date().toISOString(),
-  });
-  if (error) throw error;
+  const attempts: Record<string, unknown>[] = [
+    {
+      user_id: userId,
+      gender: profile.gender,
+      weight_unit: profile.weightUnit,
+      cycle_tracking_enabled: profile.cycleTrackingEnabled ?? false,
+      cycle_tracking_consent_completed:
+        profile.cycleTrackingConsentCompleted ?? false,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      user_id: userId,
+      gender: profile.gender,
+      weight_unit: profile.weightUnit,
+      cycle_tracking_enabled: profile.cycleTrackingEnabled ?? false,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      user_id: userId,
+      gender: profile.gender,
+      weight_unit: profile.weightUnit,
+      updated_at: new Date().toISOString(),
+    },
+  ];
+
+  let lastError: { code?: string; message?: string } | null = null;
+  for (const payload of attempts) {
+    const { error } = await client().from("profiles").upsert(payload);
+    if (!error) return;
+    if (!isSchemaColumnError(error)) throw error;
+    lastError = error;
+  }
+
+  if (lastError) throw lastError;
 }
 export async function saveCloudWorkout(userId: string, workout: Workout) {
   const { error } = await client().from("workouts").upsert({

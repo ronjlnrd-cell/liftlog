@@ -3,7 +3,7 @@ import { getPreviousPerformanceByExerciseId } from "../../domain/analytics/previ
 import { useMemo, useRef, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
-import { ExercisePicker } from "../ExercisePicker";
+import { ExercisePickerModal } from "../ExercisePickerModal";
 import {
   ensureNotificationPermission,
   prepareTimerNotification,
@@ -44,6 +44,7 @@ export function WorkoutPage({
     workoutExerciseId: string;
   } | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
+  const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
   const workoutRef = useRef(workout);
   workoutRef.current = workout;
 
@@ -238,15 +239,16 @@ export function WorkoutPage({
     (item) => item.completedSets.length > 0,
   );
 
-  const exercisePicker = (
-    <ExercisePicker
+  const exercisePicker = exercisePickerOpen ? (
+    <ExercisePickerModal
       exercises={exercises}
-      excludedExerciseIds={[]}
+      excludedExerciseIds={workout.exercises.map((item) => item.exerciseId)}
       workouts={history}
       onSelect={addExercise}
+      onClose={() => setExercisePickerOpen(false)}
       onExercisesChange={onExercisesChange}
     />
-  );
+  ) : null;
 
   return (
     <section>
@@ -270,78 +272,89 @@ export function WorkoutPage({
       </div>
 
       {workout.exercises.length === 0 ? (
-        <>
-          {exercisePicker}
-          <p className="muted-center">Add your first exercise above.</p>
-        </>
+        <p className="muted-center workout-empty-hint">
+          Add an exercise to start logging sets.
+        </p>
       ) : (
-        <>
-          <div className="stack">
-            {workout.exercises.map((item, index) => {
-              const exercise = exercises.find(
-                (candidate) => candidate.id === item.exerciseId,
-              );
+        <div className="stack">
+          {workout.exercises.map((item, index) => {
+            const exercise = exercises.find(
+              (candidate) => candidate.id === item.exerciseId,
+            );
 
-              return exercise ? (
-                <WorkoutExerciseCard
-                  key={item.id}
-                  exercise={exercise}
-                  item={item}
-                  unit={unit}
-                  position={index}
-                  exerciseCount={workout.exercises.length}
-                  prTypesBySet={activePRs}
-                  previousPerformance={
-                    previousPerformanceByExerciseId.get(item.exerciseId) ?? null
-                  }
-                  focusWeight={item.id === focusExerciseId}
-                  onWeightFocused={() => setFocusExerciseId(null)}
-                  onAddSet={addSet}
-                  onUpdateSet={updateSet}
-                  onDeleteSet={deleteSet}
-                  progressionRecommendation={(() => {
-                    const previous = latestCompletedExercise(item.exerciseId);
-                    const exercise = exercises.find(
-                      (candidate) => candidate.id === item.exerciseId,
-                    );
-                    return previous && exercise
-                      ? getProgressionRecommendation(previous, exercise)
-                      : null;
-                  })()}
-                  onApplyProgression={(option) =>
-                    applyProgression(item.id, item.exerciseId, option)
-                  }
-                  onMove={moveExercise}
-                  onRemove={removeExercise}
-                  onRestChange={updateRest}
-                  updatesTemplate={Boolean(workout.sourceTemplateId)}
-                  restTimer={
-                    restTimer?.workoutExerciseId === item.id
-                      ? {
-                          endAt: restTimer.endAt,
-                          onSkip: () => setRestTimer(null),
-                          onAdjust: (deltaSeconds) => {
-                            setRestTimer((current) => {
-                              if (!current) return null;
-                              return {
-                                ...current,
-                                endAt: Math.max(
-                                  Date.now(),
-                                  current.endAt + deltaSeconds * 1000,
-                                ),
-                              };
-                            });
-                          },
-                        }
-                      : null
-                  }
-                />
-              ) : null;
-            })}
-          </div>
-          {exercisePicker}
-        </>
+            return exercise ? (
+              <WorkoutExerciseCard
+                key={item.id}
+                exercise={exercise}
+                item={item}
+                unit={unit}
+                position={index}
+                exerciseCount={workout.exercises.length}
+                prTypesBySet={activePRs}
+                previousPerformance={
+                  previousPerformanceByExerciseId.get(item.exerciseId) ?? null
+                }
+                focusWeight={item.id === focusExerciseId}
+                onWeightFocused={() => setFocusExerciseId(null)}
+                onAddSet={addSet}
+                onUpdateSet={updateSet}
+                onDeleteSet={deleteSet}
+                progressionRecommendation={(() => {
+                  const previous = latestCompletedExercise(item.exerciseId);
+                  const exercise = exercises.find(
+                    (candidate) => candidate.id === item.exerciseId,
+                  );
+                  return previous && exercise
+                    ? getProgressionRecommendation(previous, exercise)
+                    : null;
+                })()}
+                onApplyProgression={(option) =>
+                  applyProgression(item.id, item.exerciseId, option)
+                }
+                onMove={moveExercise}
+                onRemove={removeExercise}
+                onRestChange={updateRest}
+                updatesTemplate={Boolean(workout.sourceTemplateId)}
+                restTimer={
+                  restTimer?.workoutExerciseId === item.id
+                    ? {
+                        endAt: restTimer.endAt,
+                        onSkip: () => setRestTimer(null),
+                        onAdjust: (deltaSeconds) => {
+                          setRestTimer((current) => {
+                            if (!current) return null;
+                            return {
+                              ...current,
+                              endAt: Math.max(
+                                Date.now(),
+                                current.endAt + deltaSeconds * 1000,
+                              ),
+                            };
+                          });
+                        },
+                      }
+                    : null
+                }
+              />
+            ) : null;
+          })}
+        </div>
       )}
+
+      <div className="workout-add-exercise-row">
+        <button
+          type="button"
+          className="add-custom-button"
+          onClick={() => setExercisePickerOpen(true)}
+        >
+          <span className="add-custom-icon" aria-hidden="true">
+            +
+          </span>
+          Add exercise
+        </button>
+      </div>
+
+      {exercisePicker}
     </section>
   );
 }

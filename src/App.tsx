@@ -413,10 +413,12 @@ function App() {
       !cloud.profile.cycleTrackingConsentCompleted
     ) {
       const synced = await cloudAction(() => saveCloudProfile(userId, mergedProfile));
-      if (!synced) addPending({ kind: "profile" });
+      if (synced) removePending("profile");
+      else addPending({ kind: "profile" });
     }
     setCloudLoadError("");
     setCloudReady(true);
+    void flushPendingSync();
   }
 
   async function retryCloudLoad() {
@@ -495,6 +497,21 @@ function App() {
     }
   }
 
+  function removePending(kind: PendingSync["kind"], id?: string) {
+    const pending = readPending().filter((item) => {
+      if (item.kind !== kind) return true;
+      if (id === undefined) return false;
+      return "id" in item && item.id !== id;
+    });
+    localStorage.setItem(pendingKey, JSON.stringify(pending));
+  }
+
+  function pendingSyncMessage(label: string) {
+    return navigator.onLine
+      ? `${label} saved locally — could not sync to cloud`
+      : `${label} saved on device — cloud sync pending`;
+  }
+
   function queueDelete(
     kind: "workout" | "template" | "bodyweight" | "period",
     id: string,
@@ -511,38 +528,35 @@ function App() {
 
   async function flushPendingSync() {
     if (!session) return;
+    const userId = session.user.id;
     const pending = readPending();
-    if (pending.length === 0) {
-      setSyncMessage("");
-      return;
-    }
-
     const remaining: PendingSync[] = [];
+
     for (const item of pending) {
       try {
         if (item.kind === "workout") {
           const workout = (await workoutRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (workout) await saveCloudWorkout(session.user.id, workout);
+          if (workout) await saveCloudWorkout(userId, workout);
         } else if (item.kind === "template") {
           const template = (await templateRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (template) await saveCloudTemplate(session.user.id, template);
+          if (template) await saveCloudTemplate(userId, template);
         } else if (item.kind === "bodyweight") {
           const entry = (await bodyweightRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (entry) await saveCloudBodyweight(session.user.id, entry);
+          if (entry) await saveCloudBodyweight(userId, entry);
         } else if (item.kind === "period") {
           const entry = (await periodRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (entry) await saveCloudPeriodEntry(session.user.id, entry);
+          if (entry) await saveCloudPeriodEntry(userId, entry);
         } else if (item.kind === "delete-workout") {
-          await deleteCloudWorkout(session.user.id, item.id);
+          await deleteCloudWorkout(userId, item.id);
         } else if (item.kind === "delete-template") {
-          await deleteCloudTemplate(session.user.id, item.id);
+          await deleteCloudTemplate(userId, item.id);
         } else if (item.kind === "profile") {
           const profile = await profileRepository.get();
-          if (profile) await saveCloudProfile(session.user.id, profile);
+          if (profile) await saveCloudProfile(userId, profile);
         } else if (item.kind === "delete-bodyweight") {
-          await deleteCloudBodyweight(session.user.id, item.id);
+          await deleteCloudBodyweight(userId, item.id);
         } else if (item.kind === "delete-period") {
-          await deleteCloudPeriodEntry(session.user.id, item.id);
+          await deleteCloudPeriodEntry(userId, item.id);
         }
       } catch (error) {
         console.error(error);
@@ -551,7 +565,47 @@ function App() {
     }
 
     localStorage.setItem(pendingKey, JSON.stringify(remaining));
-    setSyncMessage(remaining.length === 0 ? "" : "Some data is saved on device — cloud sync pending");
+
+    try {
+      const profile = await profileRepository.get();
+      if (profile) {
+        await saveCloudProfile(userId, profile);
+        removePending("profile");
+      }
+    } catch (error) {
+      console.error(error);
+      addPending({ kind: "profile" });
+    }
+
+    for (const entry of await periodRepository.getAll()) {
+      try {
+        await saveCloudPeriodEntry(userId, entry);
+        removePending("period", entry.id);
+      } catch (error) {
+        console.error(error);
+        addPending({ kind: "period", id: entry.id });
+      }
+    }
+
+    for (const entry of await bodyweightRepository.getAll()) {
+      try {
+        await saveCloudBodyweight(userId, entry);
+        removePending("bodyweight", entry.id);
+      } catch (error) {
+        console.error(error);
+        addPending({ kind: "bodyweight", id: entry.id });
+      }
+    }
+
+    const stillPending = readPending();
+    localStorage.setItem(pendingKey, JSON.stringify(stillPending));
+    setSyncMessage(
+      stillPending.length === 0
+        ? ""
+        : navigator.onLine
+          ? "Some data saved locally — could not sync to cloud"
+          : "Some data is saved on device — cloud sync pending",
+    );
   }
 
   useEffect(() => {
@@ -752,7 +806,8 @@ function App() {
     const synced = await cloudAction(() =>
       saveCloudProfile(session.user.id, nextProfile),
     );
-    if (!synced) addPending({ kind: "profile" });
+    if (synced) removePending("profile");
+    else addPending({ kind: "profile" });
   }
 
   const profileNeedsSetup =
@@ -825,14 +880,17 @@ function App() {
           const synced = await cloudAction(() =>
             saveCloudProfile(session.user.id, ownedProfile),
           );
-          if (!synced) addPending({ kind: "profile" });
+          if (synced) removePending("profile");
+          else addPending({ kind: "profile" });
 
           const weightSynced = await cloudAction(() =>
             saveCloudBodyweight(session.user.id, entry),
           );
-          if (!weightSynced) {
+          if (weightSynced) {
+            removePending("bodyweight", entry.id);
+          } else {
             addPending({ kind: "bodyweight", id: entry.id });
-            setSyncMessage("Profile saved on device — cloud sync pending");
+            setSyncMessage(pendingSyncMessage("Profile"));
           }
         }}
       />
@@ -863,8 +921,13 @@ function App() {
         {(syncMessage || cloudLoadError) && (
           <span className="sync-status">
             {syncMessage || "Offline — using data saved on this device"}
-            {cloudLoadError && (
-              <button className="text-button" onClick={() => void retryCloudLoad()}>
+            {(cloudLoadError || syncMessage) && (
+              <button
+                className="text-button"
+                onClick={() =>
+                  void (cloudLoadError ? retryCloudLoad() : flushPendingSync())
+                }
+              >
                 Retry
               </button>
             )}
@@ -1220,9 +1283,11 @@ function App() {
               const saved = await cloudAction(() =>
                 saveCloudPeriodEntry(session.user.id, entry),
               );
-              if (!saved) {
+              if (saved) {
+                removePending("period", entry.id);
+              } else {
                 addPending({ kind: "period", id: entry.id });
-                setSyncMessage("Period saved on device — cloud sync pending");
+                setSyncMessage(pendingSyncMessage("Period"));
               }
             }}
             onDeletePeriod={async (id) => {
@@ -1248,9 +1313,11 @@ function App() {
               setProfile(next);
               if (session) {
                 const synced = await cloudAction(() => saveCloudProfile(session.user.id, next));
-                if (!synced) {
+                if (synced) {
+                  removePending("profile");
+                } else {
                   addPending({ kind: "profile" });
-                  setSyncMessage("Profile saved on device — cloud sync pending");
+                  setSyncMessage(pendingSyncMessage("Profile"));
                 }
               }
             }}
