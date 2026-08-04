@@ -19,6 +19,7 @@ type Props = {
   onAdd: (weight: number, date: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onLogPeriod: (startDate: string) => Promise<void>;
+  onDeletePeriod: (id: string) => Promise<void>;
 };
 
 const RANGE_DAYS: Record<Exclude<Range, "ALL">, number> = {
@@ -81,6 +82,7 @@ export function WeightPage({
   onAdd,
   onDelete,
   onLogPeriod,
+  onDeletePeriod,
 }: Props) {
   const [changeRange, setChangeRange] = useState<Range>("3M");
   const [chartRange, setChartRange] = useState<Range>("3M");
@@ -336,29 +338,62 @@ export function WeightPage({
 
       <article className="card weight-history">
         <h2>Recent entries</h2>
-        {entries.length === 0 ? (
-          <p className="muted">No weights logged yet.</p>
+        {entries.length === 0 && (!cycleTrackingEnabled || periodEntries.length === 0) ? (
+          <p className="muted">No entries logged yet.</p>
         ) : (
-          [...entries]
-            .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
-            .slice(0, 20)
-            .map((entry) => (
-              <div className="weight-history-row" key={entry.id}>
-                <div>
-                  <strong>
-                    {entry.weight.toFixed(1)} {unit.toLowerCase()}
-                  </strong>
-                  <span>{new Date(entry.recordedAt).toLocaleDateString()}</span>
-                </div>
-                <button
-                  className="icon-button"
-                  aria-label="Delete weight"
-                  onClick={() => void onDelete(entry.id)}
-                >
-                  ×
-                </button>
+          <>
+            {entries.length > 0 && (
+              <div className="weight-history-group">
+                {cycleTrackingEnabled && periodEntries.length > 0 && (
+                  <h3 className="weight-history-group-title">Weight</h3>
+                )}
+                {[...entries]
+                  .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+                  .slice(0, 20)
+                  .map((entry) => (
+                    <div className="weight-history-row" key={entry.id}>
+                      <div>
+                        <strong>
+                          {entry.weight.toFixed(1)} {unit.toLowerCase()}
+                        </strong>
+                        <span>{new Date(entry.recordedAt).toLocaleDateString()}</span>
+                      </div>
+                      <button
+                        className="icon-button"
+                        aria-label="Delete weight"
+                        onClick={() => void onDelete(entry.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
               </div>
-            ))
+            )}
+
+            {cycleTrackingEnabled && periodEntries.length > 0 && (
+              <div className="weight-history-group">
+                <h3 className="weight-history-group-title">Menstrual cycle</h3>
+                {[...periodEntries]
+                  .sort((a, b) => b.startDate.localeCompare(a.startDate))
+                  .slice(0, 20)
+                  .map((entry) => (
+                    <div className="weight-history-row" key={entry.id}>
+                      <div>
+                        <strong>Period started</strong>
+                        <span>{formatPeriodDate(entry.startDate)}</span>
+                      </div>
+                      <button
+                        className="icon-button"
+                        aria-label="Delete period"
+                        onClick={() => void onDeletePeriod(entry.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </>
         )}
       </article>
 

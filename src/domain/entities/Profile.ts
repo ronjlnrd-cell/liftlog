@@ -5,4 +5,5 @@ export interface Profile {
   userId?: string;
   setupCompleted?: boolean;
   cycleTrackingEnabled?: boolean;
+  cycleTrackingConsentCompleted?: boolean;
 }

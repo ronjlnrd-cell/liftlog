@@ -52,6 +52,7 @@ export async function loadCloudData(userId: string) {
     userId,
     setupCompleted: true,
     cycleTrackingEnabled: Boolean(row.cycle_tracking_enabled),
+    cycleTrackingConsentCompleted: Boolean(row.cycle_tracking_consent_completed),
   } : null;
   return {
     profile,
@@ -70,6 +71,7 @@ export async function saveCloudProfile(userId: string, profile: Profile) {
     gender: profile.gender,
     weight_unit: profile.weightUnit,
     cycle_tracking_enabled: profile.cycleTrackingEnabled ?? false,
+    cycle_tracking_consent_completed: profile.cycleTrackingConsentCompleted ?? false,
     updated_at: new Date().toISOString(),
   });
   if (error) throw error;

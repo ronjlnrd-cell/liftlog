@@ -1,6 +1,9 @@
 alter table public.profiles
   add column if not exists cycle_tracking_enabled boolean not null default false;
 
+alter table public.profiles
+  add column if not exists cycle_tracking_consent_completed boolean not null default false;
+
 create table if not exists public.period_entries (
   id uuid primary key,
   user_id uuid not null references auth.users(id) on delete cascade,

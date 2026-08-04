@@ -6,6 +6,15 @@ export function isCycleTrackingActive(profile: Profile): boolean {
   return profile.gender === "FEMALE" && profile.cycleTrackingEnabled === true;
 }
 
+export function needsCycleTrackingConsent(profile: Profile): boolean {
+  if (profile.cycleTrackingConsentCompleted === true) return false;
+  if (profile.cycleTrackingEnabled === true) return false;
+  return (
+    profile.gender === "FEMALE" &&
+    profile.setupCompleted === true
+  );
+}
+
 export function getLatestPeriodEntry(
   entries: PeriodEntry[],
 ): PeriodEntry | null {

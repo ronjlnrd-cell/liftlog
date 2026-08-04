@@ -162,7 +162,11 @@ export function SettingsPage({
   }
 
   async function handleConsentAccept() {
-    const next = { ...draft, cycleTrackingEnabled: true };
+    const next = {
+      ...draft,
+      cycleTrackingEnabled: true,
+      cycleTrackingConsentCompleted: true,
+    };
     setDraft(next);
     setConsentOpen(false);
     setPendingEnableCycle(false);
@@ -185,7 +189,11 @@ export function SettingsPage({
 
     if (pendingGenderSave) {
       setPendingGenderSave(false);
-      void saveDraft({ ...draft, cycleTrackingEnabled: false });
+      void saveDraft({
+        ...draft,
+        cycleTrackingEnabled: false,
+        cycleTrackingConsentCompleted: true,
+      });
       previousGenderRef.current = draft.gender;
     }
   }

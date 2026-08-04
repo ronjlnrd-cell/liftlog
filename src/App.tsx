@@ -30,7 +30,7 @@ import type { PeriodEntry } from "./domain/entities/PeriodEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
 import { periodRepository } from "./data/repositories/PeriodRepository";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
-import { isCycleTrackingActive } from "./domain/analytics/periodTracking";
+import { isCycleTrackingActive, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
 import {
   closeUserDatabase,
   openUserDatabase,
@@ -178,7 +178,6 @@ function App() {
   const [cloudRetrying, setCloudRetrying] = useState(false);
   const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
   const [periodEntries, setPeriodEntries] = useState<PeriodEntry[]>([]);
-  const [postSetupCycleConsent, setPostSetupCycleConsent] = useState(false);
 
   function getLatestBodyweight() {
   return bodyweights.length > 0 ? bodyweights[0].weight : null;
@@ -193,7 +192,6 @@ function App() {
     setProfile(emptyProfile);
     setBodyweights([]);
     setPeriodEntries([]);
-    setPostSetupCycleConsent(false);
     setEditingTemplateId(null);
     setCreatingTemplate(null);
     setEditingWorkoutId(null);
@@ -726,6 +724,22 @@ function App() {
     }
   }
 
+  async function saveCycleConsentResponse(enabled: boolean) {
+    if (!session) return;
+    const nextProfile: Profile = {
+      ...profile,
+      userId: session.user.id,
+      cycleTrackingEnabled: enabled,
+      cycleTrackingConsentCompleted: true,
+    };
+    await profileRepository.save(nextProfile);
+    setProfile(nextProfile);
+    const synced = await cloudAction(() =>
+      saveCloudProfile(session.user.id, nextProfile),
+    );
+    if (!synced) addPending({ kind: "profile" });
+  }
+
   const profileNeedsSetup =
     Boolean(session) &&
     cloudReady &&
@@ -777,6 +791,7 @@ function App() {
             userId: session.user.id,
             setupCompleted: true,
             cycleTrackingEnabled: false,
+            cycleTrackingConsentCompleted: false,
           };
           const entry: BodyweightEntry = {
             id: crypto.randomUUID(),
@@ -804,46 +819,16 @@ function App() {
             addPending({ kind: "bodyweight", id: entry.id });
             setSyncMessage("Profile saved on device — cloud sync pending");
           }
-
-          if (ownedProfile.gender === "FEMALE") {
-            setPostSetupCycleConsent(true);
-          }
         }}
       />
     );
   }
 
-  if (postSetupCycleConsent) {
+  if (needsCycleTrackingConsent(profile)) {
     return (
       <CycleTrackingConsentModal
-        onAccept={async () => {
-          const nextProfile = {
-            ...profile,
-            userId: session.user.id,
-            cycleTrackingEnabled: true,
-          };
-          await profileRepository.save(nextProfile);
-          setProfile(nextProfile);
-          const synced = await cloudAction(() =>
-            saveCloudProfile(session.user.id, nextProfile),
-          );
-          if (!synced) addPending({ kind: "profile" });
-          setPostSetupCycleConsent(false);
-        }}
-        onDecline={async () => {
-          const nextProfile = {
-            ...profile,
-            userId: session.user.id,
-            cycleTrackingEnabled: false,
-          };
-          await profileRepository.save(nextProfile);
-          setProfile(nextProfile);
-          const synced = await cloudAction(() =>
-            saveCloudProfile(session.user.id, nextProfile),
-          );
-          if (!synced) addPending({ kind: "profile" });
-          setPostSetupCycleConsent(false);
-        }}
+        onAccept={() => void saveCycleConsentResponse(true)}
+        onDecline={() => void saveCycleConsentResponse(false)}
       />
     );
   }
@@ -1223,6 +1208,18 @@ function App() {
               if (!saved) {
                 addPending({ kind: "period", id: entry.id });
                 setSyncMessage("Period saved on device — cloud sync pending");
+              }
+            }}
+            onDeletePeriod={async (id) => {
+              if (!session) return;
+              await periodRepository.remove(id);
+              setPeriodEntries(await periodRepository.getAll());
+              const deleted = await cloudAction(() =>
+                deleteCloudPeriodEntry(session.user.id, id),
+              );
+              if (!deleted) {
+                queueDelete("period", id);
+                setSyncMessage("Period deleted on device — cloud sync pending");
               }
             }}
           />
