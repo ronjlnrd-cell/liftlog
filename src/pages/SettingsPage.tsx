@@ -218,6 +218,23 @@ export function SettingsPage({
           </select>
         </label>
 
+        <label>
+          Weight unit
+          <select
+            value={draft.weightUnit}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                weightUnit:
+                  event.target.value as Profile["weightUnit"],
+              })
+            }
+          >
+            <option value="KG">Kilograms</option>
+            <option value="LB">Pounds</option>
+          </select>
+        </label>
+
         {isFemale ? (
           <div className="settings-health-block">
             <h2>Health</h2>
@@ -240,23 +257,6 @@ export function SettingsPage({
             Menstrual cycle tracking is available when gender is set to Female.
           </p>
         )}
-
-        <label>
-          Weight unit
-          <select
-            value={draft.weightUnit}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                weightUnit:
-                  event.target.value as Profile["weightUnit"],
-              })
-            }
-          >
-            <option value="KG">Kilograms</option>
-            <option value="LB">Pounds</option>
-          </select>
-        </label>
 
         <button
           className="primary"
