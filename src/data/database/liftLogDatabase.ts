@@ -4,6 +4,7 @@ import type { Workout } from "../../domain/entities/workout";
 import type { Profile } from "../../domain/entities/Profile";
 import type { WorkoutTemplate } from "../../domain/entities/Template";
 import type { BodyweightEntry } from "../../domain/entities/BodyweightEntry";
+import type { PeriodEntry } from "../../domain/entities/PeriodEntry";
 
 export class LiftLogDatabase extends Dexie {
   exercises!: Table<Exercise, string>;
@@ -12,6 +13,7 @@ export class LiftLogDatabase extends Dexie {
   profile!: Table<Profile, string>;
   templates!: Table<WorkoutTemplate, string>;
   bodyweightEntries!: Table<BodyweightEntry, string>;
+  periodEntries!: Table<PeriodEntry, string>;
 
   constructor(databaseName: string) {
     super(databaseName);
@@ -41,6 +43,16 @@ export class LiftLogDatabase extends Dexie {
       activeWorkout: "id",
       profile: "id",
       bodyweightEntries: "id, userId, recordedAt",
+    });
+
+    this.version(4).stores({
+      exercises: "id, name, primaryMuscle, source, archivedAt",
+      templates: "id, createdAt, name",
+      workouts: "id, startedAt, completedAt",
+      activeWorkout: "id",
+      profile: "id",
+      bodyweightEntries: "id, userId, recordedAt",
+      periodEntries: "id, userId, startDate",
     });
   }
 }

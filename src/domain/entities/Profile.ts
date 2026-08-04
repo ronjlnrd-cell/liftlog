@@ -4,4 +4,5 @@ export interface Profile {
   weightUnit: "KG" | "LB";
   userId?: string;
   setupCompleted?: boolean;
+  cycleTrackingEnabled?: boolean;
 }

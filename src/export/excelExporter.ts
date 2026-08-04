@@ -2,6 +2,7 @@ import { utils, writeFile, type WorkSheet } from "xlsx";
 import { getDb } from "../data/database/databaseManager";
 import type { Profile } from "../domain/entities/Profile";
 import { buildBodyweightSheet } from "./workbookBuilders/bodyweightSheet";
+import { buildMenstrualCycleSheet } from "./workbookBuilders/menstrualCycleSheet";
 import { buildCustomExerciseSheet } from "./workbookBuilders/customExerciseSheet";
 import { buildExerciseSummarySheet } from "./workbookBuilders/exerciseSummarySheet";
 import { buildTemplateSheet } from "./workbookBuilders/templateSheet";
@@ -30,6 +31,9 @@ export function buildTrainingWorkbook(input: ExcelExportInput) {
   appendSheet(workbook, "Workout Log", buildWorkoutLogSheet(input));
   appendSheet(workbook, "Exercise Summary", buildExerciseSummarySheet(input));
   appendSheet(workbook, "Bodyweight", buildBodyweightSheet(input));
+  if (input.periodEntries.length > 0) {
+    appendSheet(workbook, "Menstrual Cycle", buildMenstrualCycleSheet(input));
+  }
   appendSheet(workbook, "Templates", buildTemplateSheet(input));
   appendSheet(workbook, "Custom Exercises", buildCustomExerciseSheet(input));
 
@@ -42,12 +46,13 @@ export function exportFilename(): string {
 
 async function loadExportInput(): Promise<ExcelExportInput> {
   const db = getDb();
-  const [workouts, exercises, templates, bodyweights, profileRows] =
+  const [workouts, exercises, templates, bodyweights, periodEntries, profileRows] =
     await Promise.all([
       db.workouts.toArray(),
       db.exercises.toArray(),
       db.templates.toArray(),
       db.bodyweightEntries.toArray(),
+      db.periodEntries.toArray(),
       db.profile.toArray(),
     ]);
 
@@ -57,7 +62,7 @@ async function loadExportInput(): Promise<ExcelExportInput> {
     weightUnit: "KG",
   };
 
-  return { workouts, exercises, templates, bodyweights, profile };
+  return { workouts, exercises, templates, bodyweights, periodEntries, profile };
 }
 
 export async function exportTrainingDataToExcel(): Promise<void> {

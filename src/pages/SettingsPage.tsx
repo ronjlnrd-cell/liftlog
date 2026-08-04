@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDb } from "../data/database/databaseManager";
 import type { Profile } from "../domain/entities/Profile";
 import { exportTrainingDataToExcel } from "../export/excelExporter";
 import { APP_NAME } from "../shared";
+import { CycleTrackingConsentModal } from "../components/CycleTrackingConsentModal";
 
 const LEGACY_BACKUP_APP_NAME = "LiftLog";
 
@@ -19,7 +20,18 @@ export function SettingsPage({
   const [saved, setSaved] = useState(false);
   const [backupMessage, setBackupMessage] = useState("");
   const [pendingBackup, setPendingBackup] = useState<LiftLogBackup | null>(null);
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [pendingEnableCycle, setPendingEnableCycle] = useState(false);
+  const [pendingGenderSave, setPendingGenderSave] = useState(false);
+  const previousGenderRef = useRef(profile.gender);
   const importRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDraft(profile);
+    previousGenderRef.current = profile.gender;
+  }, [profile]);
+
+  const isFemale = draft.gender === "FEMALE";
 
   async function exportExcel() {
     setBackupMessage("");
@@ -109,6 +121,67 @@ export function SettingsPage({
     window.setTimeout(() => window.location.reload(), 500);
   }
 
+  function handleCycleToggle(enabled: boolean) {
+    if (!enabled) {
+      const next = { ...draft, cycleTrackingEnabled: false };
+      setDraft(next);
+      void saveDraft(next);
+      return;
+    }
+
+    setPendingEnableCycle(true);
+    setConsentOpen(true);
+  }
+
+  async function saveDraft(next: Profile) {
+    await onSave(next);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  }
+
+  async function handleSaveSettings() {
+    const becameFemale =
+      previousGenderRef.current !== "FEMALE" && draft.gender === "FEMALE";
+
+    if (becameFemale && !draft.cycleTrackingEnabled) {
+      setPendingGenderSave(true);
+      setConsentOpen(true);
+      return;
+    }
+
+    await saveDraft(draft);
+    previousGenderRef.current = draft.gender;
+  }
+
+  async function handleConsentAccept() {
+    const next = { ...draft, cycleTrackingEnabled: true };
+    setDraft(next);
+    setConsentOpen(false);
+    setPendingEnableCycle(false);
+
+    if (pendingGenderSave) {
+      setPendingGenderSave(false);
+      await saveDraft(next);
+      previousGenderRef.current = next.gender;
+      return;
+    }
+
+    if (pendingEnableCycle) {
+      await saveDraft(next);
+    }
+  }
+
+  function handleConsentDecline() {
+    setConsentOpen(false);
+    setPendingEnableCycle(false);
+
+    if (pendingGenderSave) {
+      setPendingGenderSave(false);
+      void saveDraft({ ...draft, cycleTrackingEnabled: false });
+      previousGenderRef.current = draft.gender;
+    }
+  }
+
   return (
     <section>
       <h1 className="page-title">Settings</h1>
@@ -151,17 +224,29 @@ export function SettingsPage({
 
         <button
           className="primary"
-          onClick={async () => {
-            await onSave(draft);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 1800);
-          }}
+          onClick={() => void handleSaveSettings()}
         >
           Save settings
         </button>
 
         {saved && <p className="success">Saved.</p>}
       </div>
+
+      {isFemale && (
+        <div className="card settings-card">
+          <h2>Health</h2>
+          <label className="settings-toggle-row">
+            <span>Track menstrual cycle</span>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Track menstrual cycle"
+              checked={draft.cycleTrackingEnabled === true}
+              onChange={(event) => handleCycleToggle(event.target.checked)}
+            />
+          </label>
+        </div>
+      )}
 
       <div className="card settings-card backup-card">
         <div>
@@ -262,6 +347,13 @@ export function SettingsPage({
 
         {backupMessage && <p className="success">{backupMessage}</p>}
       </div>
+
+      {consentOpen && (
+        <CycleTrackingConsentModal
+          onAccept={() => void handleConsentAccept()}
+          onDecline={handleConsentDecline}
+        />
+      )}
     </section>
   );
 }

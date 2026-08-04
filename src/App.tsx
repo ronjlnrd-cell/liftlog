@@ -26,12 +26,31 @@ import { ProfileSetupPage } from "./pages/ProfileSetupPage";
 import { CloudMigrationPage } from "./pages/CloudMigrationPage";
 import { WeightPage } from "./pages/WeightPage";
 import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
+import type { PeriodEntry } from "./domain/entities/PeriodEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
+import { periodRepository } from "./data/repositories/PeriodRepository";
+import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
+import { isCycleTrackingActive } from "./domain/analytics/periodTracking";
 import {
   closeUserDatabase,
   openUserDatabase,
 } from "./data/database/databaseManager";
-import { loadCloudData, saveCloudProfile, saveCloudWorkout, saveCloudTemplate, saveCloudCustomExercise, deleteCloudWorkout, deleteCloudTemplate, loadCloudBodyweights, saveCloudBodyweight, deleteCloudBodyweight, type CloudWorkout } from "./data/cloud/cloudData";
+import {
+  loadCloudData,
+  saveCloudProfile,
+  saveCloudWorkout,
+  saveCloudTemplate,
+  saveCloudCustomExercise,
+  deleteCloudWorkout,
+  deleteCloudTemplate,
+  loadCloudBodyweights,
+  saveCloudBodyweight,
+  deleteCloudBodyweight,
+  loadCloudPeriodEntries,
+  saveCloudPeriodEntry,
+  deleteCloudPeriodEntry,
+  type CloudWorkout,
+} from "./data/cloud/cloudData";
 import { supabase, supabaseConfigured } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
@@ -59,9 +78,11 @@ type PendingSync =
   | { kind: "workout"; id: string }
   | { kind: "template"; id: string }
   | { kind: "bodyweight"; id: string }
+  | { kind: "period"; id: string }
   | { kind: "delete-workout"; id: string }
   | { kind: "delete-template"; id: string }
   | { kind: "delete-bodyweight"; id: string }
+  | { kind: "delete-period"; id: string }
   | { kind: "profile" };
 
 function ensureWorkoutExerciseIds(workout: Workout): Workout {
@@ -156,6 +177,8 @@ function App() {
   const [cloudLoadError, setCloudLoadError] = useState("");
   const [cloudRetrying, setCloudRetrying] = useState(false);
   const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
+  const [periodEntries, setPeriodEntries] = useState<PeriodEntry[]>([]);
+  const [postSetupCycleConsent, setPostSetupCycleConsent] = useState(false);
 
   function getLatestBodyweight() {
   return bodyweights.length > 0 ? bodyweights[0].weight : null;
@@ -169,6 +192,8 @@ function App() {
     setActiveWorkout(null);
     setProfile(emptyProfile);
     setBodyweights([]);
+    setPeriodEntries([]);
+    setPostSetupCycleConsent(false);
     setEditingTemplateId(null);
     setCreatingTemplate(null);
     setEditingWorkoutId(null);
@@ -191,6 +216,7 @@ function App() {
       activeData,
       profileData,
       bodyweightData,
+      periodData,
     ] = await Promise.all([
       exerciseRepository.getAll(),
       workoutRepository.getAll(),
@@ -198,6 +224,7 @@ function App() {
       workoutRepository.getActive(),
       profileRepository.get(),
       bodyweightRepository.getAll(),
+      periodRepository.getAll(),
     ]);
 
     const normalizedWorkouts = workoutData.map(ensureWorkoutExerciseIds);
@@ -211,6 +238,7 @@ function App() {
     setActiveWorkout(normalizedActive);
     setProfile(profileData);
     setBodyweights(bodyweightData);
+    setPeriodEntries(periodData);
 
     if (activeData && activeData.exercises.some((item) => !item.id)) {
       await workoutRepository.saveActive(normalizedActive!);
@@ -293,10 +321,16 @@ function App() {
   async function connectCloud(userId: string) {
     const cloud = await loadCloudData(userId);
     let cloudBodyweights: BodyweightEntry[] = [];
+    let cloudPeriodEntries: PeriodEntry[] = [];
     try {
       cloudBodyweights = await loadCloudBodyweights(userId);
     } catch (error) {
       console.error("Could not load cloud bodyweights:", error);
+    }
+    try {
+      cloudPeriodEntries = await loadCloudPeriodEntries(userId);
+    } catch (error) {
+      console.error("Could not load cloud period entries:", error);
     }
     const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
     const cloudEmpty =
@@ -343,11 +377,21 @@ function App() {
       (a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime(),
     );
 
+    const localPeriodEntries = await periodRepository.getAll();
+    const periodMap = new Map(cloudPeriodEntries.map((entry) => [entry.id, entry]));
+    for (const entry of localPeriodEntries) {
+      if (!periodMap.has(entry.id)) periodMap.set(entry.id, entry);
+    }
+    const mergedPeriodEntries = Array.from(periodMap.values()).sort((a, b) =>
+      b.startDate.localeCompare(a.startDate),
+    );
+
     setWorkouts(mergedWorkouts);
     setTemplates(mergedTemplates);
     setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
     if (cloud.profile) setProfile(cloud.profile);
     setBodyweights(mergedBodyweights);
+    setPeriodEntries(mergedPeriodEntries);
 
     await Promise.all([
       ...mergedWorkouts.map((workout) =>
@@ -356,6 +400,7 @@ function App() {
       ...mergedTemplates.map((template) => templateRepository.save(template)),
       ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
       ...mergedBodyweights.map((entry) => bodyweightRepository.save(entry)),
+      ...mergedPeriodEntries.map((entry) => periodRepository.save(entry)),
     ]);
     setCloudLoadError("");
     setCloudReady(true);
@@ -437,7 +482,10 @@ function App() {
     }
   }
 
-  function queueDelete(kind: "workout" | "template" | "bodyweight", id: string) {
+  function queueDelete(
+    kind: "workout" | "template" | "bodyweight" | "period",
+    id: string,
+  ) {
     const pending = readPending().filter(
       (item) => !(item.kind === kind && item.id === id),
     );
@@ -468,6 +516,9 @@ function App() {
         } else if (item.kind === "bodyweight") {
           const entry = (await bodyweightRepository.getAll()).find((candidate) => candidate.id === item.id);
           if (entry) await saveCloudBodyweight(session.user.id, entry);
+        } else if (item.kind === "period") {
+          const entry = (await periodRepository.getAll()).find((candidate) => candidate.id === item.id);
+          if (entry) await saveCloudPeriodEntry(session.user.id, entry);
         } else if (item.kind === "delete-workout") {
           await deleteCloudWorkout(session.user.id, item.id);
         } else if (item.kind === "delete-template") {
@@ -477,6 +528,8 @@ function App() {
           if (profile) await saveCloudProfile(session.user.id, profile);
         } else if (item.kind === "delete-bodyweight") {
           await deleteCloudBodyweight(session.user.id, item.id);
+        } else if (item.kind === "delete-period") {
+          await deleteCloudPeriodEntry(session.user.id, item.id);
         }
       } catch (error) {
         console.error(error);
@@ -723,6 +776,7 @@ function App() {
             ...nextProfile,
             userId: session.user.id,
             setupCompleted: true,
+            cycleTrackingEnabled: false,
           };
           const entry: BodyweightEntry = {
             id: crypto.randomUUID(),
@@ -750,6 +804,45 @@ function App() {
             addPending({ kind: "bodyweight", id: entry.id });
             setSyncMessage("Profile saved on device — cloud sync pending");
           }
+
+          if (ownedProfile.gender === "FEMALE") {
+            setPostSetupCycleConsent(true);
+          }
+        }}
+      />
+    );
+  }
+
+  if (postSetupCycleConsent) {
+    return (
+      <CycleTrackingConsentModal
+        onAccept={async () => {
+          const nextProfile = {
+            ...profile,
+            userId: session.user.id,
+            cycleTrackingEnabled: true,
+          };
+          await profileRepository.save(nextProfile);
+          setProfile(nextProfile);
+          const synced = await cloudAction(() =>
+            saveCloudProfile(session.user.id, nextProfile),
+          );
+          if (!synced) addPending({ kind: "profile" });
+          setPostSetupCycleConsent(false);
+        }}
+        onDecline={async () => {
+          const nextProfile = {
+            ...profile,
+            userId: session.user.id,
+            cycleTrackingEnabled: false,
+          };
+          await profileRepository.save(nextProfile);
+          setProfile(nextProfile);
+          const synced = await cloudAction(() =>
+            saveCloudProfile(session.user.id, nextProfile),
+          );
+          if (!synced) addPending({ kind: "profile" });
+          setPostSetupCycleConsent(false);
         }}
       />
     );
@@ -1072,7 +1165,9 @@ function App() {
         {page === "weight" && (
           <WeightPage
             entries={bodyweights}
+            periodEntries={periodEntries}
             unit={profile.weightUnit}
+            cycleTrackingEnabled={isCycleTrackingActive(profile)}
             onAdd={async (weight, date) => {
               if (!session) throw new Error("Your session expired. Sign in again.");
               if (!Number.isFinite(weight) || weight <= 0) {
@@ -1097,7 +1192,6 @@ function App() {
                 addPending({ kind: "bodyweight", id: entry.id });
                 setSyncMessage("Weight saved on device — cloud sync pending");
               }
-
             }}
             onDelete={async (id) => {
               if (!session) return;
@@ -1107,6 +1201,28 @@ function App() {
               if (!deleted) {
                 queueDelete("bodyweight", id);
                 setSyncMessage("Weight deleted on device — cloud sync pending");
+              }
+            }}
+            onLogPeriod={async (startDate) => {
+              if (!session) throw new Error("Your session expired. Sign in again.");
+              const parsed = new Date(`${startDate}T12:00:00`);
+              if (Number.isNaN(parsed.getTime())) {
+                throw new Error("Pick a valid date.");
+              }
+              const entry: PeriodEntry = {
+                id: crypto.randomUUID(),
+                userId: session.user.id,
+                startDate,
+                createdAt: new Date().toISOString(),
+              };
+              await periodRepository.save(entry);
+              setPeriodEntries(await periodRepository.getAll());
+              const saved = await cloudAction(() =>
+                saveCloudPeriodEntry(session.user.id, entry),
+              );
+              if (!saved) {
+                addPending({ kind: "period", id: entry.id });
+                setSyncMessage("Period saved on device — cloud sync pending");
               }
             }}
           />

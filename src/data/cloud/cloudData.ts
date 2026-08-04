@@ -1,4 +1,5 @@
 import type { BodyweightEntry } from "../../domain/entities/BodyweightEntry";
+import type { PeriodEntry } from "../../domain/entities/PeriodEntry";
 import { supabase } from "../../lib/supabase";
 import type { Profile } from "../../domain/entities/Profile";
 import type { Workout } from "../../domain/entities/workout";
@@ -32,8 +33,12 @@ export async function loadCloudData(userId: string) {
   if (error) throw error;
   const row = profiles.data;
   const profile: Profile | null = row ? {
-    id: "profile", 
-    gender: row.gender, weightUnit: row.weight_unit, userId, setupCompleted: true,
+    id: "profile",
+    gender: row.gender,
+    weightUnit: row.weight_unit,
+    userId,
+    setupCompleted: true,
+    cycleTrackingEnabled: Boolean(row.cycle_tracking_enabled),
   } : null;
   return {
     profile,
@@ -48,8 +53,11 @@ export async function loadCloudData(userId: string) {
 
 export async function saveCloudProfile(userId: string, profile: Profile) {
   const { error } = await client().from("profiles").upsert({
-    user_id: userId, gender: profile.gender,
-    weight_unit: profile.weightUnit, updated_at: new Date().toISOString(),
+    user_id: userId,
+    gender: profile.gender,
+    weight_unit: profile.weightUnit,
+    cycle_tracking_enabled: profile.cycleTrackingEnabled ?? false,
+    updated_at: new Date().toISOString(),
   });
   if (error) throw error;
 }
@@ -138,5 +146,48 @@ export async function deleteCloudBodyweight(userId: string, id: string) {
   if (error) throw error;
   if (!data || data.length === 0) {
     throw new Error(`Bodyweight ${id} was not deleted from Supabase.`);
+  }
+}
+
+export async function loadCloudPeriodEntries(
+  userId: string,
+): Promise<PeriodEntry[]> {
+  const { data, error } = await client()
+    .from("period_entries")
+    .select("id,user_id,start_date,created_at")
+    .eq("user_id", userId)
+    .order("start_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    startDate: row.start_date,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function saveCloudPeriodEntry(
+  userId: string,
+  entry: PeriodEntry,
+) {
+  const { error } = await client().from("period_entries").upsert({
+    id: entry.id,
+    user_id: userId,
+    start_date: entry.startDate,
+    created_at: entry.createdAt,
+  });
+  if (error) throw error;
+}
+
+export async function deleteCloudPeriodEntry(userId: string, id: string) {
+  const { data, error } = await client()
+    .from("period_entries")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", id)
+    .select("id");
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error(`Period entry ${id} was not deleted from Supabase.`);
   }
 }

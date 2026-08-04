@@ -1,14 +1,24 @@
 import { useMemo, useState } from "react";
 import type { BodyweightEntry } from "../domain/entities/BodyweightEntry";
+import type { PeriodEntry } from "../domain/entities/PeriodEntry";
+import {
+  daysSinceLastPeriod,
+  formatPeriodDate,
+  getLatestPeriodEntry,
+} from "../domain/analytics/periodTracking";
+import { LogPeriodModal } from "../components/LogPeriodModal";
 import { localDateString, parseWeightInput } from "../shared";
 
 type Range = "1M" | "3M" | "6M" | "1Y" | "ALL";
 
 type Props = {
   entries: BodyweightEntry[];
+  periodEntries: PeriodEntry[];
   unit: "KG" | "LB";
+  cycleTrackingEnabled: boolean;
   onAdd: (weight: number, date: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onLogPeriod: (startDate: string) => Promise<void>;
 };
 
 const RANGE_DAYS: Record<Exclude<Range, "ALL">, number> = {
@@ -63,7 +73,15 @@ function WeightRangeTabs({
   );
 }
 
-export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
+export function WeightPage({
+  entries,
+  periodEntries,
+  unit,
+  cycleTrackingEnabled,
+  onAdd,
+  onDelete,
+  onLogPeriod,
+}: Props) {
   const [changeRange, setChangeRange] = useState<Range>("3M");
   const [chartRange, setChartRange] = useState<Range>("3M");
   const [weight, setWeight] = useState("");
@@ -71,6 +89,7 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [periodModalOpen, setPeriodModalOpen] = useState(false);
 
   const parsedWeight = parseWeightInput(weight);
 
@@ -79,6 +98,16 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
       [...entries].sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))[0] ??
       null,
     [entries],
+  );
+
+  const latestPeriod = useMemo(
+    () => getLatestPeriodEntry(periodEntries),
+    [periodEntries],
+  );
+
+  const daysSincePeriod = useMemo(
+    () => daysSinceLastPeriod(periodEntries),
+    [periodEntries],
   );
 
   const changeEntries = useMemo(
@@ -139,15 +168,19 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
     <section className="weight-page">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Bodyweight</p>
+          <p className="eyebrow">Health</p>
           <h1 className="page-title">Weight</h1>
         </div>
       </div>
 
       <article className="card weight-overview-card">
-        <div className="weight-overview-main">
+        <div
+          className={`weight-overview-main${
+            cycleTrackingEnabled ? " with-cycle-stat" : ""
+          }`}
+        >
           <div className="weight-stat-block">
-            <span className="weight-stat-label">Current</span>
+            <span className="weight-stat-label">Current Weight</span>
             <strong className="weight-current-value">
               {latest ? latest.weight.toFixed(1) : "—"}
             </strong>
@@ -159,7 +192,7 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
           <div className="weight-overview-divider" aria-hidden="true" />
 
           <div className="weight-stat-block">
-            <span className="weight-stat-label">Change</span>
+            <span className="weight-stat-label">Weight Change</span>
             <strong className={`weight-change-value ${changeClass}`}>
               {change == null
                 ? "—"
@@ -169,6 +202,18 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
               <span className="weight-stat-unit">{unit.toLowerCase()}</span>
             )}
           </div>
+
+          {cycleTrackingEnabled && (
+            <>
+              <div className="weight-overview-divider" aria-hidden="true" />
+              <div className="weight-stat-block">
+                <span className="weight-stat-label">Days Since Last Period</span>
+                <strong className="weight-change-value">
+                  {daysSincePeriod == null ? "—" : `${daysSincePeriod} days`}
+                </strong>
+              </div>
+            </>
+          )}
         </div>
 
         <WeightRangeTabs
@@ -181,7 +226,7 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
       <article className="card weight-log-card">
         <header className="weight-log-header">
           <div>
-            <strong>Log weight</strong>
+            <strong>Weight</strong>
             <p className="muted">Add today&apos;s weight or choose another date.</p>
           </div>
         </header>
@@ -223,12 +268,33 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
             className="primary"
             disabled={busy || parsedWeight == null || !date}
           >
-            {busy ? "Saving…" : "Log weight"}
+            {busy ? "Saving…" : "Save Weight"}
           </button>
         </form>
         {saved && <p className="weight-save-success">Weight logged.</p>}
         {error && <p className="error">{error}</p>}
       </article>
+
+      {cycleTrackingEnabled && (
+        <article className="card cycle-log-card">
+          <header className="weight-log-header">
+            <div>
+              <strong>Menstrual Cycle</strong>
+              <p className="muted">Last period started</p>
+            </div>
+          </header>
+          <p className="cycle-last-period">
+            {latestPeriod ? formatPeriodDate(latestPeriod.startDate) : "—"}
+          </p>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => setPeriodModalOpen(true)}
+          >
+            Log New Period
+          </button>
+        </article>
+      )}
 
       <article className="card weight-chart-card">
         <div className="weight-chart-head">
@@ -295,6 +361,13 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
             ))
         )}
       </article>
+
+      {periodModalOpen && (
+        <LogPeriodModal
+          onClose={() => setPeriodModalOpen(false)}
+          onSave={onLogPeriod}
+        />
+      )}
     </section>
   );
 }
