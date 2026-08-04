@@ -30,7 +30,7 @@ import type { PeriodEntry } from "./domain/entities/PeriodEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
 import { periodRepository } from "./data/repositories/PeriodRepository";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
-import { isCycleTrackingActive, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
+import { isCycleTrackingActive, mergeProfileWithCloud, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
 import {
   closeUserDatabase,
   openUserDatabase,
@@ -384,10 +384,16 @@ function App() {
       b.startDate.localeCompare(a.startDate),
     );
 
+    const localProfile = await profileRepository.get();
+    const pending = readPending();
+    const mergedProfile = cloud.profile
+      ? mergeProfileWithCloud(localProfile, cloud.profile, pending.some((item) => item.kind === "profile"))
+      : localProfile;
+
     setWorkouts(mergedWorkouts);
     setTemplates(mergedTemplates);
     setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
-    if (cloud.profile) setProfile(cloud.profile);
+    setProfile(mergedProfile);
     setBodyweights(mergedBodyweights);
     setPeriodEntries(mergedPeriodEntries);
 
@@ -396,10 +402,19 @@ function App() {
         workoutRepository.save(ensureWorkoutExerciseIds(workout)),
       ),
       ...mergedTemplates.map((template) => templateRepository.save(template)),
-      ...(cloud.profile ? [profileRepository.save(cloud.profile)] : []),
+      profileRepository.save(mergedProfile),
       ...mergedBodyweights.map((entry) => bodyweightRepository.save(entry)),
       ...mergedPeriodEntries.map((entry) => periodRepository.save(entry)),
     ]);
+
+    if (
+      cloud.profile &&
+      mergedProfile.cycleTrackingConsentCompleted &&
+      !cloud.profile.cycleTrackingConsentCompleted
+    ) {
+      const synced = await cloudAction(() => saveCloudProfile(userId, mergedProfile));
+      if (!synced) addPending({ kind: "profile" });
+    }
     setCloudLoadError("");
     setCloudReady(true);
   }
@@ -824,7 +839,7 @@ function App() {
     );
   }
 
-  if (needsCycleTrackingConsent(profile)) {
+  if (cloudReady && needsCycleTrackingConsent(profile)) {
     return (
       <CycleTrackingConsentModal
         onAccept={() => void saveCycleConsentResponse(true)}

@@ -8,11 +8,43 @@ export function isCycleTrackingActive(profile: Profile): boolean {
 
 export function needsCycleTrackingConsent(profile: Profile): boolean {
   if (profile.cycleTrackingConsentCompleted === true) return false;
-  if (profile.cycleTrackingEnabled === true) return false;
-  return (
-    profile.gender === "FEMALE" &&
-    profile.setupCompleted === true
-  );
+  return profile.gender === "FEMALE" && profile.setupCompleted === true;
+}
+
+export function mergeProfileWithCloud(
+  local: Profile,
+  cloud: Profile,
+  hasPendingProfileSync: boolean,
+): Profile {
+  if (hasPendingProfileSync) {
+    return {
+      ...cloud,
+      ...local,
+      id: "profile",
+      userId: local.userId ?? cloud.userId,
+    };
+  }
+
+  const consentCompleted =
+    local.cycleTrackingConsentCompleted === true ||
+    cloud.cycleTrackingConsentCompleted === true;
+
+  let cycleTrackingEnabled = cloud.cycleTrackingEnabled ?? false;
+  if (local.cycleTrackingConsentCompleted === true) {
+    cycleTrackingEnabled = local.cycleTrackingEnabled ?? false;
+  }
+
+  return {
+    id: "profile",
+    userId: cloud.userId ?? local.userId,
+    gender: cloud.gender ?? local.gender,
+    weightUnit: cloud.weightUnit ?? local.weightUnit,
+    setupCompleted: local.setupCompleted ?? cloud.setupCompleted,
+    cycleTrackingConsentCompleted: consentCompleted,
+    cycleTrackingEnabled: consentCompleted
+      ? cycleTrackingEnabled
+      : (cloud.cycleTrackingEnabled ?? false),
+  };
 }
 
 export function getLatestPeriodEntry(
