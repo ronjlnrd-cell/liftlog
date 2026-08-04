@@ -4,6 +4,7 @@ import type { Profile } from "../domain/entities/Profile";
 import { exportTrainingDataToExcel } from "../export/excelExporter";
 import { APP_NAME } from "../shared";
 import { CycleTrackingConsentModal } from "../components/CycleTrackingConsentModal";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const LEGACY_BACKUP_APP_NAME = "LiftLog";
 
@@ -16,6 +17,7 @@ export function SettingsPage({
   profile,
   onSave,
 }: SettingsPageProps) {
+  const confirm = useConfirm();
   const [draft, setDraft] = useState(profile);
   const [saved, setSaved] = useState(false);
   const [backupMessage, setBackupMessage] = useState("");
@@ -350,13 +352,17 @@ export function SettingsPage({
                 type="button"
                 className="backup-confirm-button backup-replace"
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      `Replace all current ${APP_NAME} data with this backup? This cannot be undone.`,
-                    )
-                  ) {
-                    void importBackup("replace");
-                  }
+                  void (async () => {
+                    const confirmed = await confirm({
+                      title: "Replace all data?",
+                      message: `All current ${APP_NAME} data on this device will be replaced with this backup. This cannot be undone.`,
+                      confirmLabel: "Replace data",
+                      tone: "danger",
+                    });
+                    if (confirmed) {
+                      await importBackup("replace");
+                    }
+                  })();
                 }}
               >
                 Replace current data

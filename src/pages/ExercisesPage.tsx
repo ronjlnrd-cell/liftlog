@@ -11,6 +11,7 @@ import {
   getExerciseUsageCounts,
 } from "../domain/analytics/exerciseUsage";
 import { matchesExerciseSearch } from "../shared/exerciseSearch";
+import { useConfirm } from "../components/ConfirmProvider";
 
 type ExercisesPageProps = {
   exercises: Exercise[];
@@ -25,6 +26,7 @@ export function ExercisesPage({
   onRefresh,
   onOpen,
 }: ExercisesPageProps) {
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -148,6 +150,13 @@ export function ExercisesPage({
                 className="danger-text"
                 onClick={async (event) => {
                   event.stopPropagation();
+                  const confirmed = await confirm({
+                    title: "Archive exercise?",
+                    message: `"${exercise.name}" will be removed from your exercise list. Past workouts are kept.`,
+                    confirmLabel: "Archive",
+                    tone: "danger",
+                  });
+                  if (!confirmed) return;
                   await exerciseRepository.archive(exercise.id);
                   await onRefresh();
                 }}

@@ -30,6 +30,7 @@ import type { PeriodEntry } from "./domain/entities/PeriodEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
 import { periodRepository } from "./data/repositories/PeriodRepository";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
+import { useConfirm } from "./components/ConfirmProvider";
 import { isCycleTrackingActive, mergeProfileWithCloud, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
 import {
   clearExerciseProgressionPreset,
@@ -157,6 +158,7 @@ function mergeWorkouts(
 }
 
 function App() {
+  const confirm = useConfirm();
   const activeUserIdRef = useRef<string | null>(null);
   const [page, setPage] = useState<Page>("home");
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -713,13 +715,13 @@ function App() {
   async function cancelWorkout() {
     if (!activeWorkout) return;
 
-    if (
-      !window.confirm(
-        "Discard this workout? All completed sets in it will be lost.",
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Discard workout?",
+      message: "All completed sets in this workout will be lost. This cannot be undone.",
+      confirmLabel: "Discard workout",
+      tone: "danger",
+    });
+    if (!confirmed) return;
 
     await workoutRepository.clearActive();
     setActiveWorkout(null);
@@ -1110,6 +1112,14 @@ function App() {
               setPage("template-editor");
             }}
             onDelete={async (id) => {
+              const confirmed = await confirm({
+                title: "Delete template?",
+                message: "This template will be removed permanently.",
+                confirmLabel: "Delete template",
+                tone: "danger",
+              });
+              if (!confirmed) return;
+
               await templateRepository.remove(id);
               setTemplates(await templateRepository.getAll());
               if (session) {
@@ -1175,13 +1185,13 @@ function App() {
               setPage("history-editor");
             }}
             onDelete={async (workout) => {
-              if (
-                !window.confirm(
-                  "Delete this workout permanently? This cannot be undone.",
-                )
-              ) {
-                return;
-              }
+              const confirmed = await confirm({
+                title: "Delete workout?",
+                message: "This workout will be removed permanently. This cannot be undone.",
+                confirmLabel: "Delete workout",
+                tone: "danger",
+              });
+              if (!confirmed) return;
 
               await workoutRepository.remove(workout.id);
               setWorkouts(sortWorkoutsByDate(await workoutRepository.getAll()));
@@ -1213,11 +1223,14 @@ function App() {
                 setPage("history-editor");
               }}
               onDelete={async () => {
-                if (
-                  !window.confirm(
-                    "Delete this workout permanently? This cannot be undone.",
-                  )
-                ) return;
+                const confirmed = await confirm({
+                  title: "Delete workout?",
+                  message: "This workout will be removed permanently. This cannot be undone.",
+                  confirmLabel: "Delete workout",
+                  tone: "danger",
+                });
+                if (!confirmed) return;
+
                 await workoutRepository.remove(historicalWorkout.id);
                 setWorkouts(await workoutRepository.getAll());
                 if (session) {
@@ -1309,6 +1322,15 @@ function App() {
             }}
             onDelete={async (id) => {
               if (!session) return;
+
+              const confirmed = await confirm({
+                title: "Delete weight entry?",
+                message: "This bodyweight log will be removed permanently.",
+                confirmLabel: "Delete entry",
+                tone: "danger",
+              });
+              if (!confirmed) return;
+
               await bodyweightRepository.remove(id);
               setBodyweights(await bodyweightRepository.getAll());
               const deleted = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
@@ -1343,6 +1365,15 @@ function App() {
             }}
             onDeletePeriod={async (id) => {
               if (!session) return;
+
+              const confirmed = await confirm({
+                title: "Delete period entry?",
+                message: "This period log will be removed permanently.",
+                confirmLabel: "Delete entry",
+                tone: "danger",
+              });
+              if (!confirmed) return;
+
               await periodRepository.remove(id);
               setPeriodEntries(await periodRepository.getAll());
               const deleted = await cloudAction(() =>
