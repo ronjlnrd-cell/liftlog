@@ -1,12 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  clearRestTimerNotification,
+  ensureNotificationPermission,
+  notifyTimerComplete,
+  prepareTimerNotification,
+  updateRestTimerNotification,
+} from "../../shared/timerNotification";
 
 type RestTimerProps = {
   endAt: number;
+  exerciseName?: string;
   onSkip: () => void;
 };
 
-export function RestTimer({ endAt, onSkip }: RestTimerProps) {
+export function RestTimer({ endAt, exerciseName, onSkip }: RestTimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const completedEndAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    completedEndAtRef.current = null;
+    prepareTimerNotification();
+
+    void ensureNotificationPermission().then((granted) => {
+      if (!granted) return;
+      const remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      updateRestTimerNotification(remaining, exerciseName);
+    });
+
+    return () => {
+      clearRestTimerNotification();
+    };
+  }, [endAt, exerciseName]);
 
   useEffect(() => {
     const update = () => {
@@ -19,10 +43,23 @@ export function RestTimer({ endAt, onSkip }: RestTimerProps) {
   }, [endAt]);
 
   useEffect(() => {
-    if (secondsLeft === 0 && Date.now() >= endAt) {
-      onSkip();
+    if (secondsLeft > 0) {
+      updateRestTimerNotification(secondsLeft, exerciseName);
+      return;
     }
-  }, [endAt, onSkip, secondsLeft]);
+
+    if (Date.now() < endAt) return;
+    if (completedEndAtRef.current === endAt) return;
+
+    completedEndAtRef.current = endAt;
+    notifyTimerComplete();
+    onSkip();
+  }, [endAt, exerciseName, onSkip, secondsLeft]);
+
+  function handleSkip() {
+    clearRestTimerNotification();
+    onSkip();
+  }
 
   return (
     <div className="rest-timer card">
@@ -33,7 +70,7 @@ export function RestTimer({ endAt, onSkip }: RestTimerProps) {
           {String(secondsLeft % 60).padStart(2, "0")}
         </strong>
       </div>
-      <button className="text-button" onClick={onSkip}>
+      <button className="text-button" type="button" onClick={handleSkip}>
         Skip
       </button>
     </div>

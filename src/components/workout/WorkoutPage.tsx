@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
 import { ExercisePicker } from "../ExercisePicker";
-import { RestTimer } from "./RestTimer";
+import { prepareTimerNotification } from "../../shared/timerNotification";
 import { WorkoutExerciseCard } from "./WorkoutExerciseCard";
 import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 
@@ -38,7 +38,10 @@ export function WorkoutPage({
   onProgressionApplied,
   onExercisesChange,
 }: WorkoutPageProps) {
-  const [restEndAt, setRestEndAt] = useState<number | null>(null);
+  const [restTimer, setRestTimer] = useState<{
+    endAt: number;
+    workoutExerciseId: string;
+  } | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
 
   if (!workout) {
@@ -190,7 +193,11 @@ export function WorkoutPage({
       ),
     });
 
-    setRestEndAt(Date.now() + target.plannedRestSeconds * 1000);
+    setRestTimer({
+      endAt: Date.now() + target.plannedRestSeconds * 1000,
+      workoutExerciseId,
+    });
+    prepareTimerNotification();
   }
 
   function updateSet(
@@ -280,10 +287,6 @@ export function WorkoutPage({
         </div>
       </div>
 
-      {restEndAt && (
-        <RestTimer endAt={restEndAt} onSkip={() => setRestEndAt(null)} />
-      )}
-
       {workout.exercises.length === 0 ? (
         <>
           {exercisePicker}
@@ -331,6 +334,14 @@ export function WorkoutPage({
                   onRemove={removeExercise}
                   onRestChange={updateRest}
                   updatesTemplate={Boolean(workout.sourceTemplateId)}
+                  restTimer={
+                    restTimer?.workoutExerciseId === item.id
+                      ? {
+                          endAt: restTimer.endAt,
+                          onSkip: () => setRestTimer(null),
+                        }
+                      : null
+                  }
                 />
               ) : null;
             })}

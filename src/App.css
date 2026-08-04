@@ -424,7 +424,7 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 
 .primary:disabled { opacity:.45; cursor:not-allowed; }
 .header-actions,.exercise-actions { display:flex; align-items:center; gap:10px; }
-.rest-timer { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-color:#e0c0c0; background:#fef5f5; }
+.rest-timer { display:flex; justify-content:space-between; align-items:center; margin-top:14px; border-color:#e0c0c0; background:#fef5f5; }
 .rest-timer div { display:flex; flex-direction:column; gap:3px; }
 .rest-timer span { color:var(--muted); font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.7px; }
 .rest-timer strong { font-size:28px; color:var(--green-dark); font-variant-numeric:tabular-nums; }

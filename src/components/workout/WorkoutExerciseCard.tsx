@@ -5,6 +5,7 @@ import type { WorkoutExercise } from "../../domain/entities/workout";
 import { formatLabel } from "../../shared";
 import type { PRType } from "../../domain/analytics/personalRecords";
 import { ProgressionPopup } from "./ProgressionPopup";
+import { RestTimer } from "./RestTimer";
 import { WorkoutExerciseComparison } from "./WorkoutExerciseComparison";
 
 type WorkoutExerciseCardProps = {
@@ -32,6 +33,7 @@ type WorkoutExerciseCardProps = {
   updatesTemplate: boolean;
   focusWeight?: boolean;
   onWeightFocused?: () => void;
+  restTimer?: { endAt: number; onSkip: () => void } | null;
 };
 
 export function WorkoutExerciseCard({
@@ -54,6 +56,7 @@ export function WorkoutExerciseCard({
   updatesTemplate,
   focusWeight = false,
   onWeightFocused,
+  restTimer = null,
 }: WorkoutExerciseCardProps) {
   const weightInputRef = useRef<HTMLInputElement>(null);
   const plannedNext = item.plannedSets[item.completedSets.length];
@@ -166,6 +169,14 @@ export function WorkoutExerciseCard({
         onUpdateSet={onUpdateSet}
         onDeleteSet={onDeleteSet}
       />
+
+      {restTimer && (
+        <RestTimer
+          endAt={restTimer.endAt}
+          exerciseName={exercise.name}
+          onSkip={restTimer.onSkip}
+        />
+      )}
 
       <div className="current-set-block">
         <div className="set-entry">
