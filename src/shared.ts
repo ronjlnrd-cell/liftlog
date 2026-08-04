@@ -22,8 +22,24 @@ export function localDateString(date = new Date()): string {
 }
 
 export function parseWeightInput(value: string): number | null {
-  const normalized = value.trim().replace(",", ".");
-  if (!normalized) return null;
+  const trimmed = value.trim().replace(/\u00a0/g, " ");
+  if (!trimmed) return null;
+
+  let normalized = trimmed.replace(/\s/g, "");
+  const lastComma = normalized.lastIndexOf(",");
+  const lastDot = normalized.lastIndexOf(".");
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    normalized =
+      lastComma > lastDot
+        ? normalized.replace(/\./g, "").replace(",", ".")
+        : normalized.replace(/,/g, "");
+  } else {
+    normalized = normalized.replace(",", ".");
+  }
+
+  if (!/^\d*(\.\d*)?$/.test(normalized) || normalized === "." ) return null;
+
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;

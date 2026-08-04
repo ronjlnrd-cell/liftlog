@@ -70,6 +70,7 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
   const [date, setDate] = useState(localDateString());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   const parsedWeight = parseWeightInput(weight);
 
@@ -111,12 +112,18 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
       setError("Enter a valid weight.");
       return;
     }
+    if (!date) {
+      setError("Pick a date.");
+      return;
+    }
 
     setBusy(true);
     setError("");
+    setSaved(false);
     try {
       await onAdd(parsedWeight, date);
       setWeight("");
+      setSaved(true);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -178,16 +185,25 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
             <p className="muted">Add today&apos;s weight or choose another date.</p>
           </div>
         </header>
-        <div className="weight-log-controls">
+        <form
+          className="weight-log-controls"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleLogWeight();
+          }}
+        >
           <label>
             Weight
             <input
-              type="number"
-              min="1"
-              step="0.1"
+              type="text"
               inputMode="decimal"
+              enterKeyHint="done"
+              autoComplete="off"
               value={weight}
-              onChange={(event) => setWeight(event.target.value)}
+              onChange={(event) => {
+                setWeight(event.target.value);
+                setSaved(false);
+              }}
               placeholder={unit}
             />
           </label>
@@ -196,17 +212,21 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
             <input
               type="date"
               value={date}
-              onChange={(event) => setDate(event.target.value)}
+              onChange={(event) => {
+                setDate(event.target.value);
+                setSaved(false);
+              }}
             />
           </label>
           <button
+            type="submit"
             className="primary"
-            disabled={busy || parsedWeight == null}
-            onClick={() => void handleLogWeight()}
+            disabled={busy || parsedWeight == null || !date}
           >
-            Log weight
+            {busy ? "Saving…" : "Log weight"}
           </button>
-        </div>
+        </form>
+        {saved && <p className="weight-save-success">Weight logged.</p>}
         {error && <p className="error">{error}</p>}
       </article>
 

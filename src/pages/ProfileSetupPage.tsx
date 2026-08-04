@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Profile } from "../domain/entities/Profile";
-import { APP_NAME } from "../shared";
+import { APP_NAME, parseWeightInput } from "../shared";
 
 type ProfileSetupResult = {
   profile: Profile;
@@ -32,8 +32,8 @@ export function ProfileSetupPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const parsed = Number(bodyweight);
-  const valid = Number.isFinite(parsed) && parsed > 0;
+  const parsed = parseWeightInput(bodyweight);
+  const valid = parsed != null;
 
   async function complete() {
     if (!valid) return;
@@ -46,7 +46,7 @@ export function ProfileSetupPage({
           gender,
           weightUnit,
         },
-        bodyweight: parsed,
+        bodyweight: parsed!,
       });
     } catch (caught) {
       setError(
@@ -72,10 +72,10 @@ export function ProfileSetupPage({
           Bodyweight
           <div className="bodyweight-input-row">
             <input
-              type="number"
-              min="1"
-              step="0.1"
+              type="text"
               inputMode="decimal"
+              enterKeyHint="done"
+              autoComplete="off"
               value={bodyweight}
               onChange={(event) => setBodyweight(event.target.value)}
               autoFocus

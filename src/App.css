@@ -1054,7 +1054,8 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   align-items:end;
 }
 .weight-log-controls label { margin:0; }
-.weight-log-controls .primary { min-height:45px; white-space:nowrap; }
+.weight-log-controls .primary { min-height:45px; white-space:nowrap; width:100%; }
+.weight-save-success { margin:10px 0 0; color:var(--green-dark); font-weight:700; }
 .weight-chart-card { padding:22px 20px 18px; }
 .weight-chart-head {
   display:flex;
