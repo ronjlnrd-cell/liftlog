@@ -176,6 +176,7 @@ function App() {
   const [syncMessage, setSyncMessage] = useState("");
   const [cloudLoadError, setCloudLoadError] = useState("");
   const [cloudRetrying, setCloudRetrying] = useState(false);
+  const [syncRetrying, setSyncRetrying] = useState(false);
   const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
   const [periodEntries, setPeriodEntries] = useState<PeriodEntry[]>([]);
 
@@ -202,6 +203,7 @@ function App() {
     setMigrationError("");
     setSyncMessage("");
     setCloudLoadError("");
+    setSyncRetrying(false);
   }
 
   async function refreshData() {
@@ -490,9 +492,14 @@ function App() {
     }
   }
 
+  function pendingItemKey(item: PendingSync): string {
+    return "id" in item ? `${item.kind}:${item.id}` : item.kind;
+  }
+
   function addPending(item: PendingSync) {
     const pending = readPending();
-    if (!pending.some((candidate) => candidate.kind === item.kind && candidate.id === item.id)) {
+    const key = pendingItemKey(item);
+    if (!pending.some((candidate) => pendingItemKey(candidate) === key)) {
       localStorage.setItem(pendingKey, JSON.stringify([...pending, item]));
     }
   }
@@ -526,86 +533,95 @@ function App() {
     localStorage.setItem(pendingKey, JSON.stringify(pending));
   }
 
-  async function flushPendingSync() {
-    if (!session) return;
+  async function flushPendingSync(manual = false) {
+    if (!session || syncRetrying) return;
+    if (manual) {
+      setSyncRetrying(true);
+      setSyncMessage("Syncing…");
+    }
     const userId = session.user.id;
-    const pending = readPending();
-    const remaining: PendingSync[] = [];
+    try {
+      const pending = readPending();
+      const remaining: PendingSync[] = [];
 
-    for (const item of pending) {
+      for (const item of pending) {
+        try {
+          if (item.kind === "workout") {
+            const workout = (await workoutRepository.getAll()).find((candidate) => candidate.id === item.id);
+            if (workout) await saveCloudWorkout(userId, workout);
+          } else if (item.kind === "template") {
+            const template = (await templateRepository.getAll()).find((candidate) => candidate.id === item.id);
+            if (template) await saveCloudTemplate(userId, template);
+          } else if (item.kind === "bodyweight") {
+            const entry = (await bodyweightRepository.getAll()).find((candidate) => candidate.id === item.id);
+            if (entry) await saveCloudBodyweight(userId, entry);
+          } else if (item.kind === "period") {
+            const entry = (await periodRepository.getAll()).find((candidate) => candidate.id === item.id);
+            if (entry) await saveCloudPeriodEntry(userId, entry);
+          } else if (item.kind === "delete-workout") {
+            await deleteCloudWorkout(userId, item.id);
+          } else if (item.kind === "delete-template") {
+            await deleteCloudTemplate(userId, item.id);
+          } else if (item.kind === "profile") {
+            const profile = await profileRepository.get();
+            if (profile) await saveCloudProfile(userId, profile);
+          } else if (item.kind === "delete-bodyweight") {
+            await deleteCloudBodyweight(userId, item.id);
+          } else if (item.kind === "delete-period") {
+            await deleteCloudPeriodEntry(userId, item.id);
+          }
+        } catch (error) {
+          console.error(error);
+          remaining.push(item);
+        }
+      }
+
+      localStorage.setItem(pendingKey, JSON.stringify(remaining));
+
       try {
-        if (item.kind === "workout") {
-          const workout = (await workoutRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (workout) await saveCloudWorkout(userId, workout);
-        } else if (item.kind === "template") {
-          const template = (await templateRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (template) await saveCloudTemplate(userId, template);
-        } else if (item.kind === "bodyweight") {
-          const entry = (await bodyweightRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (entry) await saveCloudBodyweight(userId, entry);
-        } else if (item.kind === "period") {
-          const entry = (await periodRepository.getAll()).find((candidate) => candidate.id === item.id);
-          if (entry) await saveCloudPeriodEntry(userId, entry);
-        } else if (item.kind === "delete-workout") {
-          await deleteCloudWorkout(userId, item.id);
-        } else if (item.kind === "delete-template") {
-          await deleteCloudTemplate(userId, item.id);
-        } else if (item.kind === "profile") {
-          const profile = await profileRepository.get();
-          if (profile) await saveCloudProfile(userId, profile);
-        } else if (item.kind === "delete-bodyweight") {
-          await deleteCloudBodyweight(userId, item.id);
-        } else if (item.kind === "delete-period") {
-          await deleteCloudPeriodEntry(userId, item.id);
+        const profile = await profileRepository.get();
+        if (profile) {
+          await saveCloudProfile(userId, profile);
+          removePending("profile");
         }
       } catch (error) {
         console.error(error);
-        remaining.push(item);
+        addPending({ kind: "profile" });
       }
-    }
 
-    localStorage.setItem(pendingKey, JSON.stringify(remaining));
-
-    try {
-      const profile = await profileRepository.get();
-      if (profile) {
-        await saveCloudProfile(userId, profile);
-        removePending("profile");
+      for (const entry of await periodRepository.getAll()) {
+        try {
+          await saveCloudPeriodEntry(userId, entry);
+          removePending("period", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "period", id: entry.id });
+        }
       }
-    } catch (error) {
-      console.error(error);
-      addPending({ kind: "profile" });
-    }
 
-    for (const entry of await periodRepository.getAll()) {
-      try {
-        await saveCloudPeriodEntry(userId, entry);
-        removePending("period", entry.id);
-      } catch (error) {
-        console.error(error);
-        addPending({ kind: "period", id: entry.id });
+      for (const entry of await bodyweightRepository.getAll()) {
+        try {
+          await saveCloudBodyweight(userId, entry);
+          removePending("bodyweight", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "bodyweight", id: entry.id });
+        }
       }
-    }
 
-    for (const entry of await bodyweightRepository.getAll()) {
-      try {
-        await saveCloudBodyweight(userId, entry);
-        removePending("bodyweight", entry.id);
-      } catch (error) {
-        console.error(error);
-        addPending({ kind: "bodyweight", id: entry.id });
+      const stillPending = readPending();
+      if (stillPending.length === 0) {
+        setSyncMessage("");
+      } else {
+        setSyncMessage(
+          navigator.onLine
+            ? "Some data saved locally — could not sync to cloud"
+            : "Some data is saved on device — cloud sync pending",
+        );
       }
+    } finally {
+      if (manual) setSyncRetrying(false);
     }
-
-    const stillPending = readPending();
-    localStorage.setItem(pendingKey, JSON.stringify(stillPending));
-    setSyncMessage(
-      stillPending.length === 0
-        ? ""
-        : navigator.onLine
-          ? "Some data saved locally — could not sync to cloud"
-          : "Some data is saved on device — cloud sync pending",
-    );
   }
 
   useEffect(() => {
@@ -924,11 +940,12 @@ function App() {
             {(cloudLoadError || syncMessage) && (
               <button
                 className="text-button"
+                disabled={syncRetrying || cloudRetrying}
                 onClick={() =>
-                  void (cloudLoadError ? retryCloudLoad() : flushPendingSync())
+                  void (cloudLoadError ? retryCloudLoad() : flushPendingSync(true))
                 }
               >
-                Retry
+                {cloudRetrying ? "Retrying…" : syncRetrying ? "Syncing…" : "Retry"}
               </button>
             )}
           </span>

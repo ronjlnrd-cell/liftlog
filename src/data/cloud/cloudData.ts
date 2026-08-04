@@ -120,16 +120,12 @@ export async function saveCloudWorkout(userId: string, workout: Workout) {
   if (error) throw error;
 }
 export async function deleteCloudWorkout(userId: string, id: string) {
-  const { data, error } = await client()
+  const { error } = await client()
     .from("workouts")
     .delete()
     .eq("user_id", userId)
-    .eq("id", id)
-    .select("id");
+    .eq("id", id);
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error(`Workout ${id} was not deleted from Supabase.`);
-  }
 }
 export async function saveCloudTemplate(userId: string, template: WorkoutTemplate) {
   const { error } = await client().from("templates").upsert({
@@ -147,16 +143,12 @@ export async function saveCloudCustomExercise(userId: string, exercise: Exercise
 }
 
 export async function deleteCloudTemplate(userId: string, id: string) {
-  const { data, error } = await client()
+  const { error } = await client()
     .from("templates")
     .delete()
     .eq("user_id", userId)
-    .eq("id", id)
-    .select("id");
+    .eq("id", id);
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error(`Template ${id} was not deleted from Supabase.`);
-  }
 }
 
 export async function loadCloudBodyweights(userId: string): Promise<BodyweightEntry[]> {
@@ -187,16 +179,12 @@ export async function saveCloudBodyweight(userId: string, entry: BodyweightEntry
 }
 
 export async function deleteCloudBodyweight(userId: string, id: string) {
-  const { data, error } = await client()
+  const { error } = await client()
     .from("bodyweight_entries")
     .delete()
     .eq("user_id", userId)
-    .eq("id", id)
-    .select("id");
+    .eq("id", id);
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error(`Bodyweight ${id} was not deleted from Supabase.`);
-  }
 }
 
 export async function loadCloudPeriodEntries(
@@ -230,14 +218,10 @@ export async function saveCloudPeriodEntry(
 }
 
 export async function deleteCloudPeriodEntry(userId: string, id: string) {
-  const { data, error } = await client()
+  const { error } = await client()
     .from("period_entries")
     .delete()
     .eq("user_id", userId)
-    .eq("id", id)
-    .select("id");
+    .eq("id", id);
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error(`Period entry ${id} was not deleted from Supabase.`);
-  }
 }
