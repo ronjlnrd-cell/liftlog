@@ -3,6 +3,7 @@ let audioContext: AudioContext | null = null;
 const REST_TIMER_MESSAGE = {
   START: "REST_TIMER_START",
   STOP: "REST_TIMER_STOP",
+  SYNC: "REST_TIMER_SYNC",
   COMPLETE: "REST_TIMER_COMPLETE",
 } as const;
 
@@ -96,6 +97,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 export async function updateRestTimerNotification(
   secondsLeft: number,
   exerciseName?: string,
+  endAt?: number,
 ) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
@@ -113,6 +115,7 @@ export async function updateRestTimerNotification(
 
   const title = exerciseName ? `Rest · ${exerciseName}` : "Rest timer";
   const body = `${formatRestTime(secondsLeft)} remaining`;
+  const timerEndAt = endAt ?? Date.now() + secondsLeft * 1000;
 
   try {
     await registration.showNotification(title, {
@@ -120,6 +123,9 @@ export async function updateRestTimerNotification(
       tag: REST_TIMER_TAG,
       icon: NOTIFICATION_ICON,
       silent: true,
+      renotify: true,
+      timestamp: Date.now(),
+      data: { endAt: timerEndAt, exerciseName: exerciseName ?? null },
     });
   } catch {
     // Notifications unavailable in this context.
@@ -133,10 +139,10 @@ export async function clearRestTimerNotification() {
   if (!registration) return;
 
   try {
-    const notifications = await registration.getNotifications({
-      tag: REST_TIMER_TAG,
-    });
-    notifications.forEach((notification) => notification.close());
+    const notifications = await registration.getNotifications();
+    notifications
+      .filter((notification) => notification.tag === REST_TIMER_TAG)
+      .forEach((notification) => notification.close());
   } catch {
     // ignore
   }
@@ -151,10 +157,18 @@ export async function startBackgroundRestTimer(
 
   lastNotifiedSecond = -1;
   const secondsLeft = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
-  await updateRestTimerNotification(secondsLeft, exerciseName);
+  await updateRestTimerNotification(secondsLeft, exerciseName, endAt);
 
   await postToServiceWorker({
     type: REST_TIMER_MESSAGE.START,
+    endAt,
+    exerciseName,
+  });
+}
+
+export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
+  void postToServiceWorker({
+    type: REST_TIMER_MESSAGE.SYNC,
     endAt,
     exerciseName,
   });

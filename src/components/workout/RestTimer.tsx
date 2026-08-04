@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  clearRestTimerNotification,
   ensureNotificationPermission,
   notifyTimerComplete,
   prepareTimerNotification,
   startBackgroundRestTimer,
   stopBackgroundRestTimer,
   subscribeToRestTimerComplete,
+  syncBackgroundRestTimer,
   updateRestTimerNotification,
 } from "../../shared/timerNotification";
 
@@ -25,6 +27,7 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
   function finishTimer(playFeedback: boolean) {
     if (completedEndAtRef.current === endAt) return;
     completedEndAtRef.current = endAt;
+    void clearRestTimerNotification();
     if (playFeedback) {
       notifyTimerComplete();
     }
@@ -60,7 +63,11 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
     const timer = window.setInterval(syncSecondsLeft, 250);
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState === "hidden") {
+        syncBackgroundRestTimer(endAt, exerciseName);
+        return;
+      }
+
       syncSecondsLeft();
       if (Date.now() >= endAt) {
         finishTimer(true);
@@ -76,8 +83,8 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
-    void updateRestTimerNotification(secondsLeft, exerciseName);
-  }, [secondsLeft, exerciseName]);
+    void updateRestTimerNotification(secondsLeft, exerciseName, endAt);
+  }, [secondsLeft, exerciseName, endAt]);
 
   useEffect(() => {
     if (secondsLeft > 0) return;
