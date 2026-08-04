@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
-import { MuscleGroup } from "../domain/types/MuscleGroup";
-import { MovementPattern } from "../domain/types/MovementPattern";
-import { LoadType } from "../domain/types/LoadType";
 import { ExerciseSource } from "../domain/types/exercise-source";
 import { exerciseRepository } from "../data/repositories/ExerciseRepository";
+import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { ExerciseIllustration } from "../components/ExerciseIllustration";
 import { formatLabel } from "../shared";
 
@@ -56,30 +54,11 @@ export function ExercisesPage({
   }, [exercises, query, sortMode, usageCounts]);
 
   async function addExercise() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    if (
-      exercises.some(
-        (exercise) =>
-          exercise.name.toLowerCase() === trimmed.toLowerCase() &&
-          !exercise.archivedAt,
-      )
-    ) {
-      setError("An exercise with this name already exists.");
+    const result = await createCustomExercise(name, exercises);
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
-
-    await exerciseRepository.add({
-      id: crypto.randomUUID(),
-      name: trimmed,
-      primaryMuscle: MuscleGroup.UNKNOWN,
-      movementPattern: MovementPattern.UNKNOWN,
-      loadType: LoadType.UNKNOWN,
-      defaultWeightIncrement: null,
-      source: ExerciseSource.CUSTOM,
-      archivedAt: null,
-    });
 
     setName("");
     setError("");

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Template";
+import { createCustomExercise } from "../domain/exercises/createCustomExercise";
+import { AddCustomExerciseModal } from "../components/AddCustomExerciseModal";
 import { formatLabel } from "../shared";
 
 type Props = {
@@ -9,15 +11,19 @@ type Props = {
   isNew?: boolean;
   onCancel: () => void;
   onSave: (template: WorkoutTemplate) => Promise<void>;
+  onExercisesChange?: () => Promise<void>;
 };
 
-export function TemplateEditorPage({ template, exercises, isNew = false, onCancel, onSave }: Props) {
+export function TemplateEditorPage({ template, exercises, isNew = false, onCancel, onSave, onExercisesChange }: Props) {
   const [name, setName] = useState(template?.name ?? "");
   const [items, setItems] = useState<TemplateExercise[]>(template?.exercises ?? []);
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [addingExercise, setAddingExercise] = useState(false);
 
   useEffect(() => {
     setName(template?.name ?? "");
@@ -62,6 +68,22 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
       plannedSets: [{ order: 0, weight: null, reps: 8 }],
     }]));
     setAdding(false); setQuery("");
+  }
+  async function handleCreateExercise(name: string) {
+    setAddingExercise(true);
+    setAddError("");
+
+    const result = await createCustomExercise(name, exercises);
+    if (!result.ok) {
+      setAddError(result.error);
+      setAddingExercise(false);
+      return;
+    }
+
+    await onExercisesChange?.();
+    setAddingExercise(false);
+    setShowAddModal(false);
+    addExercise(result.exercise.id);
   }
   function updateItem(index: number, patch: Partial<TemplateExercise>) {
     setItems(items.map((x,i) => i === index ? { ...x, ...patch } : x));
@@ -215,6 +237,22 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
     {adding && <article className="card template-picker">
       <input className="search" autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>
       <div className="exercise-list template-picker-list">
+        <button
+          type="button"
+          className="card exercise-row template-picker-item exercise-row-add-new"
+          onClick={() => {
+            setAddError("");
+            setShowAddModal(true);
+          }}
+        >
+          <div>
+            <strong>Add new exercise</strong>
+            <p>Create a custom exercise</p>
+          </div>
+          <span className="add-custom-icon" aria-hidden="true">
+            +
+          </span>
+        </button>
         {available.slice(0, 30).map((ex) => (
           <button
             key={ex.id}
@@ -234,5 +272,17 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
         {available.length === 0 && <p className="muted-center">No matching exercises.</p>}
       </div>
     </article>}
+    {showAddModal && (
+      <AddCustomExerciseModal
+        error={addError}
+        saving={addingExercise}
+        onClose={() => {
+          if (addingExercise) return;
+          setShowAddModal(false);
+          setAddError("");
+        }}
+        onConfirm={handleCreateExercise}
+      />
+    )}
   </section>;
 }

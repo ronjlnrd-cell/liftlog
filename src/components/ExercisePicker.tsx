@@ -1,19 +1,31 @@
 import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
+import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { formatLabel } from "../shared";
+import { AddCustomExerciseModal } from "./AddCustomExerciseModal";
 
 type ExercisePickerProps = {
   exercises: Exercise[];
   excludedExerciseIds: string[];
   onSelect: (exerciseId: string) => void;
   workouts: Workout[];
+  onExercisesChange?: () => Promise<void>;
 };
 
-export function ExercisePicker({ exercises, excludedExerciseIds, onSelect, workouts }: ExercisePickerProps) {
+export function ExercisePicker({
+  exercises,
+  excludedExerciseIds,
+  onSelect,
+  workouts,
+  onExercisesChange,
+}: ExercisePickerProps) {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<"frequency" | "az">("frequency");
   const [open, setOpen] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [addingExercise, setAddingExercise] = useState(false);
 
   const availableExercises = useMemo(() => {
     const excluded = new Set(excludedExerciseIds);
@@ -47,6 +59,28 @@ export function ExercisePicker({ exercises, excludedExerciseIds, onSelect, worko
     setOpen(false);
   }
 
+  function openAddModal() {
+    setAddError("");
+    setShowAddModal(true);
+  }
+
+  async function handleCreateExercise(name: string) {
+    setAddingExercise(true);
+    setAddError("");
+
+    const result = await createCustomExercise(name, exercises);
+    if (!result.ok) {
+      setAddError(result.error);
+      setAddingExercise(false);
+      return;
+    }
+
+    await onExercisesChange?.();
+    setAddingExercise(false);
+    setShowAddModal(false);
+    selectExercise(result.exercise.id);
+  }
+
   return (
     <div className="card form-card">
       <button className="primary" type="button" onClick={() => setOpen((current) => !current)}>
@@ -69,6 +103,18 @@ export function ExercisePicker({ exercises, excludedExerciseIds, onSelect, worko
           </div>
 
           <div className="exercise-list">
+            <button
+              className="card exercise-row exercise-row-add-new"
+              type="button"
+              onClick={openAddModal}
+            >
+              <div>
+                <strong>Add new exercise</strong>
+                <p>Create a custom exercise</p>
+              </div>
+              <span className="add-custom-icon" aria-hidden="true">+</span>
+            </button>
+
             {availableExercises.slice(0, 30).map((exercise) => (
               <button
                 className="card exercise-row"
@@ -89,6 +135,19 @@ export function ExercisePicker({ exercises, excludedExerciseIds, onSelect, worko
             )}
           </div>
         </>
+      )}
+
+      {showAddModal && (
+        <AddCustomExerciseModal
+          error={addError}
+          saving={addingExercise}
+          onClose={() => {
+            if (addingExercise) return;
+            setShowAddModal(false);
+            setAddError("");
+          }}
+          onConfirm={handleCreateExercise}
+        />
       )}
     </div>
   );

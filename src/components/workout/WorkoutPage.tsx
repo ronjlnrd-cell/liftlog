@@ -22,6 +22,7 @@ type WorkoutPageProps = {
     exerciseId: string,
     option: ProgressionOption,
   ) => void | Promise<void>;
+  onExercisesChange?: () => Promise<void>;
 };
 
 export function WorkoutPage({
@@ -35,6 +36,7 @@ export function WorkoutPage({
   onFinish,
   onCancel,
   onProgressionApplied,
+  onExercisesChange,
 }: WorkoutPageProps) {
   const [restEndAt, setRestEndAt] = useState<number | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
@@ -253,6 +255,7 @@ export function WorkoutPage({
       excludedExerciseIds={[]}
       workouts={workouts}
       onSelect={addExercise}
+      onExercisesChange={onExercisesChange}
     />
   );
 

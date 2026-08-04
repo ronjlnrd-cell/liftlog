@@ -371,6 +371,19 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 }
 .exercise-row strong { font-size:17px; }
 .exercise-row p { margin:4px 0 0; font-size:13px; }
+.exercise-row-add-new {
+  border-color:#e0c0c0;
+  background:#fef5f5;
+}
+.exercise-row-add-new:hover {
+  border-color:var(--green);
+  background:#fdeeee;
+}
+.exercise-row-add-new .add-custom-icon {
+  width:28px;
+  height:28px;
+  font-size:18px;
+}
 .error { color:#a33c34 !important; margin:10px 0 0; }
 .success { color:var(--green) !important; font-weight:700; }
 .history-card p { margin:10px 0 0; }

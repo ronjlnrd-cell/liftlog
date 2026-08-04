@@ -9,6 +9,7 @@ type HistoryWorkoutEditorPageProps = {
   workouts: Workout[];
   onCancel: () => void;
   onSave: (workout: Workout) => Promise<void>;
+  onExercisesChange?: () => Promise<void>;
 };
 
 function cloneWorkout(workout: Workout): Workout {
@@ -35,6 +36,7 @@ export function HistoryWorkoutEditorPage({
   workouts,
   onCancel,
   onSave,
+  onExercisesChange,
 }: HistoryWorkoutEditorPageProps) {
   const [draft, setDraft] = useState<Workout | null>(
     workout ? cloneWorkout(workout) : null,
@@ -331,6 +333,7 @@ export function HistoryWorkoutEditorPage({
         excludedExerciseIds={[]}
         workouts={workouts}
         onSelect={addExercise}
+        onExercisesChange={onExercisesChange}
       />
 
       {setCount === 0 && (

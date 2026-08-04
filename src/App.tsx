@@ -216,6 +216,10 @@ function App() {
     }
   }
 
+  async function refreshExercises() {
+    setExercises(await exerciseRepository.getAll());
+  }
+
   useEffect(() => {
     if (!supabase) {
       setAuthLoading(false);
@@ -810,6 +814,7 @@ function App() {
                 );
               }
             }}
+            onExercisesChange={refreshExercises}
           />
         )}
 
@@ -853,9 +858,7 @@ function App() {
           <ExercisesPage
             exercises={exercises}
             workouts={workouts}
-            onRefresh={async () =>
-              setExercises(await exerciseRepository.getAll())
-            }
+            onRefresh={refreshExercises}
             onOpen={(exercise) => {
               setSelectedExerciseId(exercise.id);
               setPage("exercise-details");
@@ -922,6 +925,7 @@ function App() {
               setCreatingTemplate(null);
               setPage("templates");
             }}
+            onExercisesChange={refreshExercises}
             onSave={async (template) => {
               await templateRepository.save(template);
               setTemplates(await templateRepository.getAll());
@@ -1035,6 +1039,7 @@ function App() {
               setEditingWorkoutId(null);
               setPage("history");
             }}
+            onExercisesChange={refreshExercises}
             onSave={async (workout) => {
               const toSave: Workout = { ...workout, updatedAt: new Date() };
               await workoutRepository.save(toSave);
