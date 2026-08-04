@@ -287,7 +287,12 @@ function App() {
 
   async function connectCloud(userId: string) {
     const cloud = await loadCloudData(userId);
-    const cloudBodyweights = await loadCloudBodyweights(userId);
+    let cloudBodyweights: BodyweightEntry[] = [];
+    try {
+      cloudBodyweights = await loadCloudBodyweights(userId);
+    } catch (error) {
+      console.error("Could not load cloud bodyweights:", error);
+    }
     const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
     const cloudEmpty =
       cloud.workouts.length === 0 &&
@@ -665,7 +670,10 @@ function App() {
 
   const profileNeedsSetup =
     Boolean(session) &&
-    !profile.setupCompleted;
+    cloudReady &&
+    !profile.setupCompleted &&
+    workouts.length === 0 &&
+    bodyweights.length === 0;
 
   if (authLoading || loading || (session && !dbReady)) {
     return <div className="loading">Loading {APP_NAME}…</div>;
@@ -722,11 +730,13 @@ function App() {
           await bodyweightRepository.save(entry);
           setBodyweights(await bodyweightRepository.getAll());
 
+          await profileRepository.save(ownedProfile);
+          setProfile(ownedProfile);
+
           const synced = await cloudAction(() =>
             saveCloudProfile(session.user.id, ownedProfile),
           );
-          if (!synced) await profileRepository.save(ownedProfile);
-          setProfile(ownedProfile);
+          if (!synced) addPending({ kind: "profile" });
 
           const weightSynced = await cloudAction(() =>
             saveCloudBodyweight(session.user.id, entry),
@@ -1052,12 +1062,19 @@ function App() {
             entries={bodyweights}
             unit={profile.weightUnit}
             onAdd={async (weight, date) => {
-              if (!session) return;
+              if (!session) throw new Error("Your session expired. Sign in again.");
+              if (!Number.isFinite(weight) || weight <= 0) {
+                throw new Error("Enter a valid weight.");
+              }
+              const recordedAt = new Date(`${date}T12:00:00`);
+              if (Number.isNaN(recordedAt.getTime())) {
+                throw new Error("Pick a valid date.");
+              }
               const entry: BodyweightEntry = {
                 id: crypto.randomUUID(),
                 userId: session.user.id,
                 weight,
-                recordedAt: new Date(`${date}T12:00:00`).toISOString(),
+                recordedAt: recordedAt.toISOString(),
                 createdAt: new Date().toISOString(),
               };
               await bodyweightRepository.save(entry);

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { BodyweightEntry } from "../domain/entities/BodyweightEntry";
+import { localDateString, parseWeightInput } from "../shared";
 
 type Range = "1M" | "3M" | "6M" | "1Y" | "ALL";
 
@@ -66,8 +67,11 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
   const [changeRange, setChangeRange] = useState<Range>("3M");
   const [chartRange, setChartRange] = useState<Range>("3M");
   const [weight, setWeight] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(localDateString());
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const parsedWeight = parseWeightInput(weight);
 
   const latest = useMemo(
     () =>
@@ -103,10 +107,22 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
   const chartPoints = useMemo(() => buildChartPoints(chartEntries), [chartEntries]);
 
   async function handleLogWeight() {
+    if (parsedWeight == null) {
+      setError("Enter a valid weight.");
+      return;
+    }
+
     setBusy(true);
+    setError("");
     try {
-      await onAdd(Number(weight), date);
+      await onAdd(parsedWeight, date);
       setWeight("");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not save weight. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -169,6 +185,7 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
               type="number"
               min="1"
               step="0.1"
+              inputMode="decimal"
               value={weight}
               onChange={(event) => setWeight(event.target.value)}
               placeholder={unit}
@@ -184,12 +201,13 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
           </label>
           <button
             className="primary"
-            disabled={busy || !Number(weight)}
+            disabled={busy || parsedWeight == null}
             onClick={() => void handleLogWeight()}
           >
             Log weight
           </button>
         </div>
+        {error && <p className="error">{error}</p>}
       </article>
 
       <article className="card weight-chart-card">
