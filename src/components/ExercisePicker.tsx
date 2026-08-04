@@ -33,9 +33,14 @@ export function ExercisePicker({
 
     const frequency = new Map<string, number>();
     for (const workout of workouts ?? []) {
-      if (!workout.completedAt) continue;
+      const performedInWorkout = new Set<string>();
       for (const item of workout.exercises) {
-        if (item.completedSets.length > 0) frequency.set(item.exerciseId, (frequency.get(item.exerciseId) ?? 0) + 1);
+        if (item.completedSets.length > 0) {
+          performedInWorkout.add(item.exerciseId);
+        }
+      }
+      for (const exerciseId of performedInWorkout) {
+        frequency.set(exerciseId, (frequency.get(exerciseId) ?? 0) + 1);
       }
     }
 

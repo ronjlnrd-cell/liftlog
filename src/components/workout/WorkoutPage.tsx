@@ -13,7 +13,6 @@ import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 
 type WorkoutPageProps = {
   workout: Workout | null;
-  workouts: Workout[];
   exercises: Exercise[];
   unit: "KG" | "LB";
   history: Workout[];
@@ -30,7 +29,6 @@ type WorkoutPageProps = {
 
 export function WorkoutPage({
   workout,
-  workouts,
   exercises,
   unit,
   history,
@@ -244,7 +242,7 @@ export function WorkoutPage({
     <ExercisePicker
       exercises={exercises}
       excludedExerciseIds={[]}
-      workouts={workouts}
+      workouts={history}
       onSelect={addExercise}
       onExercisesChange={onExercisesChange}
     />

@@ -1,4 +1,9 @@
 let audioContext: AudioContext | null = null;
+let keepAliveOscillator: OscillatorNode | null = null;
+let keepAliveGain: GainNode | null = null;
+let notificationTickInterval: number | null = null;
+let activeNotificationTimer: { endAt: number; exerciseName?: string } | null =
+  null;
 
 const REST_TIMER_MESSAGE = {
   START: "REST_TIMER_START",
@@ -67,6 +72,76 @@ function formatRestTime(secondsLeft: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function startRestTimerKeepAlive() {
+  if (typeof window === "undefined") return;
+
+  try {
+    audioContext ??= new AudioContext();
+    void audioContext.resume().then(() => {
+      if (!audioContext || keepAliveOscillator) return;
+
+      keepAliveOscillator = audioContext.createOscillator();
+      keepAliveGain = audioContext.createGain();
+      keepAliveOscillator.type = "sine";
+      keepAliveOscillator.frequency.value = 1;
+      keepAliveGain.gain.value = 0.00001;
+      keepAliveOscillator.connect(keepAliveGain);
+      keepAliveGain.connect(audioContext.destination);
+      keepAliveOscillator.start();
+    });
+  } catch {
+    // Audio unavailable or blocked until a later user gesture.
+  }
+}
+
+function stopRestTimerKeepAlive() {
+  try {
+    keepAliveOscillator?.stop();
+  } catch {
+    // Oscillator may already be stopped.
+  }
+  keepAliveOscillator = null;
+  keepAliveGain = null;
+}
+
+function stopRestTimerNotificationLoop() {
+  activeNotificationTimer = null;
+  if (notificationTickInterval != null) {
+    window.clearInterval(notificationTickInterval);
+    notificationTickInterval = null;
+  }
+  stopRestTimerKeepAlive();
+}
+
+function tickRestTimerNotification(forceRefresh = false) {
+  const timer = activeNotificationTimer;
+  if (!timer) return;
+
+  const secondsLeft = Math.max(
+    0,
+    Math.ceil((timer.endAt - Date.now()) / 1000),
+  );
+  if (secondsLeft <= 0) return;
+
+  void updateRestTimerNotification(
+    secondsLeft,
+    timer.exerciseName,
+    timer.endAt,
+    forceRefresh,
+  );
+}
+
+function startRestTimerNotificationLoop(endAt: number, exerciseName?: string) {
+  stopRestTimerNotificationLoop();
+  activeNotificationTimer = { endAt, exerciseName };
+  startRestTimerKeepAlive();
+
+  tickRestTimerNotification(true);
+  notificationTickInterval = window.setInterval(() => {
+    tickRestTimerNotification(document.visibilityState === "hidden");
+  }, 1000);
+}
+
 export function prepareTimerNotification() {
   if (typeof window === "undefined") return;
 
@@ -98,6 +173,7 @@ export async function updateRestTimerNotification(
   secondsLeft: number,
   exerciseName?: string,
   endAt?: number,
+  forceRefresh = false,
 ) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
@@ -107,7 +183,7 @@ export async function updateRestTimerNotification(
     return;
   }
 
-  if (secondsLeft === lastNotifiedSecond) return;
+  if (!forceRefresh && secondsLeft === lastNotifiedSecond) return;
   lastNotifiedSecond = secondsLeft;
 
   const registration = await registerTimerServiceWorker();
@@ -118,6 +194,10 @@ export async function updateRestTimerNotification(
   const timerEndAt = endAt ?? Date.now() + secondsLeft * 1000;
 
   try {
+    if (forceRefresh) {
+      await clearRestTimerNotification();
+    }
+
     await registration.showNotification(title, {
       body,
       tag: REST_TIMER_TAG,
@@ -156,8 +236,7 @@ export async function startBackgroundRestTimer(
   if (Notification.permission !== "granted") return;
 
   lastNotifiedSecond = -1;
-  const secondsLeft = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
-  await updateRestTimerNotification(secondsLeft, exerciseName, endAt);
+  startRestTimerNotificationLoop(endAt, exerciseName);
 
   await postToServiceWorker({
     type: REST_TIMER_MESSAGE.START,
@@ -167,6 +246,16 @@ export async function startBackgroundRestTimer(
 }
 
 export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
+  if (
+    !activeNotificationTimer ||
+    activeNotificationTimer.endAt !== endAt ||
+    activeNotificationTimer.exerciseName !== exerciseName
+  ) {
+    startRestTimerNotificationLoop(endAt, exerciseName);
+  } else {
+    tickRestTimerNotification(true);
+  }
+
   void postToServiceWorker({
     type: REST_TIMER_MESSAGE.SYNC,
     endAt,
@@ -176,6 +265,7 @@ export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
 
 export function stopBackgroundRestTimer() {
   lastNotifiedSecond = -1;
+  stopRestTimerNotificationLoop();
   void clearRestTimerNotification();
   void postToServiceWorker({ type: REST_TIMER_MESSAGE.STOP });
 }

@@ -8,7 +8,6 @@ import {
   stopBackgroundRestTimer,
   subscribeToRestTimerComplete,
   syncBackgroundRestTimer,
-  updateRestTimerNotification,
 } from "../../shared/timerNotification";
 
 type RestTimerProps = {
@@ -80,11 +79,6 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [endAt]);
-
-  useEffect(() => {
-    if (secondsLeft <= 0) return;
-    void updateRestTimerNotification(secondsLeft, exerciseName, endAt);
-  }, [secondsLeft, exerciseName, endAt]);
 
   useEffect(() => {
     if (secondsLeft > 0) return;

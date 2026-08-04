@@ -7,11 +7,9 @@ const TIMER_KEY = "/__rest-timer__";
 /** @type {{ endAt: number, exerciseName?: string } | null} */
 let activeTimer = null;
 /** @type {number | null} */
-let tickTimeoutId = null;
+let completionTimeoutId = null;
 /** @type {number | null} */
 let clientWatchIntervalId = null;
-/** @type {(() => void) | null} */
-let sleepResolve = null;
 /** @type {number} */
 let restTimerEpoch = 0;
 
@@ -42,34 +40,6 @@ function startClientWatch() {
   }, 1000);
 }
 
-function formatRestTime(secondsLeft) {
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function cancelSleep() {
-  if (tickTimeoutId != null) {
-    clearTimeout(tickTimeoutId);
-    tickTimeoutId = null;
-  }
-  if (sleepResolve) {
-    sleepResolve();
-    sleepResolve = null;
-  }
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => {
-    sleepResolve = resolve;
-    tickTimeoutId = setTimeout(() => {
-      tickTimeoutId = null;
-      sleepResolve = null;
-      resolve();
-    }, ms);
-  });
-}
-
 async function persistTimer(timer) {
   const cache = await caches.open(TIMER_CACHE);
   if (timer) {
@@ -98,39 +68,6 @@ async function closeRestTimerNotifications() {
       .forEach((notification) => notification.close());
   } catch {
     // ignore
-  }
-}
-
-async function updateRestTimerNotification() {
-  if (!activeTimer) return;
-
-  const epoch = restTimerEpoch;
-  const secondsLeft = Math.max(
-    0,
-    Math.ceil((activeTimer.endAt - Date.now()) / 1000),
-  );
-  if (secondsLeft <= 0) return;
-  if (epoch !== restTimerEpoch) return;
-
-  const title = activeTimer.exerciseName
-    ? `Rest · ${activeTimer.exerciseName}`
-    : "Rest timer";
-
-  await self.registration.showNotification(title, {
-    body: `${formatRestTime(secondsLeft)} remaining`,
-    tag: REST_TIMER_TAG,
-    icon: NOTIFICATION_ICON,
-    silent: true,
-    renotify: true,
-    timestamp: Date.now(),
-    data: {
-      endAt: activeTimer.endAt,
-      exerciseName: activeTimer.exerciseName ?? null,
-    },
-  });
-
-  if (epoch !== restTimerEpoch) {
-    await closeRestTimerNotifications();
   }
 }
 
@@ -167,7 +104,11 @@ async function completeRestTimer() {
 function stopRestTimerInternal(clearNotification = true) {
   restTimerEpoch += 1;
   stopClientWatch();
-  cancelSleep();
+
+  if (completionTimeoutId != null) {
+    clearTimeout(completionTimeoutId);
+    completionTimeoutId = null;
+  }
 
   activeTimer = null;
   void persistTimer(null);
@@ -177,33 +118,33 @@ function stopRestTimerInternal(clearNotification = true) {
   }
 }
 
-async function runRestTimer(endAt, exerciseName) {
-  activeTimer = { endAt, exerciseName };
-  await persistTimer(activeTimer);
-  startClientWatch();
-
-  while (activeTimer && activeTimer.endAt === endAt) {
-    const now = Date.now();
-    if (now >= endAt) {
-      await completeRestTimer();
-      return;
-    }
-
-    await updateRestTimerNotification();
-
-    const secondsLeft = Math.ceil((endAt - now) / 1000);
-    const nextSecondBoundary = endAt - (secondsLeft - 1) * 1000;
-    const delay = Math.min(1000, Math.max(250, nextSecondBoundary - Date.now()));
-
-    await sleep(delay);
-
-    if (!activeTimer || activeTimer.endAt !== endAt) return;
+function scheduleCompletion(endAt) {
+  if (completionTimeoutId != null) {
+    clearTimeout(completionTimeoutId);
+    completionTimeoutId = null;
   }
+
+  const delay = endAt - Date.now();
+  if (delay <= 0) {
+    void completeRestTimer();
+    return;
+  }
+
+  completionTimeoutId = setTimeout(() => {
+    completionTimeoutId = null;
+    if (activeTimer?.endAt === endAt) {
+      void completeRestTimer();
+    }
+  }, delay);
 }
 
 function startRestTimer(endAt, exerciseName) {
   stopRestTimerInternal();
-  return runRestTimer(endAt, exerciseName);
+
+  activeTimer = { endAt, exerciseName };
+  void persistTimer(activeTimer);
+  startClientWatch();
+  scheduleCompletion(endAt);
 }
 
 async function resumePersistedTimer() {
@@ -225,7 +166,7 @@ async function resumePersistedTimer() {
   }
 
   if (!activeTimer) {
-    await runRestTimer(persisted.endAt, persisted.exerciseName);
+    startRestTimer(persisted.endAt, persisted.exerciseName);
   }
 }
 
@@ -242,15 +183,13 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   const { type, endAt, exerciseName } = event.data ?? {};
   if (type === "REST_TIMER_START") {
-    event.waitUntil(startRestTimer(endAt, exerciseName));
+    startRestTimer(endAt, exerciseName);
     return;
   }
   if (type === "REST_TIMER_SYNC") {
     if (!activeTimer || activeTimer.endAt !== endAt) {
-      event.waitUntil(startRestTimer(endAt, exerciseName));
-      return;
+      startRestTimer(endAt, exerciseName);
     }
-    event.waitUntil(updateRestTimerNotification());
     return;
   }
   if (type === "REST_TIMER_STOP") {
@@ -261,16 +200,7 @@ self.addEventListener("message", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     (async () => {
-      if (event.notification.tag === REST_TIMER_TAG) {
-        const endAt = event.notification.data?.endAt;
-        const exerciseName = event.notification.data?.exerciseName ?? undefined;
-        if (typeof endAt === "number" && endAt > Date.now()) {
-          activeTimer = { endAt, exerciseName };
-          await updateRestTimerNotification();
-        } else {
-          event.notification.close();
-        }
-      } else {
+      if (event.notification.tag !== REST_TIMER_TAG) {
         event.notification.close();
       }
 
