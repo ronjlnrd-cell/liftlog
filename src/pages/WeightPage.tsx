@@ -9,6 +9,7 @@ import {
   getRecentCycleLengths,
 } from "../domain/analytics/periodTracking";
 import { LogPeriodModal } from "../components/LogPeriodModal";
+import { useConfirm } from "../components/ConfirmProvider";
 import { localDateString, parseWeightInput } from "../shared";
 
 type Range = "1M" | "3M" | "6M" | "1Y" | "ALL";
@@ -86,6 +87,7 @@ export function WeightPage({
   onLogPeriod,
   onDeletePeriod,
 }: Props) {
+  const confirm = useConfirm();
   const [changeRange, setChangeRange] = useState<Range>("3M");
   const [chartRange, setChartRange] = useState<Range>("3M");
   const [weight, setWeight] = useState("");
@@ -176,6 +178,36 @@ export function WeightPage({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleDeleteWeight(id: string) {
+    const entry = entries.find((candidate) => candidate.id === id);
+    if (!entry) return;
+
+    const confirmed = await confirm({
+      title: "Delete weight entry?",
+      message: `Remove ${entry.weight.toFixed(1)} ${unit.toLowerCase()} logged on ${new Date(entry.recordedAt).toLocaleDateString()}? This cannot be undone.`,
+      confirmLabel: "Delete entry",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+
+    await onDelete(id);
+  }
+
+  async function handleDeletePeriod(id: string) {
+    const entry = periodEntries.find((candidate) => candidate.id === id);
+    if (!entry) return;
+
+    const confirmed = await confirm({
+      title: "Delete period entry?",
+      message: `Remove period started ${formatPeriodDate(entry.startDate)}? This cannot be undone.`,
+      confirmLabel: "Delete entry",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+
+    await onDeletePeriod(id);
   }
 
   return (
@@ -426,7 +458,7 @@ export function WeightPage({
                       <button
                         className="icon-button"
                         aria-label="Delete weight"
-                        onClick={() => void onDelete(entry.id)}
+                        onClick={() => void handleDeleteWeight(entry.id)}
                       >
                         ×
                       </button>
@@ -450,7 +482,7 @@ export function WeightPage({
                       <button
                         className="icon-button"
                         aria-label="Delete period"
-                        onClick={() => void onDeletePeriod(entry.id)}
+                        onClick={() => void handleDeletePeriod(entry.id)}
                       >
                         ×
                       </button>

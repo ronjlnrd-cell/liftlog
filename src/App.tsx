@@ -1323,14 +1323,6 @@ function App() {
             onDelete={async (id) => {
               if (!session) return;
 
-              const confirmed = await confirm({
-                title: "Delete weight entry?",
-                message: "This bodyweight log will be removed permanently.",
-                confirmLabel: "Delete entry",
-                tone: "danger",
-              });
-              if (!confirmed) return;
-
               await bodyweightRepository.remove(id);
               setBodyweights(await bodyweightRepository.getAll());
               const deleted = await cloudAction(() => deleteCloudBodyweight(session.user.id, id));
@@ -1365,14 +1357,6 @@ function App() {
             }}
             onDeletePeriod={async (id) => {
               if (!session) return;
-
-              const confirmed = await confirm({
-                title: "Delete period entry?",
-                message: "This period log will be removed permanently.",
-                confirmLabel: "Delete entry",
-                tone: "danger",
-              });
-              if (!confirmed) return;
 
               await periodRepository.remove(id);
               setPeriodEntries(await periodRepository.getAll());
