@@ -119,32 +119,6 @@ export function WorkoutPage({
     onChange({ ...workout, exercises: nextExercises });
   }
 
-  function duplicateExercise(workoutExerciseId: string) {
-    const sourceIndex = workout.exercises.findIndex(
-      (item) => item.id === workoutExerciseId,
-    );
-    if (sourceIndex === -1) return;
-
-    const source = workout.exercises[sourceIndex];
-    const duplicate: WorkoutExercise = {
-      ...source,
-      id: crypto.randomUUID(),
-      plannedSets: source.plannedSets.map((set) => ({ ...set })),
-      completedSets: source.completedSets.map((set) => ({ ...set })),
-    };
-
-    const nextExercises = [...workout.exercises];
-    nextExercises.splice(sourceIndex + 1, 0, duplicate);
-
-    onChange({
-      ...workout,
-      exercises: nextExercises.map((item, index) => ({
-        ...item,
-        order: index,
-      })),
-    });
-  }
-
   function moveExercise(workoutExerciseId: string, direction: -1 | 1) {
     const currentIndex = workout.exercises.findIndex(
       (item) => item.id === workoutExerciseId,
@@ -335,7 +309,6 @@ export function WorkoutPage({
                     applyProgression(item.id, item.exerciseId, option)
                   }
                   onMove={moveExercise}
-                  onDuplicate={duplicateExercise}
                   onRemove={removeExercise}
                   onRestChange={updateRest}
                   updatesTemplate={Boolean(workout.sourceTemplateId)}
