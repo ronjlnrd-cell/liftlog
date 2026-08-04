@@ -3,6 +3,7 @@ import type { Exercise } from "../domain/entities/Exercise";
 import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Template";
 import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { AddCustomExerciseModal } from "../components/AddCustomExerciseModal";
+import { ExerciseIllustration } from "../components/ExerciseIllustration";
 import { formatLabel, selectInputOnClick, selectInputOnFocus } from "../shared";
 import { matchesExerciseSearch } from "../shared/exerciseSearch";
 
@@ -265,9 +266,15 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
             className="card exercise-row template-picker-item"
             onClick={() => addExercise(ex.id)}
           >
-            <div>
-              <strong>{ex.name}</strong>
-              <p>{formatLabel(ex.primaryMuscle)}</p>
+            <div className="exercise-row-main">
+              <ExerciseIllustration
+                exerciseId={ex.id}
+                className="exercise-row-thumbnail"
+              />
+              <div>
+                <strong>{ex.name}</strong>
+                <p>{formatLabel(ex.primaryMuscle)}</p>
+              </div>
             </div>
             <span className="add-custom-icon" aria-hidden="true">
               +
