@@ -1,11 +1,43 @@
 let audioContext: AudioContext | null = null;
 
-const REST_TIMER_TAG = "liftlog-rest-timer";
-let restTimerNotification: Notification | null = null;
-let lastNotifiedSecond = -1;
+const REST_TIMER_MESSAGE = {
+  START: "REST_TIMER_START",
+  STOP: "REST_TIMER_STOP",
+  COMPLETE: "REST_TIMER_COMPLETE",
+} as const;
+
+let registrationPromise: Promise<ServiceWorkerRegistration | null> | null =
+  null;
+
+export function registerTimerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (registrationPromise) return registrationPromise;
+
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    registrationPromise = Promise.resolve(null);
+    return registrationPromise;
+  }
+
+  registrationPromise = (async () => {
+    try {
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      return await navigator.serviceWorker.ready;
+    } catch {
+      return null;
+    }
+  })();
+
+  return registrationPromise;
+}
+
+async function postToServiceWorker(message: Record<string, unknown>) {
+  const registration = await registerTimerServiceWorker();
+  registration?.active?.postMessage(message);
+}
 
 export function prepareTimerNotification() {
   if (typeof window === "undefined") return;
+
+  void registerTimerServiceWorker();
 
   try {
     audioContext ??= new AudioContext();
@@ -29,57 +61,42 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-function formatRestTime(secondsLeft: number): string {
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-export function updateRestTimerNotification(
-  secondsLeft: number,
+export async function startBackgroundRestTimer(
+  endAt: number,
   exerciseName?: string,
 ) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
-  if (secondsLeft <= 0) {
-    clearRestTimerNotification();
-    return;
-  }
-
-  if (secondsLeft === lastNotifiedSecond) return;
-  lastNotifiedSecond = secondsLeft;
-
-  const title = exerciseName ? `Rest · ${exerciseName}` : "Rest timer";
-  const body = `${formatRestTime(secondsLeft)} remaining`;
-
-  try {
-    restTimerNotification?.close();
-    restTimerNotification = new Notification(title, {
-      body,
-      tag: REST_TIMER_TAG,
-      silent: true,
-    });
-  } catch {
-    // Notifications unavailable in this context.
-  }
+  await postToServiceWorker({
+    type: REST_TIMER_MESSAGE.START,
+    endAt,
+    exerciseName,
+  });
 }
 
-export function clearRestTimerNotification() {
-  lastNotifiedSecond = -1;
+export function stopBackgroundRestTimer() {
+  void postToServiceWorker({ type: REST_TIMER_MESSAGE.STOP });
+}
 
-  try {
-    restTimerNotification?.close();
-  } catch {
-    // ignore
+export function subscribeToRestTimerComplete(
+  callback: () => void,
+): () => void {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return () => {};
   }
 
-  restTimerNotification = null;
+  const handler = (event: MessageEvent) => {
+    if (event.data?.type === REST_TIMER_MESSAGE.COMPLETE) {
+      callback();
+    }
+  };
+
+  navigator.serviceWorker.addEventListener("message", handler);
+  return () => navigator.serviceWorker.removeEventListener("message", handler);
 }
 
 export function notifyTimerComplete() {
-  clearRestTimerNotification();
-
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     try {
       navigator.vibrate([200, 100, 200, 100, 400]);

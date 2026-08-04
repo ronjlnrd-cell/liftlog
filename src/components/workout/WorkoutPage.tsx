@@ -4,7 +4,10 @@ import { useMemo, useRef, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
 import { ExercisePicker } from "../ExercisePicker";
-import { prepareTimerNotification } from "../../shared/timerNotification";
+import {
+  ensureNotificationPermission,
+  prepareTimerNotification,
+} from "../../shared/timerNotification";
 import { WorkoutExerciseCard } from "./WorkoutExerciseCard";
 import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 
@@ -169,11 +172,13 @@ export function WorkoutPage({
       ),
     });
 
+    prepareTimerNotification();
+    void ensureNotificationPermission();
+
     setRestTimer({
       endAt: Date.now() + target.plannedRestSeconds * 1000,
       workoutExerciseId,
     });
-    prepareTimerNotification();
   }
 
   function updateSet(

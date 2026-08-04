@@ -204,7 +204,7 @@ export function WeightPage({ entries, unit, onAdd, onDelete }: Props) {
                 setWeight(event.target.value);
                 setSaved(false);
               }}
-              placeholder={unit}
+              placeholder="Enter Weight"
             />
           </label>
           <label>
