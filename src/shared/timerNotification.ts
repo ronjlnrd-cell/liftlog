@@ -6,8 +6,12 @@ const REST_TIMER_MESSAGE = {
   COMPLETE: "REST_TIMER_COMPLETE",
 } as const;
 
+const REST_TIMER_TAG = "liftlog-rest-timer";
+const NOTIFICATION_ICON = "/app-icon.svg";
+
 let registrationPromise: Promise<ServiceWorkerRegistration | null> | null =
   null;
+let lastNotifiedSecond = -1;
 
 export function registerTimerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (registrationPromise) return registrationPromise;
@@ -31,7 +35,35 @@ export function registerTimerServiceWorker(): Promise<ServiceWorkerRegistration 
 
 async function postToServiceWorker(message: Record<string, unknown>) {
   const registration = await registerTimerServiceWorker();
-  registration?.active?.postMessage(message);
+  if (!registration) return;
+
+  const active = registration.active;
+  if (active) {
+    active.postMessage(message);
+    return;
+  }
+
+  const installing = registration.installing ?? registration.waiting;
+  if (!installing) return;
+
+  await new Promise<void>((resolve) => {
+    const onStateChange = () => {
+      if (installing.state !== "activated") return;
+      installing.removeEventListener("statechange", onStateChange);
+      registration.active?.postMessage(message);
+      resolve();
+    };
+    installing.addEventListener("statechange", onStateChange);
+    if (installing.state === "activated") {
+      onStateChange();
+    }
+  });
+}
+
+function formatRestTime(secondsLeft: number): string {
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export function prepareTimerNotification() {
@@ -61,12 +93,65 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
+export async function updateRestTimerNotification(
+  secondsLeft: number,
+  exerciseName?: string,
+) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  if (secondsLeft <= 0) {
+    await clearRestTimerNotification();
+    return;
+  }
+
+  if (secondsLeft === lastNotifiedSecond) return;
+  lastNotifiedSecond = secondsLeft;
+
+  const registration = await registerTimerServiceWorker();
+  if (!registration) return;
+
+  const title = exerciseName ? `Rest · ${exerciseName}` : "Rest timer";
+  const body = `${formatRestTime(secondsLeft)} remaining`;
+
+  try {
+    await registration.showNotification(title, {
+      body,
+      tag: REST_TIMER_TAG,
+      icon: NOTIFICATION_ICON,
+      silent: true,
+    });
+  } catch {
+    // Notifications unavailable in this context.
+  }
+}
+
+export async function clearRestTimerNotification() {
+  lastNotifiedSecond = -1;
+
+  const registration = await registerTimerServiceWorker();
+  if (!registration) return;
+
+  try {
+    const notifications = await registration.getNotifications({
+      tag: REST_TIMER_TAG,
+    });
+    notifications.forEach((notification) => notification.close());
+  } catch {
+    // ignore
+  }
+}
+
 export async function startBackgroundRestTimer(
   endAt: number,
   exerciseName?: string,
 ) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
+
+  lastNotifiedSecond = -1;
+  const secondsLeft = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+  await updateRestTimerNotification(secondsLeft, exerciseName);
 
   await postToServiceWorker({
     type: REST_TIMER_MESSAGE.START,
@@ -76,6 +161,8 @@ export async function startBackgroundRestTimer(
 }
 
 export function stopBackgroundRestTimer() {
+  lastNotifiedSecond = -1;
+  void clearRestTimerNotification();
   void postToServiceWorker({ type: REST_TIMER_MESSAGE.STOP });
 }
 

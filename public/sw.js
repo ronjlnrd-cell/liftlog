@@ -7,7 +7,7 @@ const TIMER_KEY = "/__rest-timer__";
 /** @type {{ endAt: number, exerciseName?: string } | null} */
 let activeTimer = null;
 /** @type {number | null} */
-let updateIntervalId = null;
+let tickTimeoutId = null;
 /** @type {number | null} */
 let completionTimeoutId = null;
 /** @type {number} */
@@ -99,9 +99,9 @@ async function completeRestTimer() {
 }
 
 function stopRestTimerInternal(clearNotification = true) {
-  if (updateIntervalId != null) {
-    clearInterval(updateIntervalId);
-    updateIntervalId = null;
+  if (tickTimeoutId != null) {
+    clearTimeout(tickTimeoutId);
+    tickTimeoutId = null;
   }
   if (completionTimeoutId != null) {
     clearTimeout(completionTimeoutId);
@@ -117,21 +117,28 @@ function stopRestTimerInternal(clearNotification = true) {
   }
 }
 
+function scheduleRestTimerTick(endAt) {
+  if (!activeTimer) return;
+
+  const secondsLeft = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+  if (secondsLeft <= 0) {
+    void completeRestTimer();
+    return;
+  }
+
+  void updateRestTimerNotification();
+  tickTimeoutId = setTimeout(() => {
+    scheduleRestTimerTick(endAt);
+  }, 1000);
+}
+
 function startRestTimer(endAt, exerciseName) {
   stopRestTimerInternal();
 
   activeTimer = { endAt, exerciseName };
   void persistTimer(activeTimer);
   void updateRestTimerNotification();
-
-  updateIntervalId = setInterval(() => {
-    const secondsLeft = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
-    if (secondsLeft <= 0) {
-      void completeRestTimer();
-      return;
-    }
-    void updateRestTimerNotification();
-  }, 1000);
+  scheduleRestTimerTick(endAt);
 
   const delay = endAt - Date.now();
   if (delay <= 0) {

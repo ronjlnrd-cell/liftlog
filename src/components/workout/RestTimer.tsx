@@ -6,15 +6,17 @@ import {
   startBackgroundRestTimer,
   stopBackgroundRestTimer,
   subscribeToRestTimerComplete,
+  updateRestTimerNotification,
 } from "../../shared/timerNotification";
 
 type RestTimerProps = {
   endAt: number;
   exerciseName?: string;
   onSkip: () => void;
+  onAdjust: (deltaSeconds: number) => void;
 };
 
-export function RestTimer({ endAt, exerciseName, onSkip }: RestTimerProps) {
+export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const completedEndAtRef = useRef<number | null>(null);
   const onSkipRef = useRef(onSkip);
@@ -73,6 +75,11 @@ export function RestTimer({ endAt, exerciseName, onSkip }: RestTimerProps) {
   }, [endAt]);
 
   useEffect(() => {
+    if (secondsLeft <= 0) return;
+    void updateRestTimerNotification(secondsLeft, exerciseName);
+  }, [secondsLeft, exerciseName]);
+
+  useEffect(() => {
     if (secondsLeft > 0) return;
     if (Date.now() < endAt) return;
     finishTimer(true);
@@ -92,9 +99,25 @@ export function RestTimer({ endAt, exerciseName, onSkip }: RestTimerProps) {
           {String(secondsLeft % 60).padStart(2, "0")}
         </strong>
       </div>
-      <button className="text-button" type="button" onClick={handleSkip}>
-        Skip
-      </button>
+      <div className="rest-timer-actions">
+        <button
+          type="button"
+          className="rest-timer-adjust"
+          onClick={() => onAdjust(-30)}
+        >
+          −30 sec
+        </button>
+        <button
+          type="button"
+          className="rest-timer-adjust"
+          onClick={() => onAdjust(30)}
+        >
+          +30 sec
+        </button>
+        <button className="text-button" type="button" onClick={handleSkip}>
+          Skip
+        </button>
+      </div>
     </div>
   );
 }

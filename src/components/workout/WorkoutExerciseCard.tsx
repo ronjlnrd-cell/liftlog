@@ -32,7 +32,11 @@ type WorkoutExerciseCardProps = {
   updatesTemplate: boolean;
   focusWeight?: boolean;
   onWeightFocused?: () => void;
-  restTimer?: { endAt: number; onSkip: () => void } | null;
+  restTimer?: {
+    endAt: number;
+    onSkip: () => void;
+    onAdjust: (deltaSeconds: number) => void;
+  } | null;
 };
 
 export function WorkoutExerciseCard({
@@ -196,6 +200,7 @@ export function WorkoutExerciseCard({
           endAt={restTimer.endAt}
           exerciseName={exercise.name}
           onSkip={restTimer.onSkip}
+          onAdjust={restTimer.onAdjust}
         />
       )}
 

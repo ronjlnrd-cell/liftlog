@@ -322,6 +322,18 @@ export function WorkoutPage({
                       ? {
                           endAt: restTimer.endAt,
                           onSkip: () => setRestTimer(null),
+                          onAdjust: (deltaSeconds) => {
+                            setRestTimer((current) => {
+                              if (!current) return null;
+                              return {
+                                ...current,
+                                endAt: Math.max(
+                                  Date.now(),
+                                  current.endAt + deltaSeconds * 1000,
+                                ),
+                              };
+                            });
+                          },
                         }
                       : null
                   }

@@ -491,10 +491,31 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 
 .primary:disabled { opacity:.45; cursor:not-allowed; }
 .header-actions,.exercise-actions { display:flex; align-items:center; gap:10px; }
-.rest-timer { display:flex; justify-content:space-between; align-items:center; margin-top:14px; border-color:#e0c0c0; background:#fef5f5; }
+.rest-timer { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; border-color:#e0c0c0; background:#fef5f5; }
 .rest-timer div { display:flex; flex-direction:column; gap:3px; }
 .rest-timer span { color:var(--muted); font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.7px; }
 .rest-timer strong { font-size:28px; color:var(--green-dark); font-variant-numeric:tabular-nums; }
+.rest-timer-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.rest-timer-adjust {
+  border:1px solid #e0c0c0;
+  background:#fff;
+  color:var(--ink);
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+}
+.rest-timer-adjust:hover {
+  border-color:var(--green-dark);
+  color:var(--green-dark);
+}
 .sets-list div { display:grid; grid-template-columns:1fr auto 30px; align-items:center; gap:10px; }
 .icon-button { border:0; background:#f5e9e7; color:#8e3d37; border-radius:8px; width:28px; height:28px; font-size:18px; line-height:1; cursor:pointer; }
 .icon-button-edit { background:#fceeee; color:var(--green-dark); font-size:15px; }
