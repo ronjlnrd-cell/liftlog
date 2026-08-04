@@ -1,5 +1,6 @@
 import type { WorkoutExercise } from "../../domain/entities/workout";
 import { activeSetKey, type PRType } from "../../domain/analytics/personalRecords";
+import { useMemo } from "react";
 import { EditableCompletedSet } from "./EditableCompletedSet";
 
 type WorkoutExerciseComparisonProps = {
@@ -31,6 +32,10 @@ export function WorkoutExerciseComparison({
   const hasPrevious =
     previousPerformance != null && previousPerformance.completedSets.length > 0;
   const hasCompleted = item.completedSets.length > 0;
+  const sortedCompletedSets = useMemo(
+    () => [...item.completedSets].sort((a, b) => a.order - b.order),
+    [item.completedSets],
+  );
   const rowCount =
     item.plannedSets.length > 0
       ? Math.max(item.plannedSets.length, item.completedSets.length)
@@ -59,7 +64,7 @@ export function WorkoutExerciseComparison({
       {rowCount > 0 &&
         Array.from({ length: rowCount }, (_, index) => {
           const previousSet = previousPerformance?.completedSets[index];
-          const completedSet = item.completedSets[index];
+          const completedSet = sortedCompletedSets[index];
           const plannedSet = item.plannedSets[index];
           const matched =
             completedSet != null &&
@@ -109,7 +114,7 @@ export function WorkoutExerciseComparison({
         })}
 
       {item.plannedSets.length === 0 &&
-        item.completedSets.slice(rowCount).map((completedSet, offset) => {
+        sortedCompletedSets.slice(rowCount).map((completedSet, offset) => {
           const index = rowCount + offset;
           return (
             <div className="workout-set-table-row done free-logged" key={completedSet.order}>

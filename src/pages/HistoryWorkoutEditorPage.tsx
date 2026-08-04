@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ExercisePicker } from "../components/ExercisePicker";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../domain/entities/workout";
+import { selectInputOnClick, selectInputOnFocus } from "../shared";
 
 type HistoryWorkoutEditorPageProps = {
   workout: Workout | null;
@@ -277,6 +278,8 @@ export function HistoryWorkoutEditorPage({
                         min="0"
                         step="0.5"
                         value={set.weight}
+                        onFocus={selectInputOnFocus}
+                        onClick={selectInputOnClick}
                         onChange={(event) =>
                           updateSet(
                             item.id,
@@ -294,6 +297,8 @@ export function HistoryWorkoutEditorPage({
                         min="1"
                         step="1"
                         value={set.reps}
+                        onFocus={selectInputOnFocus}
+                        onClick={selectInputOnClick}
                         onChange={(event) =>
                           updateSet(
                             item.id,

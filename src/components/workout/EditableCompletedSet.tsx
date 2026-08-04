@@ -5,6 +5,7 @@ import {
   prLabel,
   type PRType,
 } from "../../domain/analytics/personalRecords";
+import { selectInputOnClick, selectInputOnFocus } from "../../shared";
 
 type CompletedSet = WorkoutExercise["completedSets"][number];
 
@@ -72,6 +73,8 @@ export function EditableCompletedSet({
             min="0"
             step="0.5"
             value={weight}
+            onFocus={selectInputOnFocus}
+            onClick={selectInputOnClick}
             onChange={(event) => setWeight(Number(event.target.value))}
           />
         </label>
@@ -81,6 +84,8 @@ export function EditableCompletedSet({
             type="number"
             min="1"
             value={reps}
+            onFocus={selectInputOnFocus}
+            onClick={selectInputOnClick}
             onChange={(event) => setReps(Number(event.target.value))}
           />
         </label>
@@ -102,7 +107,7 @@ export function EditableCompletedSet({
 
   if (compact) {
     return (
-      <div className="editable-completed-set compact layout-row">
+      <>
         <div className="set-table-completed-cell">
           <strong>
             {set.weight} {unit.toLowerCase()} × {set.reps}
@@ -119,7 +124,10 @@ export function EditableCompletedSet({
             className="icon-button icon-button-edit"
             aria-label={`Edit set ${setNumber}`}
             title="Edit set"
-            onClick={() => setEditing(true)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setEditing(true);
+            }}
           >
             ✎
           </button>
@@ -128,12 +136,15 @@ export function EditableCompletedSet({
             className="icon-button"
             aria-label={`Delete set ${setNumber}`}
             title="Delete set"
-            onClick={() => onDelete(exerciseId, set.order)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(exerciseId, set.order);
+            }}
           >
             ×
           </button>
         </div>
-      </div>
+      </>
     );
   }
 

@@ -1,6 +1,6 @@
 import { getProgressionRecommendation, type ProgressionOption } from "../../domain/analytics/progression";
 import { getPreviousPerformanceByExerciseId } from "../../domain/analytics/previousPerformance";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
 import { ExercisePicker } from "../ExercisePicker";
@@ -43,6 +43,8 @@ export function WorkoutPage({
     workoutExerciseId: string;
   } | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
+  const workoutRef = useRef(workout);
+  workoutRef.current = workout;
 
   if (!workout) {
     return (
@@ -224,9 +226,12 @@ export function WorkoutPage({
   }
 
   function deleteSet(workoutExerciseId: string, setOrder: number) {
+    const current = workoutRef.current;
+    if (!current) return;
+
     onChange({
-      ...workout,
-      exercises: workout.exercises.map((item) =>
+      ...current,
+      exercises: current.exercises.map((item) =>
         item.id === workoutExerciseId
           ? {
               ...item,

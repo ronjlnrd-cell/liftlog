@@ -1,4 +1,15 @@
+import type { FocusEvent, MouseEvent } from "react";
+
 export const APP_NAME = "Stronger!";
+
+export function selectInputOnFocus(event: FocusEvent<HTMLInputElement>) {
+  const input = event.currentTarget;
+  requestAnimationFrame(() => input.select());
+}
+
+export function selectInputOnClick(event: MouseEvent<HTMLInputElement>) {
+  event.currentTarget.select();
+}
 
 export function formatLabel(value: string): string {
   return value

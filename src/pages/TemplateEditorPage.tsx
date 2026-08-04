@@ -3,7 +3,7 @@ import type { Exercise } from "../domain/entities/Exercise";
 import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Template";
 import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { AddCustomExerciseModal } from "../components/AddCustomExerciseModal";
-import { formatLabel } from "../shared";
+import { formatLabel, selectInputOnClick, selectInputOnFocus } from "../shared";
 
 type Props = {
   template: WorkoutTemplate | null;
@@ -202,11 +202,11 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
               <div className="template-set-block-fields">
                 <label className="template-set-field">
                   <span>Weight (kg)</span>
-                  <input type="number" step="0.5" value={set.weight ?? ""} placeholder="Optional" aria-label={`Set ${setIndex+1} weight`} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
+                  <input type="number" step="0.5" value={set.weight ?? ""} placeholder="Optional" aria-label={`Set ${setIndex+1} weight`} onFocus={selectInputOnFocus} onClick={selectInputOnClick} onChange={e=>updateSet(index,setIndex,"weight",e.target.value)}/>
                 </label>
                 <label className="template-set-field template-set-field-reps">
                   <span>Reps</span>
-                  <input type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
+                  <input type="number" min="1" inputMode="numeric" value={set.reps ?? ""} aria-label={`Set ${setIndex+1} reps`} onFocus={selectInputOnFocus} onClick={selectInputOnClick} onChange={e=>updateSet(index,setIndex,"reps",e.target.value)} onBlur={()=>commitSetReps(index,setIndex)}/>
                 </label>
               </div>
             </div>)}

@@ -2,7 +2,7 @@ import type { ProgressionRecommendation, ProgressionOption } from "../../domain/
 import { useEffect, useRef, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
-import { formatLabel } from "../../shared";
+import { formatLabel, selectInputOnClick, selectInputOnFocus } from "../../shared";
 import type { PRType } from "../../domain/analytics/personalRecords";
 import { ProgressionPopup } from "./ProgressionPopup";
 import { RestTimer } from "./RestTimer";
@@ -188,6 +188,8 @@ export function WorkoutExerciseCard({
               min="0"
               step="0.5"
               value={weight}
+              onFocus={selectInputOnFocus}
+              onClick={selectInputOnClick}
               onChange={(event) => setWeight(Number(event.target.value))}
             />
           </label>
@@ -197,6 +199,8 @@ export function WorkoutExerciseCard({
               type="number"
               min="1"
               value={reps}
+              onFocus={selectInputOnFocus}
+              onClick={selectInputOnClick}
               onChange={(event) => setReps(Number(event.target.value))}
             />
           </label>

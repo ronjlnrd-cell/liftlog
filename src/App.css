@@ -101,7 +101,7 @@ h2 { margin:0; color:var(--ink); }
   grid-column:3;
 }
 .editable-completed-set.compact.layout-row {
-  display:contents;
+  display: contents;
 }
 .set-table-completed-cell {
   grid-column:2;
@@ -128,6 +128,12 @@ h2 { margin:0; color:var(--ink); }
   justify-self:end;
   align-self:start;
   padding-top:1px;
+  position:relative;
+  z-index:1;
+}
+.set-table-row-actions .icon-button {
+  min-width:36px;
+  min-height:36px;
 }
 .workout-set-table-header {
   padding:10px 0 8px;
