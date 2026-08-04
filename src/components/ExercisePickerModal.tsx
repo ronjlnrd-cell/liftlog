@@ -7,6 +7,7 @@ type ExercisePickerModalProps = {
   exercises: Exercise[];
   excludedExerciseIds: string[];
   workouts: Workout[];
+  currentWorkout?: Workout | null;
   onSelect: (exerciseId: string) => void;
   onClose: () => void;
   onExercisesChange?: () => Promise<void>;
@@ -16,6 +17,7 @@ export function ExercisePickerModal({
   exercises,
   excludedExerciseIds,
   workouts,
+  currentWorkout = null,
   onSelect,
   onClose,
   onExercisesChange,
@@ -37,7 +39,7 @@ export function ExercisePickerModal({
         className="progression-popup exercise-picker-modal"
         role="dialog"
         aria-labelledby="exercise-picker-title"
-        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <button
           type="button"
@@ -52,6 +54,7 @@ export function ExercisePickerModal({
           exercises={exercises}
           excludedExerciseIds={excludedExerciseIds}
           workouts={workouts}
+          currentWorkout={currentWorkout}
           onSelect={handleSelect}
           onExercisesChange={onExercisesChange}
         />

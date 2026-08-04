@@ -1,8 +1,8 @@
 import { getProgressionRecommendation, type ProgressionOption } from "../../domain/analytics/progression";
-import { getPreviousPerformanceByExerciseId } from "../../domain/analytics/previousPerformance";
-import { useMemo, useRef, useState } from "react";
+import { getPreviousPerformanceByExerciseId, getLastExercisePerformance } from "../../domain/analytics/previousPerformance";
+import { useMemo, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
-import type { Workout, WorkoutExercise } from "../../domain/entities/workout";
+import type { Workout } from "../../domain/entities/workout";
 import { ExercisePickerModal } from "../ExercisePickerModal";
 import {
   ensureNotificationPermission,
@@ -10,6 +10,8 @@ import {
 } from "../../shared/timerNotification";
 import { WorkoutExerciseCard } from "./WorkoutExerciseCard";
 import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
+import { createWorkoutExercise } from "../../domain/workout/createWorkoutExercise";
+import type { ExerciseProgressionPreset } from "../../domain/workout/exerciseProgressionPresets";
 
 type WorkoutPageProps = {
   workout: Workout | null;
@@ -24,6 +26,9 @@ type WorkoutPageProps = {
     exerciseId: string,
     option: ProgressionOption,
   ) => void | Promise<void>;
+  getExerciseProgressionPreset?: (
+    exerciseId: string,
+  ) => ExerciseProgressionPreset | null;
   onExercisesChange?: () => Promise<void>;
 };
 
@@ -37,6 +42,7 @@ export function WorkoutPage({
   onFinish,
   onCancel,
   onProgressionApplied,
+  getExerciseProgressionPreset,
   onExercisesChange,
 }: WorkoutPageProps) {
   const [restTimer, setRestTimer] = useState<{
@@ -45,8 +51,6 @@ export function WorkoutPage({
   } | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
-  const workoutRef = useRef(workout);
-  workoutRef.current = workout;
 
   if (!workout) {
     return (
@@ -100,14 +104,14 @@ export function WorkoutPage({
   }
 
   function addExercise(exerciseId: string) {
-    const next: WorkoutExercise = {
-      id: crypto.randomUUID(),
+    const previous = getLastExercisePerformance(history, exerciseId, workout);
+    const progression = getExerciseProgressionPreset?.(exerciseId) ?? null;
+    const next = createWorkoutExercise(
       exerciseId,
-      order: workout.exercises.length,
-      plannedRestSeconds: 120,
-      plannedSets: [],
-      completedSets: [],
-    };
+      workout.exercises.length,
+      previous,
+      progression,
+    );
 
     setFocusExerciseId(next.id);
     onChange({ ...workout, exercises: [...workout.exercises, next] });
@@ -145,11 +149,19 @@ export function WorkoutPage({
     });
   }
 
-  function addSet(workoutExerciseId: string, weight: number, reps: number) {
+  function completeSet(workoutExerciseId: string, setOrder: number) {
     const target = workout.exercises.find(
       (item) => item.id === workoutExerciseId,
     );
     if (!target) return;
+    if (target.completedSets.some((set) => set.order === setOrder)) return;
+
+    const planned = target.plannedSets.find((set) => set.order === setOrder);
+    if (!planned) return;
+
+    const weight = planned.weight ?? 0;
+    const reps = planned.reps;
+    if (weight < 0 || reps < 1) return;
 
     onChange({
       ...workout,
@@ -159,13 +171,8 @@ export function WorkoutPage({
               ...item,
               completedSets: [
                 ...item.completedSets,
-                {
-                  order: item.completedSets.length,
-                  weight,
-                  reps,
-                  completedAt: new Date(),
-                },
-              ],
+                { order: setOrder, weight, reps },
+              ].sort((a, b) => a.order - b.order),
             }
           : item,
       ),
@@ -180,7 +187,59 @@ export function WorkoutPage({
     });
   }
 
-  function updateSet(
+  function updatePlannedSet(
+    workoutExerciseId: string,
+    setOrder: number,
+    weight: number,
+    reps: number,
+  ) {
+    if (weight < 0 || reps < 1) return;
+
+    onChange({
+      ...workout,
+      exercises: workout.exercises.map((item) =>
+        item.id === workoutExerciseId
+          ? {
+              ...item,
+              plannedSets: item.plannedSets.map((set) =>
+                set.order === setOrder ? { ...set, weight, reps } : set,
+              ),
+            }
+          : item,
+      ),
+    });
+  }
+
+  function addPlannedSet(workoutExerciseId: string) {
+    onChange({
+      ...workout,
+      exercises: workout.exercises.map((item) => {
+        if (item.id !== workoutExerciseId) return item;
+
+        const lastPlanned = [...item.plannedSets].sort(
+          (a, b) => a.order - b.order,
+        ).at(-1);
+
+        return {
+          ...item,
+          plannedSets: [
+            ...item.plannedSets,
+            {
+              order:
+                item.plannedSets.reduce(
+                  (max, set) => Math.max(max, set.order),
+                  -1,
+                ) + 1,
+              weight: lastPlanned?.weight ?? 0,
+              reps: lastPlanned?.reps ?? 5,
+            },
+          ],
+        };
+      }),
+    });
+  }
+
+  function updateCompletedSet(
     workoutExerciseId: string,
     setOrder: number,
     weight: number,
@@ -204,21 +263,40 @@ export function WorkoutPage({
   }
 
   function deleteSet(workoutExerciseId: string, setOrder: number) {
-    const current = workoutRef.current;
-    if (!current) return;
-
     onChange({
-      ...current,
-      exercises: current.exercises.map((item) =>
-        item.id === workoutExerciseId
-          ? {
-              ...item,
-              completedSets: item.completedSets
-                .filter((set) => set.order !== setOrder)
-                .map((set, index) => ({ ...set, order: index })),
-            }
-          : item,
-      ),
+      ...workout,
+      exercises: workout.exercises.map((item) => {
+        if (item.id !== workoutExerciseId || item.plannedSets.length <= 1) {
+          return item;
+        }
+
+        const plannedSets = [...item.plannedSets]
+          .sort((a, b) => a.order - b.order)
+          .filter((set) => set.order !== setOrder)
+          .map((set, index) => ({ ...set, order: index }));
+        const completedSets = [...item.completedSets]
+          .sort((a, b) => a.order - b.order)
+          .filter((set) => set.order !== setOrder)
+          .map((set, index) => ({ ...set, order: index }));
+
+        return { ...item, plannedSets, completedSets };
+      }),
+    });
+  }
+
+  function ensurePlannedSets(workoutExerciseId: string) {
+    onChange({
+      ...workout,
+      exercises: workout.exercises.map((item) => {
+        if (item.id !== workoutExerciseId || item.plannedSets.length > 0) {
+          return item;
+        }
+
+        return {
+          ...item,
+          plannedSets: [{ order: 0, weight: 0, reps: 5 }],
+        };
+      }),
     });
   }
 
@@ -244,6 +322,7 @@ export function WorkoutPage({
       exercises={exercises}
       excludedExerciseIds={workout.exercises.map((item) => item.exerciseId)}
       workouts={history}
+      currentWorkout={workout}
       onSelect={addExercise}
       onClose={() => setExercisePickerOpen(false)}
       onExercisesChange={onExercisesChange}
@@ -294,11 +373,14 @@ export function WorkoutPage({
                 previousPerformance={
                   previousPerformanceByExerciseId.get(item.exerciseId) ?? null
                 }
-                focusWeight={item.id === focusExerciseId}
-                onWeightFocused={() => setFocusExerciseId(null)}
-                onAddSet={addSet}
-                onUpdateSet={updateSet}
+                focusFirstSet={item.id === focusExerciseId}
+                onFocusFirstSet={() => setFocusExerciseId(null)}
+                onCompleteSet={completeSet}
+                onUpdatePlannedSet={updatePlannedSet}
+                onUpdateCompletedSet={updateCompletedSet}
+                onAddPlannedSet={addPlannedSet}
                 onDeleteSet={deleteSet}
+                onEnsurePlannedSets={ensurePlannedSets}
                 progressionRecommendation={(() => {
                   const previous = latestCompletedExercise(item.exerciseId);
                   const exercise = exercises.find(

@@ -4,6 +4,7 @@ import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Templ
 import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { AddCustomExerciseModal } from "../components/AddCustomExerciseModal";
 import { formatLabel, selectInputOnClick, selectInputOnFocus } from "../shared";
+import { matchesExerciseSearch } from "../shared/exerciseSearch";
 
 type Props = {
   template: WorkoutTemplate | null;
@@ -32,9 +33,13 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
 
   const available = useMemo(() => {
     const used = new Set(items.map(x => x.exerciseId));
-    const q = query.trim().toLowerCase();
     return exercises
-      .filter(x => !x.archivedAt && !used.has(x.id) && (!q || x.name.toLowerCase().includes(q)))
+      .filter(
+        (x) =>
+          !x.archivedAt &&
+          !used.has(x.id) &&
+          matchesExerciseSearch(query, x.name, formatLabel(x.primaryMuscle)),
+      )
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [exercises, items, query]);
 

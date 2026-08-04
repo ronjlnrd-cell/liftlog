@@ -1,15 +1,22 @@
 import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
+import {
+  compareExercisesByUsage,
+  getExerciseUsageCounts,
+} from "../domain/analytics/exerciseUsage";
 import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { formatLabel } from "../shared";
+import { matchesExerciseSearch } from "../shared/exerciseSearch";
 import { AddCustomExerciseModal } from "./AddCustomExerciseModal";
+import { ExerciseIllustration } from "./ExerciseIllustration";
 
 type ExercisePickerPanelProps = {
   exercises: Exercise[];
   excludedExerciseIds: string[];
   onSelect: (exerciseId: string) => void;
   workouts: Workout[];
+  currentWorkout?: Workout | null;
   onExercisesChange?: () => Promise<void>;
 };
 
@@ -18,6 +25,7 @@ export function ExercisePickerPanel({
   excludedExerciseIds,
   onSelect,
   workouts,
+  currentWorkout = null,
   onExercisesChange,
 }: ExercisePickerPanelProps) {
   const [query, setQuery] = useState("");
@@ -26,40 +34,28 @@ export function ExercisePickerPanel({
   const [addError, setAddError] = useState("");
   const [addingExercise, setAddingExercise] = useState(false);
 
+  const usageCounts = useMemo(
+    () =>
+      getExerciseUsageCounts(workouts, {
+        extraWorkouts: currentWorkout ? [currentWorkout] : undefined,
+      }),
+    [workouts, currentWorkout],
+  );
+
   const availableExercises = useMemo(() => {
     const excluded = new Set(excludedExerciseIds);
-    const normalizedQuery = query.trim().toLowerCase();
-
-    const frequency = new Map<string, number>();
-    for (const workout of workouts ?? []) {
-      const performedInWorkout = new Set<string>();
-      for (const item of workout.exercises) {
-        if (item.completedSets.length > 0) {
-          performedInWorkout.add(item.exerciseId);
-        }
-      }
-      for (const exerciseId of performedInWorkout) {
-        frequency.set(exerciseId, (frequency.get(exerciseId) ?? 0) + 1);
-      }
-    }
 
     return exercises
       .filter((exercise) => !excluded.has(exercise.id))
-      .filter(
-        (exercise) =>
-          !normalizedQuery ||
-          exercise.name.toLowerCase().includes(normalizedQuery) ||
-          formatLabel(exercise.primaryMuscle)
-            .toLowerCase()
-            .includes(normalizedQuery),
+      .filter((exercise) =>
+        matchesExerciseSearch(
+          query,
+          exercise.name,
+          formatLabel(exercise.primaryMuscle),
+        ),
       )
-      .sort((a, b) => {
-        if (sortMode === "az") return a.name.localeCompare(b.name);
-        const difference =
-          (frequency.get(b.id) ?? 0) - (frequency.get(a.id) ?? 0);
-        return difference || a.name.localeCompare(b.name);
-      });
-  }, [exercises, excludedExerciseIds, query, sortMode, workouts]);
+      .sort((a, b) => compareExercisesByUsage(a, b, usageCounts, sortMode));
+  }, [exercises, excludedExerciseIds, query, sortMode, usageCounts]);
 
   function selectExercise(exerciseId: string) {
     onSelect(exerciseId);
@@ -84,7 +80,7 @@ export function ExercisePickerPanel({
   }
 
   return (
-    <>
+    <div className="exercise-picker-panel">
       <input
         className="search"
         autoFocus
@@ -93,7 +89,12 @@ export function ExercisePickerPanel({
         placeholder="Search by exercise or muscle…"
       />
 
-      <div className="exercise-sort-control" role="group" aria-label="Sort exercises">
+      <div
+        className="exercise-sort-control"
+        role="group"
+        aria-label="Sort exercises"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <button
           type="button"
           className={sortMode === "frequency" ? "active" : ""}
@@ -130,16 +131,34 @@ export function ExercisePickerPanel({
 
         {availableExercises.slice(0, 30).map((exercise) => (
           <button
-            className="card exercise-row"
+            className="card exercise-row exercise-picker-row"
             key={exercise.id}
             type="button"
             onClick={() => selectExercise(exercise.id)}
           >
-            <div>
-              <strong>{exercise.name}</strong>
-              <p>{formatLabel(exercise.primaryMuscle)}</p>
+            <div className="exercise-row-main">
+              <ExerciseIllustration
+                exerciseId={exercise.id}
+                className="exercise-row-thumbnail"
+              />
+              <div>
+                <strong>{exercise.name}</strong>
+                <p>{formatLabel(exercise.primaryMuscle)}</p>
+              </div>
             </div>
-            <span>＋</span>
+
+            {sortMode === "frequency" && (
+              <span
+                className="exercise-picker-usage"
+                title={`${usageCounts.get(exercise.id) ?? 0} workouts performed`}
+              >
+                {usageCounts.get(exercise.id) ?? 0}
+              </span>
+            )}
+
+            <span className="exercise-picker-add-icon" aria-hidden="true">
+              ＋
+            </span>
           </button>
         ))}
 
@@ -160,6 +179,6 @@ export function ExercisePickerPanel({
           onConfirm={handleCreateExercise}
         />
       )}
-    </>
+    </div>
   );
 }

@@ -24,6 +24,7 @@ type WorkoutSummaryPageProps = {
     exerciseId: string,
     suggestion: ProgressionCoachSuggestion,
   ) => Promise<void>;
+  onDeclineProgression?: (exerciseId: string) => void | Promise<void>;
   historical?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -72,6 +73,7 @@ export function WorkoutSummaryPage({
   unit,
   sourceTemplate = null,
   onApplyProgression,
+  onDeclineProgression,
   historical = false,
   onEdit,
   onDelete,
@@ -81,7 +83,10 @@ export function WorkoutSummaryPage({
   const [declinedExerciseIds, setDeclinedExerciseIds] = useState<Set<string>>(
     new Set(),
   );
-  const [appliedExerciseIds, setAppliedExerciseIds] = useState<Set<string>>(
+  const [selectedProgressions, setSelectedProgressions] = useState<
+    Map<string, ProgressionCoachSuggestion>
+  >(new Map());
+  const [openExerciseIds, setOpenExerciseIds] = useState<Set<string>>(
     new Set(),
   );
   const [applyingExerciseId, setApplyingExerciseId] = useState<string | null>(
@@ -98,27 +103,62 @@ export function WorkoutSummaryPage({
     [historical, workout, exercises],
   );
 
-  const visibleCoachPlan = progressionCoachPlan.filter(
-    (advice) => !declinedExerciseIds.has(advice.exerciseId),
-  );
+  const visibleCoachPlan = progressionCoachPlan;
 
   async function handleApplyProgression(
     exerciseId: string,
     suggestion: ProgressionCoachSuggestion,
   ) {
-    if (!onApplyProgression || appliedExerciseIds.has(exerciseId)) return;
+    if (!onApplyProgression) return;
 
     setApplyingExerciseId(exerciseId);
     try {
       await onApplyProgression(exerciseId, suggestion);
-      setAppliedExerciseIds((current) => new Set(current).add(exerciseId));
+      setSelectedProgressions((current) => {
+        const next = new Map(current);
+        next.set(exerciseId, suggestion);
+        return next;
+      });
+      setDeclinedExerciseIds((current) => {
+        const next = new Set(current);
+        next.delete(exerciseId);
+        return next;
+      });
+      setOpenExerciseIds((current) => {
+        const next = new Set(current);
+        next.delete(exerciseId);
+        return next;
+      });
     } finally {
       setApplyingExerciseId(null);
     }
   }
 
-  function declineProgression(exerciseId: string) {
+  function openExerciseForEditing(exerciseId: string) {
+    setOpenExerciseIds((current) => new Set(current).add(exerciseId));
+  }
+
+  function isExerciseCollapsed(exerciseId: string) {
+    if (openExerciseIds.has(exerciseId)) return false;
+    return (
+      selectedProgressions.has(exerciseId) ||
+      declinedExerciseIds.has(exerciseId)
+    );
+  }
+
+  async function declineProgression(exerciseId: string) {
     setDeclinedExerciseIds((current) => new Set(current).add(exerciseId));
+    setSelectedProgressions((current) => {
+      const next = new Map(current);
+      next.delete(exerciseId);
+      return next;
+    });
+    setOpenExerciseIds((current) => {
+      const next = new Set(current);
+      next.delete(exerciseId);
+      return next;
+    });
+    await onDeclineProgression?.(exerciseId);
   }
 
   const achievements: Achievement[] = [];
@@ -263,8 +303,9 @@ export function WorkoutSummaryPage({
         <article className="card summary-section progression-coach-section">
           <h2>Progression Coach</h2>
           <p className="section-subtitle">
-            Suggested targets for your next session.
-            {sourceTemplate && " Apply to update your template."}
+            Suggested targets for your next session. Tap an option to use it
+            next time you add that exercise.
+            {sourceTemplate && " Template workouts can also be updated."}
           </p>
           <div className="progression-coach-list">
             {visibleCoachPlan.map((advice) => {
@@ -276,31 +317,89 @@ export function WorkoutSummaryPage({
                 sourceTemplate.exercises.some(
                   (item) => item.exerciseId === advice.exerciseId,
                 );
-              const applied = appliedExerciseIds.has(advice.exerciseId);
+              const selected = selectedProgressions.get(advice.exerciseId);
+              const declined = declinedExerciseIds.has(advice.exerciseId);
+              const collapsed = isExerciseCollapsed(advice.exerciseId);
               const applying = applyingExerciseId === advice.exerciseId;
+
+              function applyLabel(suggestion: ProgressionCoachSuggestion) {
+                const isSelected = selected?.type === suggestion.type;
+                if (applying && isSelected) {
+                  return canApplyToTemplate ? "Updating template…" : "Saving…";
+                }
+                if (isSelected && collapsed) {
+                  return canApplyToTemplate
+                    ? "Saved · template updated"
+                    : "Saved for next workout";
+                }
+                if (isSelected) {
+                  return "Currently selected";
+                }
+                return canApplyToTemplate
+                  ? `Use next time · update ${sourceTemplate!.name}`
+                  : "Use next time";
+              }
+
+              function declineLabel() {
+                if (declined && collapsed) {
+                  return "Skipped for next workout";
+                }
+                if (declined) {
+                  return "Currently selected";
+                }
+                return "Skip progression for this exercise";
+              }
+
+              if (collapsed) {
+                return (
+                  <button
+                    type="button"
+                    className="progression-coach-exercise-collapsed"
+                    key={advice.exerciseId}
+                    onClick={() => openExerciseForEditing(advice.exerciseId)}
+                  >
+                    <div className="progression-coach-collapsed-main">
+                      <strong>{exercise?.name ?? "Exercise"}</strong>
+                      <p>
+                        {declined && !selected
+                          ? "Decline progression · Keep targets unchanged"
+                          : `${selected!.label} · ${selected!.detail} ${unit.toLowerCase()}`}
+                      </p>
+                    </div>
+                    <span className="progression-coach-collapsed-hint">
+                      Tap to change
+                    </span>
+                  </button>
+                );
+              }
 
               return (
                 <div className="progression-coach-exercise" key={advice.exerciseId}>
                   <div className="progression-coach-header">
                     <strong>{exercise?.name ?? "Exercise"}</strong>
                     <span className="progression-coach-status">
-                      {applied ? "Template updated" : advice.comparison.headline}
+                      {selected || declined
+                        ? "Change your selection"
+                        : advice.comparison.headline}
                     </span>
                   </div>
                   <p className="progression-coach-comparison">
                     {advice.comparison.detail}
                   </p>
                   <div className="progression-coach-suggestions">
-                    {advice.suggestions.map((suggestion, index) => (
+                    {advice.suggestions.map((suggestion, index) => {
+                      const isSelected = selected?.type === suggestion.type;
+
+                      return (
                       <div key={suggestion.type}>
                         {index > 0 && <div className="progression-or">or</div>}
-                        {canApplyToTemplate && onApplyProgression ? (
+                        {onApplyProgression ? (
                           <button
                             type="button"
                             className={`progression-coach-suggestion apply${
                               suggestion.recommended ? " recommended" : ""
-                            }${applied ? " applied" : ""}`}
-                            disabled={applied || applying}
+                            }${isSelected ? " applied" : ""}`}
+                            disabled={applying}
                             onClick={() =>
                               void handleApplyProgression(
                                 advice.exerciseId,
@@ -316,11 +415,7 @@ export function WorkoutSummaryPage({
                               )}
                             </p>
                             <span className="progression-coach-apply-label">
-                              {applied
-                                ? "Applied to template"
-                                : applying
-                                  ? "Updating template…"
-                                  : `Apply to ${sourceTemplate.name}`}
+                              {applyLabel(suggestion)}
                             </span>
                           </button>
                         ) : (
@@ -339,17 +434,28 @@ export function WorkoutSummaryPage({
                           </div>
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
+                    <div>
+                      {advice.suggestions.length > 0 && (
+                        <div className="progression-or">or</div>
+                      )}
+                      <button
+                        type="button"
+                        className={`progression-coach-suggestion apply${
+                          declined && !selected ? " applied" : ""
+                        }`}
+                        disabled={applying}
+                        onClick={() => void declineProgression(advice.exerciseId)}
+                      >
+                        <strong>Decline progression</strong>
+                        <p>Keep next session targets unchanged for this exercise.</p>
+                        <span className="progression-coach-apply-label">
+                          {declineLabel()}
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  {!applied && (
-                    <button
-                      type="button"
-                      className="text-button progression-coach-decline"
-                      onClick={() => declineProgression(advice.exerciseId)}
-                    >
-                      Decline progression
-                    </button>
-                  )}
                 </div>
               );
             })}

@@ -32,6 +32,11 @@ import { periodRepository } from "./data/repositories/PeriodRepository";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
 import { isCycleTrackingActive, mergeProfileWithCloud, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
 import {
+  clearExerciseProgressionPreset,
+  readExerciseProgressionPreset,
+  saveExerciseProgressionPreset,
+} from "./domain/workout/exerciseProgressionPresets";
+import {
   closeUserDatabase,
   openUserDatabase,
 } from "./data/database/databaseManager";
@@ -765,6 +770,34 @@ function App() {
     setPage("template-editor");
   }
 
+  async function applyProgressionChoice(
+    workout: Workout,
+    exerciseId: string,
+    option: { nextWeight: number; reps: number; sets: number; restSeconds?: number },
+  ) {
+    const workoutExercise = workout.exercises.find(
+      (item) => item.exerciseId === exerciseId,
+    );
+    const restSeconds =
+      option.restSeconds ?? workoutExercise?.plannedRestSeconds ?? 120;
+
+    if (session) {
+      saveExerciseProgressionPreset(session.user.id, exerciseId, {
+        nextWeight: option.nextWeight,
+        reps: option.reps,
+        sets: option.sets,
+        restSeconds,
+      });
+    }
+
+    if (workout.sourceTemplateId) {
+      await applyProgressionToSourceTemplate(workout, exerciseId, {
+        ...option,
+        restSeconds,
+      });
+    }
+  }
+
   async function applyProgressionToSourceTemplate(
     workout: Workout,
     exerciseId: string,
@@ -987,13 +1020,14 @@ function App() {
             onCancel={cancelWorkout}
             onProgressionApplied={(exerciseId, option) => {
               if (activeWorkout) {
-                return applyProgressionToSourceTemplate(
-                  activeWorkout,
-                  exerciseId,
-                  option,
-                );
+                return applyProgressionChoice(activeWorkout, exerciseId, option);
               }
             }}
+            getExerciseProgressionPreset={(exerciseId) =>
+              session
+                ? readExerciseProgressionPreset(session.user.id, exerciseId)
+                : null
+            }
             onExercisesChange={refreshExercises}
           />
         )}
@@ -1012,19 +1046,19 @@ function App() {
                 : null
             }
             onApplyProgression={(exerciseId, suggestion) => {
-              const workoutExercise = summaryWorkout.exercises.find(
-                (item) => item.exerciseId === exerciseId,
-              );
-              return applyProgressionToSourceTemplate(
-                summaryWorkout,
-                exerciseId,
-                {
-                  nextWeight: suggestion.nextWeight,
-                  reps: suggestion.reps,
-                  sets: suggestion.sets,
-                  restSeconds: workoutExercise?.plannedRestSeconds,
-                },
-              );
+              return applyProgressionChoice(summaryWorkout, exerciseId, {
+                nextWeight: suggestion.nextWeight,
+                reps: suggestion.reps,
+                sets: suggestion.sets,
+                restSeconds: summaryWorkout.exercises.find(
+                  (item) => item.exerciseId === exerciseId,
+                )?.plannedRestSeconds,
+              });
+            }}
+            onDeclineProgression={(exerciseId) => {
+              if (session) {
+                clearExerciseProgressionPreset(session.user.id, exerciseId);
+              }
             }}
             onDone={() => {
               setSummaryWorkout(null);

@@ -4,7 +4,7 @@ import { plannedWorkoutSucceeded } from "./progression";
 
 export type ProgressionCoachSuggestionType =
   | "increase-weight"
-  | "same-weight"
+  | "increase-sets"
   | "increase-reps";
 
 export type ProgressionCoachSuggestion = {
@@ -98,13 +98,13 @@ export function getProgressionCoachExerciseAdvice(
   );
   const succeeded = plannedWorkoutSucceeded(item);
 
-  const sameWeight: ProgressionCoachSuggestion = {
-    type: "same-weight",
-    label: "Stay at same weight",
-    detail: `${roundWeight(baseline.weight)} × ${baseline.reps} × ${baseline.sets}`,
+  const increaseSets: ProgressionCoachSuggestion = {
+    type: "increase-sets",
+    label: "Increase sets",
+    detail: `${roundWeight(baseline.weight)} × ${baseline.reps} × ${baseline.sets + 1}`,
     nextWeight: roundWeight(baseline.weight),
     reps: baseline.reps,
-    sets: baseline.sets,
+    sets: baseline.sets + 1,
   };
 
   const increaseWeight: ProgressionCoachSuggestion = {
@@ -132,7 +132,7 @@ export function getProgressionCoachExerciseAdvice(
       suggestions: [
         { ...increaseWeight, recommended: true },
         increaseReps,
-        sameWeight,
+        increaseSets,
       ],
     };
   }
@@ -141,7 +141,7 @@ export function getProgressionCoachExerciseAdvice(
     exerciseId: item.exerciseId,
     comparison: summarizePlannedVsCompleted(item),
     suggestions: [
-      { ...sameWeight, recommended: true },
+      { ...increaseSets, recommended: true },
       increaseReps,
     ],
   };

@@ -6,6 +6,11 @@ import { exerciseRepository } from "../data/repositories/ExerciseRepository";
 import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { ExerciseIllustration } from "../components/ExerciseIllustration";
 import { formatLabel } from "../shared";
+import {
+  compareExercisesByUsage,
+  getExerciseUsageCounts,
+} from "../domain/analytics/exerciseUsage";
+import { matchesExerciseSearch } from "../shared/exerciseSearch";
 
 type ExercisesPageProps = {
   exercises: Exercise[];
@@ -26,31 +31,21 @@ export function ExercisesPage({
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [sortMode, setSortMode] = useState<"frequency" | "alphabetical">("frequency");
 
-  const usageCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const workout of workouts) {
-      const performedInWorkout = new Set<string>();
-      for (const item of workout.exercises) {
-        if (item.completedSets.length > 0) performedInWorkout.add(item.exerciseId);
-      }
-      for (const exerciseId of performedInWorkout) {
-        counts.set(exerciseId, (counts.get(exerciseId) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [workouts]);
+  const usageCounts = useMemo(
+    () => getExerciseUsageCounts(workouts),
+    [workouts],
+  );
 
   const visible = useMemo(() => {
     const filtered = exercises.filter(
       (exercise) =>
         !exercise.archivedAt &&
-        exercise.name.toLowerCase().includes(query.toLowerCase()),
+        matchesExerciseSearch(query, exercise.name, formatLabel(exercise.primaryMuscle)),
     );
-    return [...filtered].sort((a, b) => {
-      if (sortMode === "alphabetical") return a.name.localeCompare(b.name);
-      const difference = (usageCounts.get(b.id) ?? 0) - (usageCounts.get(a.id) ?? 0);
-      return difference || a.name.localeCompare(b.name);
-    });
+    const mode = sortMode === "alphabetical" ? "az" : "frequency";
+    return [...filtered].sort((a, b) =>
+      compareExercisesByUsage(a, b, usageCounts, mode),
+    );
   }, [exercises, query, sortMode, usageCounts]);
 
   async function addExercise() {

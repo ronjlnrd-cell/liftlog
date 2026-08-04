@@ -36,3 +36,22 @@ export function getPreviousPerformanceByExerciseId(
 
   return result;
 }
+
+/** Most recent performance for one exercise from the active workout or history. */
+export function getLastExercisePerformance(
+  history: Workout[],
+  exerciseId: string,
+  currentWorkout?: Workout | null,
+): WorkoutExercise | null {
+  if (currentWorkout) {
+    const fromCurrent = [...currentWorkout.exercises]
+      .reverse()
+      .find((item) => item.exerciseId === exerciseId);
+    if (fromCurrent) {
+      if (fromCurrent.completedSets.length > 0) return fromCurrent;
+      if (fromCurrent.plannedSets.length > 0) return fromCurrent;
+    }
+  }
+
+  return getPreviousPerformanceByExerciseId(history, [exerciseId]).get(exerciseId) ?? null;
+}

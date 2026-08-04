@@ -1,12 +1,12 @@
 import type { ProgressionRecommendation, ProgressionOption } from "../../domain/analytics/progression";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
-import { formatLabel, selectInputOnClick, selectInputOnFocus } from "../../shared";
+import { formatLabel } from "../../shared";
 import type { PRType } from "../../domain/analytics/personalRecords";
 import { ProgressionPopup } from "./ProgressionPopup";
 import { RestTimer } from "./RestTimer";
-import { WorkoutExerciseComparison } from "./WorkoutExerciseComparison";
+import { WorkoutSetRows } from "./WorkoutSetRows";
 
 type WorkoutExerciseCardProps = {
   progressionRecommendation: ProgressionRecommendation | null;
@@ -18,20 +18,28 @@ type WorkoutExerciseCardProps = {
   exerciseCount: number;
   prTypesBySet: Map<string, PRType[]>;
   previousPerformance: WorkoutExercise | null;
-  onAddSet: (workoutExerciseId: string, weight: number, reps: number) => void;
-  onUpdateSet: (
+  onCompleteSet: (workoutExerciseId: string, setOrder: number) => void;
+  onUpdatePlannedSet: (
     workoutExerciseId: string,
     setOrder: number,
     weight: number,
     reps: number,
   ) => void;
+  onUpdateCompletedSet: (
+    workoutExerciseId: string,
+    setOrder: number,
+    weight: number,
+    reps: number,
+  ) => void;
+  onAddPlannedSet: (workoutExerciseId: string) => void;
   onDeleteSet: (workoutExerciseId: string, setOrder: number) => void;
+  onEnsurePlannedSets: (workoutExerciseId: string) => void;
   onMove: (workoutExerciseId: string, direction: -1 | 1) => void;
   onRemove: (workoutExerciseId: string) => void;
   onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
   updatesTemplate: boolean;
-  focusWeight?: boolean;
-  onWeightFocused?: () => void;
+  focusFirstSet?: boolean;
+  onFocusFirstSet?: () => void;
   restTimer?: {
     endAt: number;
     onSkip: () => void;
@@ -49,84 +57,27 @@ export function WorkoutExerciseCard({
   exerciseCount,
   prTypesBySet,
   previousPerformance,
-  onAddSet,
-  onUpdateSet,
+  onCompleteSet,
+  onUpdatePlannedSet,
+  onUpdateCompletedSet,
+  onAddPlannedSet,
   onDeleteSet,
+  onEnsurePlannedSets,
   onMove,
   onRemove,
   onRestChange,
   updatesTemplate,
-  focusWeight = false,
-  onWeightFocused,
+  focusFirstSet = false,
+  onFocusFirstSet,
   restTimer = null,
 }: WorkoutExerciseCardProps) {
-  const weightInputRef = useRef<HTMLInputElement>(null);
-  const plannedNext = item.plannedSets[item.completedSets.length];
-  const firstCompleted = item.completedSets[0];
-  const previous = item.completedSets.at(-1);
-  const [weight, setWeight] = useState(
-    firstCompleted?.weight ?? plannedNext?.weight ?? previous?.weight ?? 0,
-  );
-  const [reps, setReps] = useState(
-    firstCompleted?.reps ?? plannedNext?.reps ?? previous?.reps ?? 5,
-  );
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [progressionApplied, setProgressionApplied] = useState(false);
-  const [showExtraSetEntry, setShowExtraSetEntry] = useState(false);
-
-  const hasTemplatePlan = item.plannedSets.length > 0;
-  const templatePlanComplete =
-    hasTemplatePlan &&
-    item.completedSets.length >= item.plannedSets.length;
-  const showSetEntry = !templatePlanComplete || showExtraSetEntry;
 
   const showProgressionIcon =
     progressionRecommendation != null &&
     item.completedSets.length === 0 &&
     !progressionApplied;
-
-  useEffect(() => {
-    const first = item.completedSets[0];
-    if (first) {
-      setWeight(first.weight);
-      setReps(first.reps);
-      return;
-    }
-    const nextPlan = item.plannedSets[item.completedSets.length];
-    if (nextPlan) {
-      setWeight(nextPlan.weight ?? 0);
-      setReps(nextPlan.reps);
-    }
-  }, [item.completedSets.length, item.plannedSets]);
-
-  useEffect(() => {
-    if (!focusWeight || !weightInputRef.current) return;
-    weightInputRef.current.focus();
-    weightInputRef.current.select();
-    onWeightFocused?.();
-  }, [focusWeight, onWeightFocused]);
-
-  useEffect(() => {
-    if (!templatePlanComplete) {
-      setShowExtraSetEntry(false);
-    }
-  }, [templatePlanComplete]);
-
-  useEffect(() => {
-    if (!showExtraSetEntry || !weightInputRef.current) return;
-    weightInputRef.current.focus();
-    weightInputRef.current.select();
-  }, [showExtraSetEntry]);
-
-  function handleCompleteSet() {
-    onAddSet(item.id, weight, reps);
-    if (
-      hasTemplatePlan &&
-      item.completedSets.length + 1 >= item.plannedSets.length
-    ) {
-      setShowExtraSetEntry(false);
-    }
-  }
 
   function handleApplyProgression(option: ProgressionOption) {
     onApplyProgression(option);
@@ -186,15 +137,6 @@ export function WorkoutExerciseCard({
         </div>
       </div>
 
-      <WorkoutExerciseComparison
-        item={item}
-        unit={unit}
-        previousPerformance={previousPerformance}
-        prTypesBySet={prTypesBySet}
-        onUpdateSet={onUpdateSet}
-        onDeleteSet={onDeleteSet}
-      />
-
       {restTimer && (
         <RestTimer
           endAt={restTimer.endAt}
@@ -204,70 +146,21 @@ export function WorkoutExerciseCard({
         />
       )}
 
-      <div className="current-set-block">
-        {showSetEntry ? (
-          <>
-            <div className="set-entry">
-              <label>
-                Weight
-                <input
-                  ref={weightInputRef}
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={weight}
-                  onFocus={selectInputOnFocus}
-                  onClick={selectInputOnClick}
-                  onChange={(event) => setWeight(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                Reps
-                <input
-                  type="number"
-                  min="1"
-                  value={reps}
-                  onFocus={selectInputOnFocus}
-                  onClick={selectInputOnClick}
-                  onChange={(event) => setReps(Number(event.target.value))}
-                />
-              </label>
-              <button
-                className="primary"
-                disabled={reps < 1 || weight < 0}
-                onClick={handleCompleteSet}
-              >
-                Complete set
-              </button>
-            </div>
-
-            <label className="rest-setting">
-              Rest after set
-              <select
-                value={item.plannedRestSeconds}
-                onChange={(event) =>
-                  onRestChange(item.id, Number(event.target.value))
-                }
-              >
-                <option value={60}>1:00</option>
-                <option value={90}>1:30</option>
-                <option value={120}>2:00</option>
-                <option value={180}>3:00</option>
-                <option value={240}>4:00</option>
-                <option value={300}>5:00</option>
-              </select>
-            </label>
-          </>
-        ) : (
-          <button
-            type="button"
-            className="text-button add-extra-set-button"
-            onClick={() => setShowExtraSetEntry(true)}
-          >
-            + Add set
-          </button>
-        )}
-      </div>
+      <WorkoutSetRows
+        item={item}
+        unit={unit}
+        previousPerformance={previousPerformance}
+        prTypesBySet={prTypesBySet}
+        focusFirstSet={focusFirstSet}
+        onFocusFirstSet={onFocusFirstSet}
+        onUpdatePlannedSet={onUpdatePlannedSet}
+        onUpdateCompletedSet={onUpdateCompletedSet}
+        onCompleteSet={onCompleteSet}
+        onAddPlannedSet={onAddPlannedSet}
+        onDeleteSet={onDeleteSet}
+        onEnsurePlannedSets={onEnsurePlannedSets}
+        onRestChange={onRestChange}
+      />
 
       {progressionOpen && progressionRecommendation && (
         <ProgressionPopup
