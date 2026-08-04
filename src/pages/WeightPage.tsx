@@ -5,6 +5,8 @@ import {
   daysSinceLastPeriod,
   formatPeriodDate,
   getLatestPeriodEntry,
+  getLastCycleLength,
+  getRecentCycleLengths,
 } from "../domain/analytics/periodTracking";
 import { LogPeriodModal } from "../components/LogPeriodModal";
 import { localDateString, parseWeightInput } from "../shared";
@@ -112,6 +114,16 @@ export function WeightPage({
     [periodEntries],
   );
 
+  const lastCycleLength = useMemo(
+    () => getLastCycleLength(periodEntries),
+    [periodEntries],
+  );
+
+  const cycleLengthChart = useMemo(
+    () => buildCycleLengthBars(getRecentCycleLengths(periodEntries, 12)),
+    [periodEntries],
+  );
+
   const changeEntries = useMemo(
     () => filterByRange(entries, changeRange),
     [entries, changeRange],
@@ -212,6 +224,13 @@ export function WeightPage({
                 <span className="weight-stat-label">Days Since Last Period</span>
                 <strong className="weight-change-value">
                   {daysSincePeriod == null ? "—" : `${daysSincePeriod} days`}
+                </strong>
+              </div>
+              <div className="weight-overview-divider" aria-hidden="true" />
+              <div className="weight-stat-block">
+                <span className="weight-stat-label">Last Cycle Length</span>
+                <strong className="weight-change-value">
+                  {lastCycleLength == null ? "—" : `${lastCycleLength} days`}
                 </strong>
               </div>
             </>
@@ -336,6 +355,52 @@ export function WeightPage({
         )}
       </article>
 
+      {cycleTrackingEnabled && (
+        <article className="card weight-chart-card">
+          <div className="weight-chart-head">
+            <h2>Cycle length</h2>
+            <p className="muted cycle-chart-subtitle">Last 12 cycles</p>
+          </div>
+
+          {cycleLengthChart.length === 0 ? (
+            <div className="weight-empty">
+              Log at least two periods to see cycle length.
+            </div>
+          ) : (
+            <svg
+              className="weight-chart cycle-length-chart"
+              viewBox="0 0 700 260"
+              role="img"
+              aria-label="Cycle length for the last 12 cycles"
+            >
+              {cycleLengthChart.map((bar, index) => (
+                <g key={index}>
+                  <rect
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.width}
+                    height={bar.height}
+                    rx="6"
+                    fill="currentColor"
+                    opacity="0.82"
+                  >
+                    <title>{bar.label}</title>
+                  </rect>
+                  <text
+                    x={bar.x + bar.width / 2}
+                    y={248}
+                    textAnchor="middle"
+                    className="cycle-length-chart-label"
+                  >
+                    {bar.cycleNumber}
+                  </text>
+                </g>
+              ))}
+            </svg>
+          )}
+        </article>
+      )}
+
       <article className="card weight-history">
         <h2>Recent entries</h2>
         {entries.length === 0 && (!cycleTrackingEnabled || periodEntries.length === 0) ? (
@@ -422,4 +487,48 @@ function buildChartPoints(entries: BodyweightEntry[]) {
     y: 230 - 200 * ((entry.weight - lo) / (hi - lo)),
     label: `${entry.weight.toFixed(1)} · ${new Date(entry.recordedAt).toLocaleDateString()}`,
   }));
+}
+
+type CycleLengthBar = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  cycleNumber: number;
+};
+
+function buildCycleLengthBars(lengths: number[]): CycleLengthBar[] {
+  if (lengths.length === 0) return [];
+
+  const max = Math.max(...lengths, 1);
+  const chartBottom = 220;
+  const chartTop = 24;
+  const chartHeight = chartBottom - chartTop;
+  const startX = 36;
+  const endX = 664;
+  const availableWidth = endX - startX;
+  const barGap = 10;
+  const barWidth = Math.min(
+    42,
+    Math.max(12, (availableWidth - barGap * (lengths.length + 1)) / lengths.length),
+  );
+  const totalBarsWidth = lengths.length * barWidth + (lengths.length - 1) * barGap;
+  const offsetX = startX + (availableWidth - totalBarsWidth) / 2;
+
+  return lengths.map((days, index) => {
+    const barHeight = Math.max(8, (days / max) * chartHeight);
+    const x = offsetX + index * (barWidth + barGap);
+    const y = chartBottom - barHeight;
+    const cycleNumber = index + 1;
+
+    return {
+      x,
+      y,
+      width: barWidth,
+      height: barHeight,
+      label: `${days} days · cycle ${cycleNumber} of ${lengths.length}`,
+      cycleNumber,
+    };
+  });
 }

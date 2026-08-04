@@ -1283,12 +1283,17 @@ function App() {
             onClick={() => setPage(item)}
           >
             <span>{navIcon(item)}</span>
-            {formatLabel(item)}
+            {navLabel(item)}
           </button>
         ))}
       </nav>
     </div>
   );
+}
+
+function navLabel(page: Page) {
+  if (page === "weight") return "Weight and Health";
+  return formatLabel(page);
 }
 
 function navIcon(page: Page) {

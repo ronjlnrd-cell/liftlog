@@ -64,6 +64,32 @@ export function daysSinceLastPeriod(entries: PeriodEntry[]): number | null {
   return Math.max(0, Math.round(diffMs / 86_400_000));
 }
 
+export function getCycleLengths(entries: PeriodEntry[]): number[] {
+  const sorted = [...entries].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const lengths: number[] = [];
+
+  for (let index = 1; index < sorted.length; index += 1) {
+    const previous = parseLocalDate(sorted[index - 1].startDate);
+    const current = parseLocalDate(sorted[index].startDate);
+    const days = Math.round((current.getTime() - previous.getTime()) / 86_400_000);
+    lengths.push(Math.max(days, 0));
+  }
+
+  return lengths;
+}
+
+export function getLastCycleLength(entries: PeriodEntry[]): number | null {
+  const lengths = getCycleLengths(entries);
+  return lengths.length > 0 ? lengths[lengths.length - 1] : null;
+}
+
+export function getRecentCycleLengths(
+  entries: PeriodEntry[],
+  limit = 12,
+): number[] {
+  return getCycleLengths(entries).slice(-limit);
+}
+
 function parseLocalDate(value: string): Date {
   return new Date(`${value}T12:00:00`);
 }

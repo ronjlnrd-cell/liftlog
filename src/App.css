@@ -1189,7 +1189,19 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   color:var(--muted);
 }
 .weight-overview-main.with-cycle-stat {
-  grid-template-columns:1fr auto 1fr auto 1fr;
+  grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;
+}
+.cycle-chart-subtitle {
+  margin:0;
+  font-size:14px;
+}
+.cycle-length-chart {
+  color:var(--green-dark);
+}
+.cycle-length-chart-label {
+  fill:var(--muted);
+  font-size:12px;
+  font-weight:650;
 }
 .cycle-log-card {
   display:flex;
