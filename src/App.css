@@ -1627,25 +1627,22 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .templates-page-heading{align-items:flex-end;margin-bottom:8px}
 .templates-page-heading .page-title{margin-bottom:0}
 .template-picker{margin-bottom:16px}
-.template-picker .search{margin-top:0}
-.template-picker-list{margin-top:10px;max-height:320px;overflow:auto}
-.template-picker-item{
-  width:100%;
-  cursor:pointer;
-  text-align:left;
-  border:1px solid var(--line);
-  transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease;
+.template-picker .exercise-picker-panel{margin-top:0}
+.template-picker .exercise-picker-panel .search{margin-top:0;margin-bottom:14px}
+.template-picker .exercise-sort-control{margin-bottom:0}
+.template-picker .exercise-picker-modal-list{
+  max-height:320px;
+  overflow-y:auto;
+  flex:initial;
+  min-height:0;
+  margin-top:10px;
 }
-.template-picker-item:hover{
-  transform:translateY(-1px);
-  border-color:#e0c0c0;
-  box-shadow:0 9px 24px rgba(50,20,20,.08);
+.template-picker .exercise-picker-row{
+  position:relative;
+  padding-right:88px;
+  align-items:center;
 }
-.template-picker-item:focus-visible{
-  outline:3px solid rgba(180,35,24,.2);
-  outline-offset:2px;
-}
-.template-picker-item p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.template-picker .exercise-picker-row .exercise-row-main{min-width:0}
 .template-sets{display:grid;gap:8px;margin-top:12px}
 .template-set-row{display:grid;grid-template-columns:64px 1fr 1fr 38px;gap:8px;align-items:end}
 .template-set-row label{font-size:12px}.template-set-row input{width:100%}
@@ -1739,7 +1736,7 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
   .template-exercises-heading{margin:18px 0 12px}
   .template-add-row-bottom{margin-top:16px}
   .template-picker{padding:16px}
-  .template-picker-list{max-height:240px}
+  .template-picker .exercise-picker-modal-list{max-height:240px}
   .clean-template-card{padding:16px 14px 14px;padding-top:44px}
   .clean-template-card .template-exercise-head{padding-left:0;padding-right:0}
   .template-title-with-drag{align-items:flex-start;gap:10px}

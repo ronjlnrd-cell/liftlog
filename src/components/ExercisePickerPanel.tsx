@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
 import {
@@ -30,6 +30,7 @@ export function ExercisePickerPanel({
 }: ExercisePickerPanelProps) {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<"frequency" | "az">("frequency");
+  const [sortModeChosen, setSortModeChosen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addError, setAddError] = useState("");
   const [addingExercise, setAddingExercise] = useState(false);
@@ -41,6 +42,17 @@ export function ExercisePickerPanel({
       }),
     [workouts, currentWorkout],
   );
+
+  const hasUsageHistory = useMemo(
+    () => [...usageCounts.values()].some((count) => count > 0),
+    [usageCounts],
+  );
+
+  useEffect(() => {
+    if (!sortModeChosen) {
+      setSortMode(hasUsageHistory ? "frequency" : "az");
+    }
+  }, [hasUsageHistory, sortModeChosen]);
 
   const availableExercises = useMemo(() => {
     const excluded = new Set(excludedExerciseIds);
@@ -98,14 +110,20 @@ export function ExercisePickerPanel({
         <button
           type="button"
           className={sortMode === "frequency" ? "active" : ""}
-          onClick={() => setSortMode("frequency")}
+          onClick={() => {
+            setSortModeChosen(true);
+            setSortMode("frequency");
+          }}
         >
           Most used
         </button>
         <button
           type="button"
           className={sortMode === "az" ? "active" : ""}
-          onClick={() => setSortMode("az")}
+          onClick={() => {
+            setSortModeChosen(true);
+            setSortMode("az");
+          }}
         >
           A–Z
         </button>

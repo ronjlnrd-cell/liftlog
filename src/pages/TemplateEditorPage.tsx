@@ -1,48 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { WorkoutTemplate, TemplateExercise } from "../domain/entities/Template";
-import { createCustomExercise } from "../domain/exercises/createCustomExercise";
-import { AddCustomExerciseModal } from "../components/AddCustomExerciseModal";
-import { ExerciseIllustration } from "../components/ExerciseIllustration";
-import { formatLabel, selectInputOnClick, selectInputOnFocus } from "../shared";
-import { matchesExerciseSearch } from "../shared/exerciseSearch";
+import type { Workout } from "../domain/entities/workout";
+import { ExercisePickerPanel } from "../components/ExercisePickerPanel";
+import { selectInputOnClick, selectInputOnFocus } from "../shared";
 
 type Props = {
   template: WorkoutTemplate | null;
   exercises: Exercise[];
+  workouts: Workout[];
   isNew?: boolean;
   onCancel: () => void;
   onSave: (template: WorkoutTemplate) => Promise<void>;
   onExercisesChange?: () => Promise<void>;
 };
 
-export function TemplateEditorPage({ template, exercises, isNew = false, onCancel, onSave, onExercisesChange }: Props) {
+export function TemplateEditorPage({ template, exercises, workouts, isNew = false, onCancel, onSave, onExercisesChange }: Props) {
   const [name, setName] = useState(template?.name ?? "");
   const [items, setItems] = useState<TemplateExercise[]>(template?.exercises ?? []);
   const [adding, setAdding] = useState(false);
-  const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addError, setAddError] = useState("");
-  const [addingExercise, setAddingExercise] = useState(false);
+
+  const excludedExerciseIds = useMemo(
+    () => items.map((item) => item.exerciseId),
+    [items],
+  );
 
   useEffect(() => {
     setName(template?.name ?? "");
     setItems(template?.exercises.map((x) => ({ ...x, plannedSets: x.plannedSets.map(s => ({...s})) })) ?? []);
   }, [template]);
-
-  const available = useMemo(() => {
-    const used = new Set(items.map(x => x.exerciseId));
-    return exercises
-      .filter(
-        (x) =>
-          !x.archivedAt &&
-          !used.has(x.id) &&
-          matchesExerciseSearch(query, x.name, formatLabel(x.primaryMuscle)),
-      )
-      .sort((a,b) => a.name.localeCompare(b.name));
-  }, [exercises, items, query]);
 
   if (!template) {
     return (
@@ -73,23 +61,7 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
       exerciseId, order: items.length, plannedRestSeconds: 120,
       plannedSets: [{ order: 0, weight: null, reps: 8 }],
     }]));
-    setAdding(false); setQuery("");
-  }
-  async function handleCreateExercise(name: string) {
-    setAddingExercise(true);
-    setAddError("");
-
-    const result = await createCustomExercise(name, exercises);
-    if (!result.ok) {
-      setAddError(result.error);
-      setAddingExercise(false);
-      return;
-    }
-
-    await onExercisesChange?.();
-    setAddingExercise(false);
-    setShowAddModal(false);
-    addExercise(result.exercise.id);
+    setAdding(false);
   }
   function updateItem(index: number, patch: Partial<TemplateExercise>) {
     setItems(items.map((x,i) => i === index ? { ...x, ...patch } : x));
@@ -240,61 +212,16 @@ export function TemplateEditorPage({ template, exercises, isNew = false, onCance
         {adding ? "Close picker" : "Add exercise"}
       </button>
     </div>
-    {adding && <article className="card template-picker">
-      <input className="search" autoFocus placeholder="Search exercises…" value={query} onChange={e=>setQuery(e.target.value)}/>
-      <div className="exercise-list template-picker-list">
-        <button
-          type="button"
-          className="card exercise-row template-picker-item exercise-row-add-new"
-          onClick={() => {
-            setAddError("");
-            setShowAddModal(true);
-          }}
-        >
-          <div>
-            <strong>Add new exercise</strong>
-            <p>Create a custom exercise</p>
-          </div>
-          <span className="add-custom-icon" aria-hidden="true">
-            +
-          </span>
-        </button>
-        {available.slice(0, 30).map((ex) => (
-          <button
-            key={ex.id}
-            type="button"
-            className="card exercise-row template-picker-item"
-            onClick={() => addExercise(ex.id)}
-          >
-            <div className="exercise-row-main">
-              <ExerciseIllustration
-                exerciseId={ex.id}
-                className="exercise-row-thumbnail"
-              />
-              <div>
-                <strong>{ex.name}</strong>
-                <p>{formatLabel(ex.primaryMuscle)}</p>
-              </div>
-            </div>
-            <span className="add-custom-icon" aria-hidden="true">
-              +
-            </span>
-          </button>
-        ))}
-        {available.length === 0 && <p className="muted-center">No matching exercises.</p>}
-      </div>
-    </article>}
-    {showAddModal && (
-      <AddCustomExerciseModal
-        error={addError}
-        saving={addingExercise}
-        onClose={() => {
-          if (addingExercise) return;
-          setShowAddModal(false);
-          setAddError("");
-        }}
-        onConfirm={handleCreateExercise}
-      />
+    {adding && (
+      <article className="card template-picker">
+        <ExercisePickerPanel
+          exercises={exercises}
+          excludedExerciseIds={excludedExerciseIds}
+          workouts={workouts}
+          onSelect={addExercise}
+          onExercisesChange={onExercisesChange}
+        />
+      </article>
     )}
   </section>;
 }

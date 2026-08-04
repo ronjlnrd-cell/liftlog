@@ -1144,6 +1144,7 @@ function App() {
             }
             isNew={Boolean(creatingTemplate)}
             exercises={exercises}
+            workouts={workouts}
             onCancel={() => {
               setEditingTemplateId(null);
               setCreatingTemplate(null);
