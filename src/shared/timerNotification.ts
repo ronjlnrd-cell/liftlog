@@ -9,6 +9,7 @@ const REST_TIMER_MESSAGE = {
   START: "REST_TIMER_START",
   STOP: "REST_TIMER_STOP",
   SYNC: "REST_TIMER_SYNC",
+  HEARTBEAT: "REST_TIMER_HEARTBEAT",
   COMPLETE: "REST_TIMER_COMPLETE",
 } as const;
 
@@ -113,9 +114,11 @@ function stopRestTimerNotificationLoop() {
   stopRestTimerKeepAlive();
 }
 
-function tickRestTimerNotification(forceRefresh = false) {
+function tickRestTimerNotification() {
   const timer = activeNotificationTimer;
   if (!timer) return;
+
+  void postToServiceWorker({ type: REST_TIMER_MESSAGE.HEARTBEAT });
 
   const secondsLeft = Math.max(
     0,
@@ -123,12 +126,13 @@ function tickRestTimerNotification(forceRefresh = false) {
   );
   if (secondsLeft <= 0) return;
 
-  void updateRestTimerNotification(
-    secondsLeft,
-    timer.exerciseName,
-    timer.endAt,
-    forceRefresh,
-  );
+  if (document.visibilityState === "visible") {
+    void updateRestTimerNotification(
+      secondsLeft,
+      timer.exerciseName,
+      timer.endAt,
+    );
+  }
 }
 
 function startRestTimerNotificationLoop(endAt: number, exerciseName?: string) {
@@ -136,10 +140,8 @@ function startRestTimerNotificationLoop(endAt: number, exerciseName?: string) {
   activeNotificationTimer = { endAt, exerciseName };
   startRestTimerKeepAlive();
 
-  tickRestTimerNotification(true);
-  notificationTickInterval = window.setInterval(() => {
-    tickRestTimerNotification(document.visibilityState === "hidden");
-  }, 1000);
+  tickRestTimerNotification();
+  notificationTickInterval = window.setInterval(tickRestTimerNotification, 1000);
 }
 
 export function prepareTimerNotification() {
@@ -173,7 +175,6 @@ export async function updateRestTimerNotification(
   secondsLeft: number,
   exerciseName?: string,
   endAt?: number,
-  forceRefresh = false,
 ) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
@@ -183,7 +184,7 @@ export async function updateRestTimerNotification(
     return;
   }
 
-  if (!forceRefresh && secondsLeft === lastNotifiedSecond) return;
+  if (secondsLeft === lastNotifiedSecond) return;
   lastNotifiedSecond = secondsLeft;
 
   const registration = await registerTimerServiceWorker();
@@ -194,10 +195,6 @@ export async function updateRestTimerNotification(
   const timerEndAt = endAt ?? Date.now() + secondsLeft * 1000;
 
   try {
-    if (forceRefresh) {
-      await clearRestTimerNotification();
-    }
-
     await registration.showNotification(title, {
       body,
       tag: REST_TIMER_TAG,
@@ -252,8 +249,6 @@ export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
     activeNotificationTimer.exerciseName !== exerciseName
   ) {
     startRestTimerNotificationLoop(endAt, exerciseName);
-  } else {
-    tickRestTimerNotification(true);
   }
 
   void postToServiceWorker({
