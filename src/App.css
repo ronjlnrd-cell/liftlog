@@ -353,8 +353,26 @@ h2 { margin:0; color:var(--ink); }
   margin-top:-2px;
 }
 .workout-set-rest {
-  margin-top:14px;
-  max-width:220px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: none;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.rest-setting.workout-set-rest select {
+  min-height: 30px;
+  height: 30px;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  width: auto;
+  min-width: 68px;
 }
 .current-set-block {
   margin-top:16px;
@@ -365,8 +383,8 @@ h2 { margin:0; color:var(--ink); }
   margin-top:0;
 }
 .current-set-block .rest-setting {
-  margin-top:12px;
-  max-width:220px;
+  margin-top: 10px;
+  max-width: none;
 }
 .add-extra-set-button {
   font-size:14px;
