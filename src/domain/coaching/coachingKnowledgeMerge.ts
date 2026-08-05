@@ -38,9 +38,13 @@ export function chooseCoachingKnowledgeEntry<T extends CoachingKnowledgeEntry>(
     }
   }
 
-  return new Date(local.createdAt).getTime() >= new Date(cloud.createdAt).getTime()
-    ? local
-    : cloud;
+  const localNewer =
+    new Date(local.createdAt).getTime() >= new Date(cloud.createdAt).getTime();
+  const chosen = localNewer ? local : cloud;
+  return {
+    ...chosen,
+    sourceTemplateId: local.sourceTemplateId ?? cloud.sourceTemplateId,
+  };
 }
 
 export function mergeCoachingKnowledgeEntries<T extends CoachingKnowledgeEntry>(

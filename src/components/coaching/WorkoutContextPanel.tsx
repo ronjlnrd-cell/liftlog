@@ -54,12 +54,8 @@ export function WorkoutContextPanel({
         </div>
       </div>
 
-      {currentContext ? (
+      {currentContext && (
         <p className="coaching-knowledge-current">{currentContext.content}</p>
-      ) : (
-        <p className="coaching-knowledge-hint muted">
-          Capture sleep, stress, or anything affecting today&apos;s session.
-        </p>
       )}
 
       {addModalOpen && (

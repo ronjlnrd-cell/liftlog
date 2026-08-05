@@ -6,6 +6,7 @@ import {
   coachingEntryMatchesTemplate,
   getCoachingWorkoutTemplateContext,
 } from "./coachingTemplateContext";
+import { resolveCoachingEntryDate } from "./coachingHistoryUtils";
 
 export type CoachObservationHistoryRow = {
   id: string;
@@ -50,10 +51,6 @@ export function getCoachObservationHistoryRows(
       );
     })
     .map((entry) => {
-      const workout = workoutById.get(entry.workoutId);
-      const date = workout
-        ? workout.completedAt ?? workout.startedAt
-        : new Date(entry.createdAt);
       const templateContext = getCoachingWorkoutTemplateContext(
         entry.workoutId,
         workouts,
@@ -66,7 +63,11 @@ export function getCoachObservationHistoryRows(
       return {
         id: entry.id,
         workoutId: entry.workoutId,
-        date,
+        date: resolveCoachingEntryDate(
+          entry.workoutId,
+          entry.createdAt,
+          workoutById,
+        ),
         workoutLabel: templateContext.workoutLabel,
         setOrder: entry.setOrder,
         content: entry.content,

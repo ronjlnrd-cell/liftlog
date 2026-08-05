@@ -6,6 +6,7 @@ import {
   coachingEntryMatchesTemplate,
   getCoachingWorkoutTemplateContext,
 } from "./coachingTemplateContext";
+import { resolveCoachingEntryDate } from "./coachingHistoryUtils";
 
 export type ExerciseSetupHistoryRow = {
   id: string;
@@ -36,6 +37,7 @@ export function getExerciseSetupHistoryRows(
 
   return entries
     .filter((entry) => entry.exerciseId === options.exerciseId)
+    .filter((entry) => entry.content.trim().length > 0)
     .filter((entry) => entry.workoutId !== options.excludeWorkoutId)
     .filter((entry) => {
       if (!options.sameTemplateOnly) return true;
@@ -49,10 +51,6 @@ export function getExerciseSetupHistoryRows(
       );
     })
     .map((entry) => {
-      const workout = workoutById.get(entry.workoutId);
-      const date = workout
-        ? workout.completedAt ?? workout.startedAt
-        : new Date(entry.createdAt);
       const templateContext = getCoachingWorkoutTemplateContext(
         entry.workoutId,
         workouts,
@@ -65,7 +63,11 @@ export function getExerciseSetupHistoryRows(
       return {
         id: entry.id,
         workoutId: entry.workoutId,
-        date,
+        date: resolveCoachingEntryDate(
+          entry.workoutId,
+          entry.createdAt,
+          workoutById,
+        ),
         workoutLabel: templateContext.workoutLabel,
         content: entry.content,
         sourceTemplateId: templateContext.sourceTemplateId,

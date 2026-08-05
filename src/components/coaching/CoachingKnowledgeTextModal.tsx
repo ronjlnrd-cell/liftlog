@@ -7,6 +7,7 @@ type CoachingKnowledgeTextModalProps = {
   placeholder: string;
   confirmLabel?: string;
   initialValue?: string;
+  allowEmpty?: boolean;
   onSave: (content: string) => Promise<void>;
   onClose: () => void;
 };
@@ -17,6 +18,7 @@ export function CoachingKnowledgeTextModal({
   placeholder,
   confirmLabel = "Save",
   initialValue = "",
+  allowEmpty = false,
   onSave,
   onClose,
 }: CoachingKnowledgeTextModalProps) {
@@ -26,7 +28,7 @@ export function CoachingKnowledgeTextModal({
 
   async function handleSave() {
     const trimmed = content.trim();
-    if (!trimmed) {
+    if (!trimmed && !allowEmpty) {
       setError("Enter a short description.");
       return;
     }
@@ -85,7 +87,7 @@ export function CoachingKnowledgeTextModal({
           <button
             type="button"
             className="primary"
-            disabled={busy || !content.trim()}
+            disabled={busy || (!allowEmpty && !content.trim())}
             onClick={() => void handleSave()}
           >
             {busy ? "Saving…" : confirmLabel}

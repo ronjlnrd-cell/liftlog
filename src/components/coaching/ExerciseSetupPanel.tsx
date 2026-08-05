@@ -54,7 +54,7 @@ export function ExerciseSetupPanel({
             className="text-button coaching-knowledge-add"
             onClick={() => setEditModalOpen(true)}
           >
-            {effectiveSetup.content ? "Edit" : "Add"}
+            {effectiveSetup.entry ? "Edit" : "Add"}
           </button>
           <button
             type="button"
@@ -69,9 +69,11 @@ export function ExerciseSetupPanel({
       {effectiveSetup.content ? (
         <p className="coaching-knowledge-current">{effectiveSetup.content}</p>
       ) : (
-        <p className="coaching-knowledge-hint muted">
-          Capture grip, equipment, angle, or support for this exercise.
-        </p>
+        !effectiveSetup.entry && (
+          <p className="coaching-knowledge-hint muted">
+            Capture grip, equipment, angle, or support for this exercise.
+          </p>
+        )
       )}
 
       {editModalOpen && (
@@ -80,7 +82,8 @@ export function ExerciseSetupPanel({
           description="Capture grip, equipment, angle, or support used for this exercise."
           placeholder="Medium grip, wrist wraps, bench #2…"
           confirmLabel="Save setup"
-          initialValue={effectiveSetup.content ?? ""}
+          allowEmpty
+          initialValue={effectiveSetup.entry?.content ?? effectiveSetup.content ?? ""}
           onClose={() => setEditModalOpen(false)}
           onSave={onSave}
         />

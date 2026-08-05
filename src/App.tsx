@@ -40,6 +40,7 @@ import {
 } from "./domain/coaching/coachingKnowledgePreferences";
 import { getWorkoutContextForWorkout } from "./domain/coaching/coachingKnowledgeQueries";
 import { mergeCoachingKnowledgeEntries, mergeTemplates } from "./domain/coaching/coachingKnowledgeMerge";
+import { buildWorkoutsForCoachingContext } from "./domain/coaching/coachingTemplateContext";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
 import { useConfirm } from "./components/ConfirmProvider";
 import { isCycleTrackingActive, mergeProfileWithCloud, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
@@ -175,7 +176,11 @@ function chooseWorkout(
     ? new Date(local.updatedAt).getTime()
     : new Date(local.completedAt ?? local.startedAt).getTime();
 
-  return localTime >= cloudTime ? local : cloud.workout;
+  const chosen = localTime >= cloudTime ? local : cloud.workout;
+  return {
+    ...chosen,
+    sourceTemplateId: local.sourceTemplateId ?? cloud.workout.sourceTemplateId,
+  };
 }
 
 function compareWorkoutsNewestFirst(a: Workout, b: Workout): number {
@@ -307,14 +312,18 @@ function App() {
     const normalizedActive = activeData
       ? ensureWorkoutExerciseIds(activeData)
       : null;
+    const workoutsForEnrich = buildWorkoutsForCoachingContext(
+      normalizedActive,
+      normalizedWorkouts,
+    );
 
     await coachingKnowledgeRepository.enrichTemplateLinks(
-      normalizedWorkouts,
+      workoutsForEnrich,
       templateData,
     );
     await repairTemplateLinkedCoachingEntries(normalizedWorkouts, templateData);
     await coachingKnowledgeRepository.enrichTemplateLinks(
-      normalizedWorkouts,
+      workoutsForEnrich,
       templateData,
     );
 
@@ -358,6 +367,30 @@ function App() {
   }
 
   async function refreshCoachingKnowledge() {
+    const [workoutData, templateData, activeData] = await Promise.all([
+      workoutRepository.getAll(),
+      templateRepository.getAll(),
+      workoutRepository.getActive(),
+    ]);
+    const normalizedWorkouts = workoutData.map(ensureWorkoutExerciseIds);
+    const normalizedActive = activeData
+      ? ensureWorkoutExerciseIds(activeData)
+      : null;
+    const workoutsForEnrich = buildWorkoutsForCoachingContext(
+      normalizedActive,
+      normalizedWorkouts,
+    );
+
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      workoutsForEnrich,
+      templateData,
+    );
+    await repairTemplateLinkedCoachingEntries(normalizedWorkouts, templateData);
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      workoutsForEnrich,
+      templateData,
+    );
+
     const [contextData, setupData, observationData] = await Promise.all([
       coachingKnowledgeRepository.getWorkoutContexts(),
       coachingKnowledgeRepository.getExerciseSetups(),
@@ -368,6 +401,14 @@ function App() {
     setCoachObservations(observationData);
   }
 
+  async function resolveActiveCoachingSourceTemplateId(): Promise<
+    string | undefined
+  > {
+    const storedActive = await workoutRepository.getActive();
+    const workout = storedActive ?? activeWorkout;
+    return workout?.sourceTemplateId;
+  }
+
   async function saveWorkoutContextEntry(content: string) {
     if (!session || !activeWorkout) {
       throw new Error("Your session expired. Sign in again.");
@@ -376,13 +417,15 @@ function App() {
       throw new Error("This workout already has context saved.");
     }
 
+    const sourceTemplateId = await resolveActiveCoachingSourceTemplateId();
+
     const entry: WorkoutContextEntry = {
       id: crypto.randomUUID(),
       userId: session.user.id,
       workoutId: activeWorkout.id,
       content,
       createdAt: new Date().toISOString(),
-      sourceTemplateId: activeWorkout.sourceTemplateId,
+      sourceTemplateId,
     };
 
     await coachingKnowledgeRepository.saveWorkoutContext(entry);
@@ -410,8 +453,14 @@ function App() {
       (entry) => entry.workoutExerciseId === workoutExerciseId,
     );
 
+    const sourceTemplateId = await resolveActiveCoachingSourceTemplateId();
+
     const entry: ExerciseSetupEntry = existing
-      ? { ...existing, content, sourceTemplateId: activeWorkout.sourceTemplateId ?? existing.sourceTemplateId }
+      ? {
+          ...existing,
+          content,
+          sourceTemplateId: sourceTemplateId ?? existing.sourceTemplateId,
+        }
       : {
           id: crypto.randomUUID(),
           userId: session.user.id,
@@ -420,7 +469,7 @@ function App() {
           exerciseId,
           content,
           createdAt: new Date().toISOString(),
-          sourceTemplateId: activeWorkout.sourceTemplateId,
+          sourceTemplateId,
         };
 
     await coachingKnowledgeRepository.saveExerciseSetup(entry);
@@ -445,6 +494,8 @@ function App() {
       throw new Error("Your session expired. Sign in again.");
     }
 
+    const sourceTemplateId = await resolveActiveCoachingSourceTemplateId();
+
     const entry: CoachObservationEntry = {
       id: crypto.randomUUID(),
       userId: session.user.id,
@@ -454,7 +505,7 @@ function App() {
       setOrder,
       content,
       createdAt: new Date().toISOString(),
-      sourceTemplateId: activeWorkout.sourceTemplateId,
+      sourceTemplateId,
     };
 
     await coachingKnowledgeRepository.saveCoachObservation(entry);
@@ -707,13 +758,22 @@ function App() {
       ),
     ]);
 
-    await coachingKnowledgeRepository.enrichTemplateLinks(
+    const activeForEnrich = await workoutRepository.getActive();
+    const normalizedActive = activeForEnrich
+      ? ensureWorkoutExerciseIds(activeForEnrich)
+      : null;
+    const workoutsForEnrich = buildWorkoutsForCoachingContext(
+      normalizedActive,
       mergedWorkouts,
+    );
+
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      workoutsForEnrich,
       mergedTemplates,
     );
     await repairTemplateLinkedCoachingEntries(mergedWorkouts, mergedTemplates);
     await coachingKnowledgeRepository.enrichTemplateLinks(
-      mergedWorkouts,
+      workoutsForEnrich,
       mergedTemplates,
     );
 
