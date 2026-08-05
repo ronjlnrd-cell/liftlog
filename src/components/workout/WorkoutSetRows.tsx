@@ -10,6 +10,10 @@ import {
   type PRType,
 } from "../../domain/analytics/personalRecords";
 import { selectInputOnClick, selectInputOnFocus } from "../../shared";
+import {
+  formatPlannedRestLabel,
+  getPlannedRestOptions,
+} from "../../domain/workout/restOptions";
 import { CoachObservationSetAction } from "../coaching/CoachObservationsPanel";
 
 type WorkoutSetRowsProps = {
@@ -94,6 +98,10 @@ export function WorkoutSetRows({
     return [...previousPerformance.completedSets].sort((a, b) => a.order - b.order);
   }, [previousPerformance]);
   const hasPrevious = previousSets.length > 0;
+  const restOptions = useMemo(
+    () => getPlannedRestOptions(item.plannedRestSeconds),
+    [item.plannedRestSeconds],
+  );
   const firstPendingOrder = sortedPlanned.find(
     (planned) => !completedByOrder.has(planned.order),
   )?.order;
@@ -269,12 +277,11 @@ export function WorkoutSetRows({
               onRestChange(item.id, Number(event.target.value))
             }
           >
-            <option value={60}>1:00</option>
-            <option value={90}>1:30</option>
-            <option value={120}>2:00</option>
-            <option value={180}>3:00</option>
-            <option value={240}>4:00</option>
-            <option value={300}>5:00</option>
+            {restOptions.map((seconds) => (
+              <option key={seconds} value={seconds}>
+                {formatPlannedRestLabel(seconds)}
+              </option>
+            ))}
           </select>
         </div>
 
