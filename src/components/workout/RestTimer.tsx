@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   clearRestTimerNotification,
   ensureNotificationPermission,
@@ -78,7 +79,7 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [endAt]);
+  }, [endAt, exerciseName]);
 
   useEffect(() => {
     if (secondsLeft > 0) return;
@@ -91,34 +92,50 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
     onSkip();
   }
 
-  return (
-    <div className="rest-timer card">
-      <div>
-        <span>Rest timer</span>
-        <strong>
-          {Math.floor(secondsLeft / 60)}:
-          {String(secondsLeft % 60).padStart(2, "0")}
-        </strong>
+  const timeLabel = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
+  return createPortal(
+    <div
+      className="rest-timer-bubble"
+      role="timer"
+      aria-live="polite"
+      aria-label={
+        exerciseName
+          ? `Rest timer for ${exerciseName}: ${timeLabel} remaining`
+          : `Rest timer: ${timeLabel} remaining`
+      }
+    >
+      <button
+        type="button"
+        className="rest-timer-bubble-btn"
+        aria-label="Subtract 30 seconds"
+        onClick={() => onAdjust(-30)}
+      >
+        −
+      </button>
+      <div className="rest-timer-bubble-display">
+        <strong>{timeLabel}</strong>
+        {exerciseName && (
+          <span className="rest-timer-bubble-label">{exerciseName}</span>
+        )}
       </div>
-      <div className="rest-timer-actions">
-        <button
-          type="button"
-          className="rest-timer-adjust"
-          onClick={() => onAdjust(-30)}
-        >
-          −30 sec
-        </button>
-        <button
-          type="button"
-          className="rest-timer-adjust"
-          onClick={() => onAdjust(30)}
-        >
-          +30 sec
-        </button>
-        <button className="text-button" type="button" onClick={handleSkip}>
-          Skip
-        </button>
-      </div>
-    </div>
+      <button
+        type="button"
+        className="rest-timer-bubble-btn"
+        aria-label="Add 30 seconds"
+        onClick={() => onAdjust(30)}
+      >
+        +
+      </button>
+      <button
+        type="button"
+        className="rest-timer-bubble-skip"
+        aria-label="Skip rest timer"
+        onClick={handleSkip}
+      >
+        ×
+      </button>
+    </div>,
+    document.body,
   );
 }

@@ -3,6 +3,7 @@ import { getPreviousPerformanceByExerciseId, getLastExercisePerformance } from "
 import { useMemo, useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout } from "../../domain/entities/workout";
+import type { WorkoutTemplate } from "../../domain/entities/Template";
 import { ExercisePickerModal } from "../ExercisePickerModal";
 import {
   ensureNotificationPermission,
@@ -12,12 +13,40 @@ import { WorkoutExerciseCard } from "./WorkoutExerciseCard";
 import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 import { createWorkoutExercise } from "../../domain/workout/createWorkoutExercise";
 import type { ExerciseProgressionPreset } from "../../domain/workout/exerciseProgressionPresets";
+import type { WorkoutContextEntry } from "../../domain/entities/WorkoutContextEntry";
+import type { ExerciseSetupEntry } from "../../domain/entities/ExerciseSetupEntry";
+import type { CoachObservationEntry } from "../../domain/entities/CoachObservationEntry";
+import type { CoachingKnowledgePreferences } from "../../domain/coaching/coachingKnowledgePreferences";
+import { buildWorkoutsForCoachingContext } from "../../domain/coaching/coachingTemplateContext";
+import { WorkoutContextPanel } from "../coaching/WorkoutContextPanel";
+import { CoachingKnowledgeMasterToggle } from "../coaching/CoachingKnowledgeMasterToggle";
+import { RestTimer } from "./RestTimer";
 
 type WorkoutPageProps = {
   workout: Workout | null;
   exercises: Exercise[];
   unit: "KG" | "LB";
   history: Workout[];
+  templates: WorkoutTemplate[];
+  workoutContexts: WorkoutContextEntry[];
+  exerciseSetups: ExerciseSetupEntry[];
+  coachObservations: CoachObservationEntry[];
+  coachingPreferences: CoachingKnowledgePreferences;
+  onCoachingPreferencesChange: (
+    preferences: CoachingKnowledgePreferences,
+  ) => void;
+  onSaveWorkoutContext: (content: string) => Promise<void>;
+  onSaveExerciseSetup: (
+    workoutExerciseId: string,
+    exerciseId: string,
+    content: string,
+  ) => Promise<void>;
+  onSaveCoachObservation: (
+    workoutExerciseId: string,
+    exerciseId: string,
+    setOrder: number,
+    content: string,
+  ) => Promise<void>;
   onStart: () => void;
   onChange: (workout: Workout) => void;
   onFinish: () => void;
@@ -37,6 +66,7 @@ export function WorkoutPage({
   exercises,
   unit,
   history,
+  templates,
   onStart,
   onChange,
   onFinish,
@@ -44,10 +74,19 @@ export function WorkoutPage({
   onProgressionApplied,
   getExerciseProgressionPreset,
   onExercisesChange,
+  workoutContexts,
+  exerciseSetups,
+  coachObservations,
+  coachingPreferences,
+  onCoachingPreferencesChange,
+  onSaveWorkoutContext,
+  onSaveExerciseSetup,
+  onSaveCoachObservation,
 }: WorkoutPageProps) {
   const [restTimer, setRestTimer] = useState<{
     endAt: number;
     workoutExerciseId: string;
+    exerciseName: string;
   } | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
@@ -72,6 +111,11 @@ export function WorkoutPage({
         workout.exercises.map((item) => item.exerciseId),
       ),
     [history, workout.exercises],
+  );
+
+  const coachingWorkouts = useMemo(
+    () => buildWorkoutsForCoachingContext(workout, history),
+    [workout, history],
   );
 
   function latestCompletedExercise(exerciseId: string) {
@@ -181,9 +225,14 @@ export function WorkoutPage({
     prepareTimerNotification();
     void ensureNotificationPermission();
 
+    const exercise = exercises.find(
+      (candidate) => candidate.id === target.exerciseId,
+    );
+
     setRestTimer({
       endAt: Date.now() + target.plannedRestSeconds * 1000,
       workoutExerciseId,
+      exerciseName: exercise?.name ?? "Rest",
     });
   }
 
@@ -336,6 +385,16 @@ export function WorkoutPage({
           <p className="eyebrow">ACTIVE WORKOUT</p>
           <h1 className="page-title">Workout</h1>
         </div>
+        <CoachingKnowledgeMasterToggle
+          visible={coachingPreferences.coachingKnowledgeVisible}
+          onToggle={() =>
+            onCoachingPreferencesChange({
+              ...coachingPreferences,
+              coachingKnowledgeVisible:
+                !coachingPreferences.coachingKnowledgeVisible,
+            })
+          }
+        />
         <div className="header-actions">
           <button className="danger-text" onClick={onCancel}>
             Discard
@@ -349,6 +408,17 @@ export function WorkoutPage({
           </button>
         </div>
       </div>
+
+      {coachingPreferences.coachingKnowledgeVisible && (
+        <WorkoutContextPanel
+          workoutId={workout.id}
+          sourceTemplateId={workout.sourceTemplateId}
+          workoutContexts={workoutContexts}
+          workouts={coachingWorkouts}
+          templates={templates}
+          onSave={onSaveWorkoutContext}
+        />
+      )}
 
       {workout.exercises.length === 0 ? (
         <p className="muted-center workout-empty-hint">
@@ -364,6 +434,10 @@ export function WorkoutPage({
             return exercise ? (
               <WorkoutExerciseCard
                 key={item.id}
+                workoutId={workout.id}
+                sourceTemplateId={workout.sourceTemplateId}
+                workouts={coachingWorkouts}
+                templates={templates}
                 exercise={exercise}
                 item={item}
                 unit={unit}
@@ -396,27 +470,23 @@ export function WorkoutPage({
                 onMove={moveExercise}
                 onRemove={removeExercise}
                 onRestChange={updateRest}
-                updatesTemplate={Boolean(workout.sourceTemplateId)}
-                restTimer={
-                  restTimer?.workoutExerciseId === item.id
-                    ? {
-                        endAt: restTimer.endAt,
-                        onSkip: () => setRestTimer(null),
-                        onAdjust: (deltaSeconds) => {
-                          setRestTimer((current) => {
-                            if (!current) return null;
-                            return {
-                              ...current,
-                              endAt: Math.max(
-                                Date.now(),
-                                current.endAt + deltaSeconds * 1000,
-                              ),
-                            };
-                          });
-                        },
-                      }
-                    : null
+                coachingKnowledgeVisible={
+                  coachingPreferences.coachingKnowledgeVisible
                 }
+                exerciseSetups={exerciseSetups}
+                coachObservations={coachObservations}
+                onSaveExerciseSetup={(content) =>
+                  onSaveExerciseSetup(item.id, item.exerciseId, content)
+                }
+                onSaveCoachObservation={(setOrder, content) =>
+                  onSaveCoachObservation(
+                    item.id,
+                    item.exerciseId,
+                    setOrder,
+                    content,
+                  )
+                }
+                updatesTemplate={Boolean(workout.sourceTemplateId)}
               />
             ) : null;
           })}
@@ -437,6 +507,26 @@ export function WorkoutPage({
       </div>
 
       {exercisePicker}
+
+      {restTimer && (
+        <RestTimer
+          endAt={restTimer.endAt}
+          exerciseName={restTimer.exerciseName}
+          onSkip={() => setRestTimer(null)}
+          onAdjust={(deltaSeconds) => {
+            setRestTimer((current) => {
+              if (!current) return null;
+              return {
+                ...current,
+                endAt: Math.max(
+                  Date.now(),
+                  current.endAt + deltaSeconds * 1000,
+                ),
+              };
+            });
+          }}
+        />
+      )}
     </section>
   );
 }

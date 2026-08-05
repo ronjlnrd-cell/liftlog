@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { WorkoutExercise } from "../../domain/entities/workout";
+import type { WorkoutTemplate } from "../../domain/entities/Template";
+import type { Workout } from "../../domain/entities/workout";
+import type { CoachObservationEntry } from "../../domain/entities/CoachObservationEntry";
 import {
   activeSetKey,
   getHighestPriorityPRType,
@@ -7,6 +10,7 @@ import {
   type PRType,
 } from "../../domain/analytics/personalRecords";
 import { selectInputOnClick, selectInputOnFocus } from "../../shared";
+import { CoachObservationSetAction } from "../coaching/CoachObservationsPanel";
 
 type WorkoutSetRowsProps = {
   item: WorkoutExercise;
@@ -32,6 +36,17 @@ type WorkoutSetRowsProps = {
   onDeleteSet: (workoutExerciseId: string, setOrder: number) => void;
   onEnsurePlannedSets: (workoutExerciseId: string) => void;
   onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
+  coachingKnowledgeVisible: boolean;
+  coachObservations: CoachObservationEntry[];
+  workoutId: string;
+  sourceTemplateId?: string;
+  workouts: Workout[];
+  templates: WorkoutTemplate[];
+  exerciseId: string;
+  onSaveCoachObservation: (
+    setOrder: number,
+    content: string,
+  ) => Promise<void>;
 };
 
 function formatPreviousSet(
@@ -56,6 +71,14 @@ export function WorkoutSetRows({
   onDeleteSet,
   onEnsurePlannedSets,
   onRestChange,
+  coachingKnowledgeVisible,
+  coachObservations,
+  workoutId,
+  sourceTemplateId,
+  workouts,
+  templates,
+  exerciseId,
+  onSaveCoachObservation,
 }: WorkoutSetRowsProps) {
   const firstPendingInputRef = useRef<HTMLInputElement>(null);
   const sortedPlanned = useMemo(
@@ -117,100 +140,120 @@ export function WorkoutSetRows({
           focusFirstSet && planned.order === firstPendingOrder;
 
         return (
-          <div
-            key={planned.order}
-            className={`workout-set-row${isCompleted ? " completed" : " pending"}`}
-          >
-            <span className="workout-set-row-num">{index + 1}</span>
+          <div key={planned.order}>
+            <div
+              className={`workout-set-row${isCompleted ? " completed" : " pending"}`}
+            >
+              <span className="workout-set-row-num">{index + 1}</span>
 
-            <input
-              ref={focusThisInput ? firstPendingInputRef : undefined}
-              type="number"
-              min="0"
-              step="0.5"
-              className="workout-set-input"
-              value={weight}
-              onFocus={selectInputOnFocus}
-              onClick={selectInputOnClick}
-              onChange={(event) => {
-                const nextWeight = Number(event.target.value);
-                if (isCompleted) {
-                  onUpdateCompletedSet(
-                    item.id,
-                    planned.order,
-                    nextWeight,
-                    reps,
-                  );
-                } else {
-                  onUpdatePlannedSet(item.id, planned.order, nextWeight, reps);
-                }
-              }}
-            />
+              <input
+                ref={focusThisInput ? firstPendingInputRef : undefined}
+                type="number"
+                min="0"
+                step="0.5"
+                className="workout-set-input"
+                value={weight}
+                onFocus={selectInputOnFocus}
+                onClick={selectInputOnClick}
+                onChange={(event) => {
+                  const nextWeight = Number(event.target.value);
+                  if (isCompleted) {
+                    onUpdateCompletedSet(
+                      item.id,
+                      planned.order,
+                      nextWeight,
+                      reps,
+                    );
+                  } else {
+                    onUpdatePlannedSet(item.id, planned.order, nextWeight, reps);
+                  }
+                }}
+              />
 
-            <input
-              type="number"
-              min="1"
-              className="workout-set-input"
-              value={reps}
-              onFocus={selectInputOnFocus}
-              onClick={selectInputOnClick}
-              onChange={(event) => {
-                const nextReps = Number(event.target.value);
-                if (isCompleted) {
-                  onUpdateCompletedSet(
-                    item.id,
-                    planned.order,
-                    weight,
-                    nextReps,
-                  );
-                } else {
-                  onUpdatePlannedSet(item.id, planned.order, weight, nextReps);
-                }
-              }}
-            />
+              <input
+                type="number"
+                min="1"
+                className="workout-set-input"
+                value={reps}
+                onFocus={selectInputOnFocus}
+                onClick={selectInputOnClick}
+                onChange={(event) => {
+                  const nextReps = Number(event.target.value);
+                  if (isCompleted) {
+                    onUpdateCompletedSet(
+                      item.id,
+                      planned.order,
+                      weight,
+                      nextReps,
+                    );
+                  } else {
+                    onUpdatePlannedSet(item.id, planned.order, weight, nextReps);
+                  }
+                }}
+              />
 
-            <div className="workout-set-row-actions">
-              <button
-                type="button"
-                className="complete-set-button"
-                aria-label={
-                  isCompleted
-                    ? `Set ${index + 1} completed`
-                    : `Mark set ${index + 1} complete`
-                }
-                title={isCompleted ? "Set completed" : "Mark set complete"}
-                disabled={isCompleted || reps < 1 || weight < 0}
-                onClick={() => onCompleteSet(item.id, planned.order)}
-              >
-                ✓
-              </button>
-              <button
-                type="button"
-                className="icon-button delete-set-button"
-                aria-label={`Delete set ${index + 1}`}
-                title="Delete set"
-                disabled={sortedPlanned.length <= 1}
-                onClick={() => onDeleteSet(item.id, planned.order)}
-              >
-                ×
-              </button>
+              <div className="workout-set-row-actions">
+                <button
+                  type="button"
+                  className="complete-set-button"
+                  aria-label={
+                    isCompleted
+                      ? `Set ${index + 1} completed`
+                      : `Mark set ${index + 1} complete`
+                  }
+                  title={isCompleted ? "Set completed" : "Mark set complete"}
+                  disabled={isCompleted || reps < 1 || weight < 0}
+                  onClick={() => onCompleteSet(item.id, planned.order)}
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  className="icon-button delete-set-button"
+                  aria-label={`Delete set ${index + 1}`}
+                  title="Delete set"
+                  disabled={sortedPlanned.length <= 1}
+                  onClick={() => onDeleteSet(item.id, planned.order)}
+                >
+                  ×
+                </button>
+              </div>
+
+              {hasPrevious && (
+                <span className="workout-set-row-previous">
+                  {previousSet
+                    ? formatPreviousSet(previousSet.weight, previousSet.reps, unit)
+                    : "—"}
+                </span>
+              )}
+
+              {topPR && (
+                <span
+                  className="pr-badge live-pr-badge workout-set-row-pr"
+                  title={prLabel(prTypes)}
+                >
+                  🏆 {prLabel(prTypes)}
+                </span>
+              )}
             </div>
 
-            {hasPrevious && (
-              <span className="workout-set-row-previous">
-                {previousSet
-                  ? formatPreviousSet(previousSet.weight, previousSet.reps, unit)
-                  : "—"}
-              </span>
-            )}
-
-            {topPR && (
-              <span
-                className="pr-badge live-pr-badge workout-set-row-pr"
-                title={prLabel(prTypes)}
-              >
-                🏆 {prLabel(prTypes)}
-              </span>
+            {coachingKnowledgeVisible && (index === 0 || isCompleted) && (
+              <CoachObservationSetAction
+                workoutExerciseId={item.id}
+                setOrder={planned.order}
+                setLabel={`Set ${index + 1}`}
+                coachObservations={coachObservations}
+                showAdd={isCompleted}
+                showPreviousHistory={index === 0}
+                workoutId={workoutId}
+                sourceTemplateId={sourceTemplateId}
+                exerciseId={exerciseId}
+                workouts={workouts}
+                templates={templates}
+                onSave={(content) =>
+                  onSaveCoachObservation(planned.order, content)
+                }
+              />
             )}
           </div>
         );

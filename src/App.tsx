@@ -27,8 +27,19 @@ import { CloudMigrationPage } from "./pages/CloudMigrationPage";
 import { WeightPage } from "./pages/WeightPage";
 import type { BodyweightEntry } from "./domain/entities/BodyweightEntry";
 import type { PeriodEntry } from "./domain/entities/PeriodEntry";
+import type { WorkoutContextEntry } from "./domain/entities/WorkoutContextEntry";
+import type { ExerciseSetupEntry } from "./domain/entities/ExerciseSetupEntry";
+import type { CoachObservationEntry } from "./domain/entities/CoachObservationEntry";
 import { bodyweightRepository } from "./data/repositories/BodyweightRepository";
 import { periodRepository } from "./data/repositories/PeriodRepository";
+import { coachingKnowledgeRepository } from "./data/repositories/CoachingKnowledgeRepository";
+import {
+  readCoachingKnowledgePreferences,
+  saveCoachingKnowledgePreferences,
+  type CoachingKnowledgePreferences,
+} from "./domain/coaching/coachingKnowledgePreferences";
+import { getWorkoutContextForWorkout } from "./domain/coaching/coachingKnowledgeQueries";
+import { mergeCoachingKnowledgeEntries, mergeTemplates } from "./domain/coaching/coachingKnowledgeMerge";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
 import { useConfirm } from "./components/ConfirmProvider";
 import { isCycleTrackingActive, mergeProfileWithCloud, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
@@ -55,6 +66,12 @@ import {
   loadCloudPeriodEntries,
   saveCloudPeriodEntry,
   deleteCloudPeriodEntry,
+  loadCloudWorkoutContexts,
+  saveCloudWorkoutContext,
+  loadCloudExerciseSetups,
+  saveCloudExerciseSetup,
+  loadCloudCoachObservations,
+  saveCloudCoachObservation,
   type CloudWorkout,
 } from "./data/cloud/cloudData";
 import { supabase, supabaseConfigured } from "./lib/supabase";
@@ -85,11 +102,46 @@ type PendingSync =
   | { kind: "template"; id: string }
   | { kind: "bodyweight"; id: string }
   | { kind: "period"; id: string }
+  | { kind: "workout-context"; id: string }
+  | { kind: "exercise-setup"; id: string }
+  | { kind: "coach-observation"; id: string }
   | { kind: "delete-workout"; id: string }
   | { kind: "delete-template"; id: string }
   | { kind: "delete-bodyweight"; id: string }
   | { kind: "delete-period"; id: string }
   | { kind: "profile" };
+
+function pendingCoachingEntryIds(pending: PendingSync[]): Set<string> {
+  const ids = new Set<string>();
+  for (const item of pending) {
+    if (
+      item.kind === "workout-context" ||
+      item.kind === "exercise-setup" ||
+      item.kind === "coach-observation"
+    ) {
+      ids.add(item.id);
+    }
+  }
+  return ids;
+}
+
+async function repairTemplateLinkedCoachingEntries(
+  workouts: Workout[],
+  templates: WorkoutTemplate[],
+) {
+  for (const template of templates) {
+    if (!template.originWorkoutId) continue;
+
+    const workout = workouts.find(
+      (candidate) => candidate.id === template.originWorkoutId,
+    );
+    const sourceTemplateId = workout?.sourceTemplateId ?? template.id;
+    await coachingKnowledgeRepository.linkEntriesToTemplate(
+      template.originWorkoutId,
+      sourceTemplateId,
+    );
+  }
+}
 
 function ensureWorkoutExerciseIds(workout: Workout): Workout {
   return {
@@ -111,6 +163,10 @@ function chooseWorkout(
       (item) => item.kind === "workout" && item.id === local.id,
     )
   ) {
+    return local;
+  }
+
+  if (local.sourceTemplateId && local.sourceTemplateId !== cloud.workout.sourceTemplateId) {
     return local;
   }
 
@@ -186,6 +242,13 @@ function App() {
   const [syncRetrying, setSyncRetrying] = useState(false);
   const [bodyweights, setBodyweights] = useState<BodyweightEntry[]>([]);
   const [periodEntries, setPeriodEntries] = useState<PeriodEntry[]>([]);
+  const [workoutContexts, setWorkoutContexts] = useState<WorkoutContextEntry[]>([]);
+  const [exerciseSetups, setExerciseSetups] = useState<ExerciseSetupEntry[]>([]);
+  const [coachObservations, setCoachObservations] = useState<CoachObservationEntry[]>([]);
+  const [coachingPreferences, setCoachingPreferences] =
+    useState<CoachingKnowledgePreferences>({
+      coachingKnowledgeVisible: false,
+    });
 
   function getLatestBodyweight() {
   return bodyweights.length > 0 ? bodyweights[0].weight : null;
@@ -200,6 +263,12 @@ function App() {
     setProfile(emptyProfile);
     setBodyweights([]);
     setPeriodEntries([]);
+    setWorkoutContexts([]);
+    setExerciseSetups([]);
+    setCoachObservations([]);
+    setCoachingPreferences({
+      coachingKnowledgeVisible: false,
+    });
     setEditingTemplateId(null);
     setCreatingTemplate(null);
     setEditingWorkoutId(null);
@@ -239,6 +308,23 @@ function App() {
       ? ensureWorkoutExerciseIds(activeData)
       : null;
 
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      normalizedWorkouts,
+      templateData,
+    );
+    await repairTemplateLinkedCoachingEntries(normalizedWorkouts, templateData);
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      normalizedWorkouts,
+      templateData,
+    );
+
+    const [freshWorkoutContexts, freshExerciseSetups, freshCoachObservations] =
+      await Promise.all([
+        coachingKnowledgeRepository.getWorkoutContexts(),
+        coachingKnowledgeRepository.getExerciseSetups(),
+        coachingKnowledgeRepository.getCoachObservations(),
+      ]);
+
     setExercises(exerciseData);
     setWorkouts(normalizedWorkouts);
     setTemplates(templateData);
@@ -246,6 +332,9 @@ function App() {
     setProfile(profileData);
     setBodyweights(bodyweightData);
     setPeriodEntries(periodData);
+    setWorkoutContexts(freshWorkoutContexts);
+    setExerciseSetups(freshExerciseSetups);
+    setCoachObservations(freshCoachObservations);
 
     if (activeData && activeData.exercises.some((item) => !item.id)) {
       await workoutRepository.saveActive(normalizedActive!);
@@ -254,6 +343,162 @@ function App() {
 
   async function refreshExercises() {
     setExercises(await exerciseRepository.getAll());
+  }
+
+  useEffect(() => {
+    if (!session?.user.id) return;
+    setCoachingPreferences(readCoachingKnowledgePreferences(session.user.id));
+  }, [session?.user.id]);
+
+  function updateCoachingPreferences(next: CoachingKnowledgePreferences) {
+    setCoachingPreferences(next);
+    if (session?.user.id) {
+      saveCoachingKnowledgePreferences(session.user.id, next);
+    }
+  }
+
+  async function refreshCoachingKnowledge() {
+    const [contextData, setupData, observationData] = await Promise.all([
+      coachingKnowledgeRepository.getWorkoutContexts(),
+      coachingKnowledgeRepository.getExerciseSetups(),
+      coachingKnowledgeRepository.getCoachObservations(),
+    ]);
+    setWorkoutContexts(contextData);
+    setExerciseSetups(setupData);
+    setCoachObservations(observationData);
+  }
+
+  async function saveWorkoutContextEntry(content: string) {
+    if (!session || !activeWorkout) {
+      throw new Error("Your session expired. Sign in again.");
+    }
+    if (getWorkoutContextForWorkout(workoutContexts, activeWorkout.id)) {
+      throw new Error("This workout already has context saved.");
+    }
+
+    const entry: WorkoutContextEntry = {
+      id: crypto.randomUUID(),
+      userId: session.user.id,
+      workoutId: activeWorkout.id,
+      content,
+      createdAt: new Date().toISOString(),
+      sourceTemplateId: activeWorkout.sourceTemplateId,
+    };
+
+    await coachingKnowledgeRepository.saveWorkoutContext(entry);
+    await refreshCoachingKnowledge();
+
+    const synced = await cloudAction(() =>
+      saveCloudWorkoutContext(session.user.id, entry),
+    );
+    if (!synced) {
+      addPending({ kind: "workout-context", id: entry.id });
+      setSyncMessage(pendingSyncMessage("Workout context"));
+    }
+  }
+
+  async function saveExerciseSetupEntry(
+    workoutExerciseId: string,
+    exerciseId: string,
+    content: string,
+  ) {
+    if (!session || !activeWorkout) {
+      throw new Error("Your session expired. Sign in again.");
+    }
+
+    const existing = exerciseSetups.find(
+      (entry) => entry.workoutExerciseId === workoutExerciseId,
+    );
+
+    const entry: ExerciseSetupEntry = existing
+      ? { ...existing, content, sourceTemplateId: activeWorkout.sourceTemplateId ?? existing.sourceTemplateId }
+      : {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          workoutId: activeWorkout.id,
+          workoutExerciseId,
+          exerciseId,
+          content,
+          createdAt: new Date().toISOString(),
+          sourceTemplateId: activeWorkout.sourceTemplateId,
+        };
+
+    await coachingKnowledgeRepository.saveExerciseSetup(entry);
+    await refreshCoachingKnowledge();
+
+    const synced = await cloudAction(() =>
+      saveCloudExerciseSetup(session.user.id, entry),
+    );
+    if (!synced) {
+      addPending({ kind: "exercise-setup", id: entry.id });
+      setSyncMessage(pendingSyncMessage("Exercise setup"));
+    }
+  }
+
+  async function saveCoachObservationEntry(
+    workoutExerciseId: string,
+    exerciseId: string,
+    setOrder: number,
+    content: string,
+  ) {
+    if (!session || !activeWorkout) {
+      throw new Error("Your session expired. Sign in again.");
+    }
+
+    const entry: CoachObservationEntry = {
+      id: crypto.randomUUID(),
+      userId: session.user.id,
+      workoutId: activeWorkout.id,
+      workoutExerciseId,
+      exerciseId,
+      setOrder,
+      content,
+      createdAt: new Date().toISOString(),
+      sourceTemplateId: activeWorkout.sourceTemplateId,
+    };
+
+    await coachingKnowledgeRepository.saveCoachObservation(entry);
+    await refreshCoachingKnowledge();
+
+    const synced = await cloudAction(() =>
+      saveCloudCoachObservation(session.user.id, entry),
+    );
+    if (!synced) {
+      addPending({ kind: "coach-observation", id: entry.id });
+      setSyncMessage(pendingSyncMessage("Coach observation"));
+    }
+  }
+
+  async function syncCoachingKnowledgeEntries(userId: string) {
+    for (const entry of await coachingKnowledgeRepository.getWorkoutContexts()) {
+      try {
+        await saveCloudWorkoutContext(userId, entry);
+        removePending("workout-context", entry.id);
+      } catch (error) {
+        console.error(error);
+        addPending({ kind: "workout-context", id: entry.id });
+      }
+    }
+
+    for (const entry of await coachingKnowledgeRepository.getExerciseSetups()) {
+      try {
+        await saveCloudExerciseSetup(userId, entry);
+        removePending("exercise-setup", entry.id);
+      } catch (error) {
+        console.error(error);
+        addPending({ kind: "exercise-setup", id: entry.id });
+      }
+    }
+
+    for (const entry of await coachingKnowledgeRepository.getCoachObservations()) {
+      try {
+        await saveCloudCoachObservation(userId, entry);
+        removePending("coach-observation", entry.id);
+      } catch (error) {
+        console.error(error);
+        addPending({ kind: "coach-observation", id: entry.id });
+      }
+    }
   }
 
   useEffect(() => {
@@ -329,6 +574,9 @@ function App() {
     const cloud = await loadCloudData(userId);
     let cloudBodyweights: BodyweightEntry[] = [];
     let cloudPeriodEntries: PeriodEntry[] = [];
+    let cloudWorkoutContexts: WorkoutContextEntry[] = [];
+    let cloudExerciseSetups: ExerciseSetupEntry[] = [];
+    let cloudCoachObservations: CoachObservationEntry[] = [];
     try {
       cloudBodyweights = await loadCloudBodyweights(userId);
     } catch (error) {
@@ -338,6 +586,21 @@ function App() {
       cloudPeriodEntries = await loadCloudPeriodEntries(userId);
     } catch (error) {
       console.error("Could not load cloud period entries:", error);
+    }
+    try {
+      cloudWorkoutContexts = await loadCloudWorkoutContexts(userId);
+    } catch (error) {
+      console.error("Could not load cloud workout contexts:", error);
+    }
+    try {
+      cloudExerciseSetups = await loadCloudExerciseSetups(userId);
+    } catch (error) {
+      console.error("Could not load cloud exercise setups:", error);
+    }
+    try {
+      cloudCoachObservations = await loadCloudCoachObservations(userId);
+    } catch (error) {
+      console.error("Could not load cloud coach observations:", error);
     }
     const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
     const cloudEmpty =
@@ -362,18 +625,19 @@ function App() {
       workout: ensureWorkoutExerciseIds(workout),
       updatedAt,
     }));
+    const pending = readPending();
     const mergedWorkouts = mergeWorkouts(
       localWorkouts,
       cloudWorkouts,
-      readPending(),
+      pending,
     );
 
     const localTemplates = await templateRepository.getAll();
-    const templateMap = new Map(cloud.templates.map((template) => [template.id, template]));
-    for (const template of localTemplates) {
-      if (!templateMap.has(template.id)) templateMap.set(template.id, template);
-    }
-    const mergedTemplates = Array.from(templateMap.values());
+    const mergedTemplates = mergeTemplates(
+      localTemplates,
+      cloud.templates,
+      pending,
+    );
 
     const localBodyweights = await bodyweightRepository.getAll();
     const bodyweightMap = new Map(cloudBodyweights.map((entry) => [entry.id, entry]));
@@ -393,8 +657,30 @@ function App() {
       b.startDate.localeCompare(a.startDate),
     );
 
+    const localWorkoutContexts = await coachingKnowledgeRepository.getWorkoutContexts();
+    const pendingCoachingIds = pendingCoachingEntryIds(pending);
+    const mergedWorkoutContexts = mergeCoachingKnowledgeEntries(
+      localWorkoutContexts,
+      cloudWorkoutContexts,
+      pendingCoachingIds,
+    );
+
+    const localExerciseSetups = await coachingKnowledgeRepository.getExerciseSetups();
+    const mergedExerciseSetups = mergeCoachingKnowledgeEntries(
+      localExerciseSetups,
+      cloudExerciseSetups,
+      pendingCoachingIds,
+    );
+
+    const localCoachObservations =
+      await coachingKnowledgeRepository.getCoachObservations();
+    const mergedCoachObservations = mergeCoachingKnowledgeEntries(
+      localCoachObservations,
+      cloudCoachObservations,
+      pendingCoachingIds,
+    );
+
     const localProfile = await profileRepository.get();
-    const pending = readPending();
     const mergedProfile = cloud.profile
       ? mergeProfileWithCloud(localProfile, cloud.profile, pending.some((item) => item.kind === "profile"))
       : localProfile;
@@ -405,6 +691,45 @@ function App() {
     setProfile(mergedProfile);
     setBodyweights(mergedBodyweights);
     setPeriodEntries(mergedPeriodEntries);
+    setWorkoutContexts(mergedWorkoutContexts);
+    setExerciseSetups(mergedExerciseSetups);
+    setCoachObservations(mergedCoachObservations);
+
+    await Promise.all([
+      ...mergedWorkoutContexts.map((entry) =>
+        coachingKnowledgeRepository.saveWorkoutContext(entry),
+      ),
+      ...mergedExerciseSetups.map((entry) =>
+        coachingKnowledgeRepository.saveExerciseSetup(entry),
+      ),
+      ...mergedCoachObservations.map((entry) =>
+        coachingKnowledgeRepository.saveCoachObservation(entry),
+      ),
+    ]);
+
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      mergedWorkouts,
+      mergedTemplates,
+    );
+    await repairTemplateLinkedCoachingEntries(mergedWorkouts, mergedTemplates);
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      mergedWorkouts,
+      mergedTemplates,
+    );
+
+    const [
+      enrichedWorkoutContexts,
+      enrichedExerciseSetups,
+      enrichedCoachObservations,
+    ] = await Promise.all([
+      coachingKnowledgeRepository.getWorkoutContexts(),
+      coachingKnowledgeRepository.getExerciseSetups(),
+      coachingKnowledgeRepository.getCoachObservations(),
+    ]);
+
+    setWorkoutContexts(enrichedWorkoutContexts);
+    setExerciseSetups(enrichedExerciseSetups);
+    setCoachObservations(enrichedCoachObservations);
 
     await Promise.all([
       ...mergedWorkouts.map((workout) =>
@@ -414,6 +739,15 @@ function App() {
       profileRepository.save(mergedProfile),
       ...mergedBodyweights.map((entry) => bodyweightRepository.save(entry)),
       ...mergedPeriodEntries.map((entry) => periodRepository.save(entry)),
+      ...enrichedWorkoutContexts.map((entry) =>
+        coachingKnowledgeRepository.saveWorkoutContext(entry),
+      ),
+      ...enrichedExerciseSetups.map((entry) =>
+        coachingKnowledgeRepository.saveExerciseSetup(entry),
+      ),
+      ...enrichedCoachObservations.map((entry) =>
+        coachingKnowledgeRepository.saveCoachObservation(entry),
+      ),
     ]);
 
     if (
@@ -565,6 +899,21 @@ function App() {
           } else if (item.kind === "period") {
             const entry = (await periodRepository.getAll()).find((candidate) => candidate.id === item.id);
             if (entry) await saveCloudPeriodEntry(userId, entry);
+          } else if (item.kind === "workout-context") {
+            const entry = (await coachingKnowledgeRepository.getWorkoutContexts()).find(
+              (candidate) => candidate.id === item.id,
+            );
+            if (entry) await saveCloudWorkoutContext(userId, entry);
+          } else if (item.kind === "exercise-setup") {
+            const entry = (await coachingKnowledgeRepository.getExerciseSetups()).find(
+              (candidate) => candidate.id === item.id,
+            );
+            if (entry) await saveCloudExerciseSetup(userId, entry);
+          } else if (item.kind === "coach-observation") {
+            const entry = (await coachingKnowledgeRepository.getCoachObservations()).find(
+              (candidate) => candidate.id === item.id,
+            );
+            if (entry) await saveCloudCoachObservation(userId, entry);
           } else if (item.kind === "delete-workout") {
             await deleteCloudWorkout(userId, item.id);
           } else if (item.kind === "delete-template") {
@@ -615,6 +964,8 @@ function App() {
           addPending({ kind: "bodyweight", id: entry.id });
         }
       }
+
+      await syncCoachingKnowledgeEntries(userId);
 
       const stillPending = readPending();
       if (stillPending.length === 0) {
@@ -687,7 +1038,18 @@ function App() {
 
     // Persist locally FIRST. Finishing a workout must never depend on network access.
     await workoutRepository.save(completed);
+    const reassignedEntries = await coachingKnowledgeRepository.reassignWorkoutId(
+      "active",
+      completed.id,
+    );
+    if (completed.sourceTemplateId) {
+      await coachingKnowledgeRepository.linkEntriesToTemplate(
+        completed.id,
+        completed.sourceTemplateId,
+      );
+    }
     await workoutRepository.clearActive();
+    await refreshCoachingKnowledge();
 
     // Update the UI immediately from local storage before attempting cloud sync.
     setActiveWorkout(null);
@@ -706,6 +1068,43 @@ function App() {
         addPending({ kind: "workout", id: completed.id });
         setSyncMessage("Workout saved on device — cloud sync pending");
       }
+
+      const withTemplateLink = <T extends { sourceTemplateId?: string }>(
+        entry: T,
+      ): T =>
+        completed.sourceTemplateId && !entry.sourceTemplateId
+          ? { ...entry, sourceTemplateId: completed.sourceTemplateId }
+          : entry;
+
+      for (const entry of reassignedEntries.contexts.map(withTemplateLink)) {
+        try {
+          await saveCloudWorkoutContext(session.user.id, entry);
+          removePending("workout-context", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "workout-context", id: entry.id });
+        }
+      }
+      for (const entry of reassignedEntries.setups.map(withTemplateLink)) {
+        try {
+          await saveCloudExerciseSetup(session.user.id, entry);
+          removePending("exercise-setup", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "exercise-setup", id: entry.id });
+        }
+      }
+      for (const entry of reassignedEntries.observations.map(withTemplateLink)) {
+        try {
+          await saveCloudCoachObservation(session.user.id, entry);
+          removePending("coach-observation", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "coach-observation", id: entry.id });
+        }
+      }
+
+      await syncCoachingKnowledgeEntries(session.user.id);
     }
 
     return;
@@ -723,7 +1122,9 @@ function App() {
     });
     if (!confirmed) return;
 
+    await coachingKnowledgeRepository.removeByWorkoutId("active");
     await workoutRepository.clearActive();
+    await refreshCoachingKnowledge();
     setActiveWorkout(null);
     setPage("home");
   }
@@ -737,6 +1138,7 @@ function App() {
       id: crypto.randomUUID(),
       name,
       createdAt: new Date(),
+      originWorkoutId: workout.id,
       exercises: workout.exercises.map((item) => ({
         exerciseId: item.exerciseId,
         order: item.order,
@@ -750,13 +1152,83 @@ function App() {
     };
 
     await templateRepository.save(template);
-    setTemplates(await templateRepository.getAll());
+    const nextTemplates = [
+      template,
+      ...templates.filter((candidate) => candidate.id !== template.id),
+    ];
+    setTemplates(nextTemplates);
+
+    const linkedWorkout: Workout = {
+      ...workout,
+      sourceTemplateId: template.id,
+      updatedAt: new Date(),
+    };
+    await workoutRepository.save(linkedWorkout);
+    const nextWorkouts = sortWorkoutsByDate([
+      linkedWorkout,
+      ...workouts.filter((candidate) => candidate.id !== linkedWorkout.id),
+    ]);
+    setWorkouts(nextWorkouts);
+    setSummaryWorkout((current) =>
+      current?.id === linkedWorkout.id ? linkedWorkout : current,
+    );
+
+    const linkedEntries = await coachingKnowledgeRepository.linkEntriesToTemplate(
+      workout.id,
+      template.id,
+    );
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      nextWorkouts,
+      nextTemplates,
+    );
+    await repairTemplateLinkedCoachingEntries(nextWorkouts, nextTemplates);
+    await coachingKnowledgeRepository.enrichTemplateLinks(
+      nextWorkouts,
+      nextTemplates,
+    );
+    await refreshCoachingKnowledge();
+
     if (session) {
       const synced = await cloudAction(() => saveCloudTemplate(session.user.id, template));
       if (!synced) {
         addPending({ kind: "template", id: template.id });
         setSyncMessage("Template saved on device — cloud sync pending");
       }
+      const workoutSynced = await cloudAction(() =>
+        saveCloudWorkout(session.user.id, linkedWorkout),
+      );
+      if (!workoutSynced) {
+        addPending({ kind: "workout", id: linkedWorkout.id });
+      }
+      for (const entry of linkedEntries.contexts) {
+        try {
+          await saveCloudWorkoutContext(session.user.id, entry);
+          removePending("workout-context", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "workout-context", id: entry.id });
+        }
+      }
+      for (const entry of linkedEntries.setups) {
+        try {
+          await saveCloudExerciseSetup(session.user.id, entry);
+          removePending("exercise-setup", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "exercise-setup", id: entry.id });
+        }
+      }
+      for (const entry of linkedEntries.observations) {
+        try {
+          await saveCloudCoachObservation(session.user.id, entry);
+          removePending("coach-observation", entry.id);
+        } catch (error) {
+          console.error(error);
+          addPending({ kind: "coach-observation", id: entry.id });
+        }
+      }
+
+      await syncCoachingKnowledgeEntries(session.user.id);
     }
     setPage("templates");
   }
@@ -1016,6 +1488,7 @@ function App() {
             )}
             unit={profile.weightUnit}
             history={workouts}
+            templates={templates}
             onStart={() => startWorkout()}
             onChange={updateActiveWorkout}
             onFinish={finishWorkout}
@@ -1031,6 +1504,14 @@ function App() {
                 : null
             }
             onExercisesChange={refreshExercises}
+            workoutContexts={workoutContexts}
+            exerciseSetups={exerciseSetups}
+            coachObservations={coachObservations}
+            coachingPreferences={coachingPreferences}
+            onCoachingPreferencesChange={updateCoachingPreferences}
+            onSaveWorkoutContext={saveWorkoutContextEntry}
+            onSaveExerciseSetup={saveExerciseSetupEntry}
+            onSaveCoachObservation={saveCoachObservationEntry}
           />
         )}
 
@@ -1067,6 +1548,10 @@ function App() {
               setPage("history");
             }}
             onSaveTemplate={() => saveWorkoutAsTemplate(summaryWorkout)}
+            workoutContexts={workoutContexts}
+            exerciseSetups={exerciseSetups}
+            coachObservations={coachObservations}
+            templates={templates}
           />
         )}
 
@@ -1232,7 +1717,11 @@ function App() {
                 });
                 if (!confirmed) return;
 
+                await coachingKnowledgeRepository.removeByWorkoutId(
+                  historicalWorkout.id,
+                );
                 await workoutRepository.remove(historicalWorkout.id);
+                await refreshCoachingKnowledge();
                 setWorkouts(await workoutRepository.getAll());
                 if (session) {
                   const deleted = await cloudAction(() =>
@@ -1247,6 +1736,10 @@ function App() {
                 setPage("history");
               }}
               onSaveTemplate={() => saveWorkoutAsTemplate(historicalWorkout)}
+              workoutContexts={workoutContexts}
+              exerciseSetups={exerciseSetups}
+              coachObservations={coachObservations}
+              templates={templates}
               onDone={() => {
                 setHistorySummaryId(null);
                 setPage("history");

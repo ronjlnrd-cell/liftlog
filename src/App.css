@@ -654,30 +654,93 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 
 .primary:disabled { opacity:.45; cursor:not-allowed; }
 .header-actions,.exercise-actions { display:flex; align-items:center; gap:10px; }
-.rest-timer { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; border-color:#e0c0c0; background:#fef5f5; }
-.rest-timer div { display:flex; flex-direction:column; gap:3px; }
-.rest-timer span { color:var(--muted); font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.7px; }
-.rest-timer strong { font-size:28px; color:var(--green-dark); font-variant-numeric:tabular-nums; }
-.rest-timer-actions {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
+.rest-timer-bubble {
+  position: fixed;
+  right: 14px;
+  bottom: 88px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid #e0c0c0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fffbfb, #fef5f5);
+  box-shadow: 0 8px 24px rgba(74, 21, 21, 0.16);
+  max-width: min(calc(100vw - 28px), 280px);
 }
-.rest-timer-adjust {
-  border:1px solid #e0c0c0;
-  background:#fff;
-  color:var(--ink);
-  border-radius:999px;
-  padding:8px 12px;
-  font-size:13px;
-  font-weight:700;
-  cursor:pointer;
+.rest-timer-bubble-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 52px;
+  padding: 0 2px;
 }
-.rest-timer-adjust:hover {
-  border-color:var(--green-dark);
-  color:var(--green-dark);
+.rest-timer-bubble-display strong {
+  font-size: 17px;
+  font-weight: 850;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.rest-timer-bubble-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 72px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.rest-timer-bubble-btn,
+.rest-timer-bubble-skip {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e0c0c0;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--green-dark);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.rest-timer-bubble-skip {
+  font-size: 18px;
+  color: var(--muted);
+  margin-left: 2px;
+}
+.rest-timer-bubble-btn:hover,
+.rest-timer-bubble-skip:hover {
+  border-color: var(--green-dark);
+  color: var(--green-dark);
+}
+@media (max-width: 600px) {
+  .rest-timer-bubble {
+    right: 10px;
+    bottom: 82px;
+    gap: 2px;
+    padding: 5px 6px 5px 4px;
+  }
+  .rest-timer-bubble-display strong {
+    font-size: 16px;
+  }
+  .rest-timer-bubble-label {
+    max-width: 56px;
+  }
+  .rest-timer-bubble-btn,
+  .rest-timer-bubble-skip {
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
+  }
 }
 .sets-list div { display:grid; grid-template-columns:1fr auto 30px; align-items:center; gap:10px; }
 .icon-button { border:0; background:#f5e9e7; color:#8e3d37; border-radius:8px; width:28px; height:28px; font-size:18px; line-height:1; cursor:pointer; }
@@ -1926,3 +1989,277 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .exercise-row-clickable{position:relative;padding-right:72px}
 .exercise-usage-number{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .exercise-row-clickable .danger-text{margin-right:44px}
+
+.coaching-knowledge-master-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.coaching-knowledge-master-label{
+  font-size:12px;
+  font-weight:650;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.coaching-knowledge-master-button{
+  font-size:12px;
+  font-weight:700;
+  padding:0;
+}
+.workout-heading .coaching-knowledge-master-toggle{
+  align-self:center;
+}
+@media (max-width:600px){
+  .workout-heading{
+    flex-wrap:wrap;
+  }
+  .workout-heading .coaching-knowledge-master-toggle{
+    order:3;
+    width:100%;
+    justify-content:flex-start;
+    margin-top:-4px;
+  }
+}
+.coaching-knowledge-card{
+  margin-bottom:14px;
+  padding:16px 18px;
+}
+.coaching-knowledge-card.compact{
+  margin-bottom:10px;
+  padding:12px 14px;
+}
+.coaching-knowledge-head.compact.with-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.coaching-knowledge-head-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-shrink:0;
+}
+.coaching-knowledge-link{
+  font-size:13px;
+  font-weight:650;
+}
+.previous-context-modal{
+  width:min(720px,100%);
+}
+.previous-context-filter{
+  display:flex;
+  gap:8px;
+  margin:12px 0 14px;
+  flex-wrap:wrap;
+}
+.previous-context-filter button{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:7px 12px;
+  background:#fff;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.previous-context-filter button.active{
+  border-color:#e0c0c0;
+  background:#fef5f5;
+  color:var(--green-dark);
+}
+.previous-context-table-wrap{
+  max-height:360px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.previous-context-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.previous-context-table th,
+.previous-context-table td{
+  padding:10px 12px;
+  text-align:left;
+  vertical-align:top;
+  border-bottom:1px solid var(--line);
+}
+.previous-context-table th{
+  position:sticky;
+  top:0;
+  background:#fff9f9;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--muted);
+}
+.previous-context-table tr:last-child td{
+  border-bottom:0;
+}
+.previous-context-table td:nth-child(1){
+  white-space:nowrap;
+  width:110px;
+}
+.previous-context-table td:nth-child(2){
+  width:140px;
+}
+.coaching-knowledge-head.compact .coaching-knowledge-label{
+  margin:0;
+}
+.coaching-workout-context-body{
+  margin-top:8px;
+}
+.coaching-knowledge-toggle-row.compact{
+  margin-top:10px;
+}
+.coaching-knowledge-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+.coaching-knowledge-label{
+  margin:0 0 6px;
+  font-size:13px;
+  font-weight:750;
+}
+.coaching-knowledge-current{
+  margin:0;
+  line-height:1.5;
+}
+.coaching-knowledge-hint{
+  margin:0;
+  font-size:13px;
+}
+.coaching-knowledge-add{
+  flex-shrink:0;
+  font-weight:700;
+}
+.coaching-knowledge-toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:12px;
+}
+.coaching-knowledge-toggle-label{
+  font-size:13px;
+  font-weight:650;
+  color:var(--muted);
+}
+.coaching-knowledge-toggle{
+  font-weight:700;
+}
+.coaching-knowledge-history{
+  list-style:none;
+  margin:10px 0 0;
+  padding:0;
+  display:grid;
+  gap:8px;
+}
+.coaching-knowledge-history.compact{
+  gap:6px;
+}
+.coaching-knowledge-history li{
+  display:grid;
+  gap:2px;
+  font-size:13px;
+  line-height:1.45;
+}
+.coaching-knowledge-history-heading{
+  font-size:11px;
+  font-weight:750;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.coaching-knowledge-history-date{
+  font-size:11px;
+  color:var(--muted);
+}
+.coaching-knowledge-empty{
+  margin:8px 0 0;
+  font-size:13px;
+}
+.coaching-exercise-setup.compact{
+  margin-top:12px;
+  margin-bottom:12px;
+  box-shadow:none;
+}
+.workout-card .coaching-knowledge-card.compact{
+  padding:12px 14px;
+}
+.coaching-knowledge-inline-add{
+  margin-top:6px;
+  font-size:13px;
+  font-weight:650;
+}
+.coaching-knowledge-inline-body{
+  margin-top:8px;
+}
+.coaching-knowledge-summary{
+  margin:0 0 8px;
+  font-size:13px;
+  line-height:1.45;
+}
+.coaching-observation-set-action{
+  margin:-2px 0 10px 34px;
+}
+.coaching-observation-set-actions{
+  margin-top:6px;
+}
+.coaching-observation-current{
+  margin:0 0 4px;
+  font-size:12px;
+  line-height:1.4;
+  color:var(--muted);
+}
+.coaching-knowledge-modal textarea{
+  width:100%;
+  min-height:96px;
+  resize:vertical;
+  margin-top:6px;
+}
+.coaching-knowledge-modal-description{
+  margin:0 0 12px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.5;
+}
+.coaching-knowledge-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:18px;
+}
+.coaching-knowledge-summary-block{
+  margin-top:16px;
+}
+.coaching-knowledge-summary-block:first-of-type{
+  margin-top:0;
+}
+.coaching-knowledge-summary-block h3{
+  margin:0 0 8px;
+  font-size:16px;
+}
+.coaching-knowledge-summary-block p{
+  margin:0;
+  line-height:1.5;
+}
+.coaching-knowledge-summary-subblock{
+  margin-top:10px;
+}
+.coaching-knowledge-summary-subblock strong{
+  display:block;
+  margin-bottom:4px;
+  font-size:13px;
+}
+.coaching-knowledge-summary-list{
+  margin:0;
+  padding-left:18px;
+  display:grid;
+  gap:4px;
+}

@@ -2,17 +2,25 @@ import type { ProgressionRecommendation, ProgressionOption } from "../../domain/
 import { useState } from "react";
 import type { Exercise } from "../../domain/entities/Exercise";
 import type { WorkoutExercise } from "../../domain/entities/workout";
+import type { WorkoutTemplate } from "../../domain/entities/Template";
+import type { Workout } from "../../domain/entities/workout";
 import { formatLabel } from "../../shared";
 import type { PRType } from "../../domain/analytics/personalRecords";
 import { ProgressionPopup } from "./ProgressionPopup";
-import { RestTimer } from "./RestTimer";
 import { WorkoutSetRows } from "./WorkoutSetRows";
+import type { ExerciseSetupEntry } from "../../domain/entities/ExerciseSetupEntry";
+import type { CoachObservationEntry } from "../../domain/entities/CoachObservationEntry";
+import { ExerciseSetupPanel } from "../coaching/ExerciseSetupPanel";
 
 type WorkoutExerciseCardProps = {
   progressionRecommendation: ProgressionRecommendation | null;
   onApplyProgression: (option: ProgressionOption) => void;
   exercise: Exercise;
   item: WorkoutExercise;
+  workoutId: string;
+  sourceTemplateId?: string;
+  workouts: Workout[];
+  templates: WorkoutTemplate[];
   unit: string;
   position: number;
   exerciseCount: number;
@@ -37,14 +45,17 @@ type WorkoutExerciseCardProps = {
   onMove: (workoutExerciseId: string, direction: -1 | 1) => void;
   onRemove: (workoutExerciseId: string) => void;
   onRestChange: (workoutExerciseId: string, restSeconds: number) => void;
+  exerciseSetups: ExerciseSetupEntry[];
+  coachObservations: CoachObservationEntry[];
+  onSaveExerciseSetup: (content: string) => Promise<void>;
+  onSaveCoachObservation: (
+    setOrder: number,
+    content: string,
+  ) => Promise<void>;
+  coachingKnowledgeVisible: boolean;
   updatesTemplate: boolean;
   focusFirstSet?: boolean;
   onFocusFirstSet?: () => void;
-  restTimer?: {
-    endAt: number;
-    onSkip: () => void;
-    onAdjust: (deltaSeconds: number) => void;
-  } | null;
 };
 
 export function WorkoutExerciseCard({
@@ -52,6 +63,10 @@ export function WorkoutExerciseCard({
   onApplyProgression,
   exercise,
   item,
+  workoutId,
+  sourceTemplateId,
+  workouts,
+  templates,
   unit,
   position,
   exerciseCount,
@@ -66,10 +81,14 @@ export function WorkoutExerciseCard({
   onMove,
   onRemove,
   onRestChange,
+  exerciseSetups,
+  coachObservations,
+  onSaveExerciseSetup,
+  onSaveCoachObservation,
+  coachingKnowledgeVisible,
   updatesTemplate,
   focusFirstSet = false,
   onFocusFirstSet,
-  restTimer = null,
 }: WorkoutExerciseCardProps) {
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [progressionApplied, setProgressionApplied] = useState(false);
@@ -137,12 +156,16 @@ export function WorkoutExerciseCard({
         </div>
       </div>
 
-      {restTimer && (
-        <RestTimer
-          endAt={restTimer.endAt}
-          exerciseName={exercise.name}
-          onSkip={restTimer.onSkip}
-          onAdjust={restTimer.onAdjust}
+      {coachingKnowledgeVisible && (
+        <ExerciseSetupPanel
+          workoutId={workoutId}
+          sourceTemplateId={sourceTemplateId}
+          workoutExerciseId={item.id}
+          exerciseId={item.exerciseId}
+          exerciseSetups={exerciseSetups}
+          workouts={workouts}
+          templates={templates}
+          onSave={onSaveExerciseSetup}
         />
       )}
 
@@ -160,6 +183,14 @@ export function WorkoutExerciseCard({
         onDeleteSet={onDeleteSet}
         onEnsurePlannedSets={onEnsurePlannedSets}
         onRestChange={onRestChange}
+        coachingKnowledgeVisible={coachingKnowledgeVisible}
+        coachObservations={coachObservations}
+        workoutId={workoutId}
+        sourceTemplateId={sourceTemplateId}
+        workouts={workouts}
+        templates={templates}
+        exerciseId={item.exerciseId}
+        onSaveCoachObservation={onSaveCoachObservation}
       />
 
       {progressionOpen && progressionRecommendation && (

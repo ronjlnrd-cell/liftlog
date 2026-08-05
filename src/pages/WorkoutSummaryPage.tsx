@@ -13,6 +13,10 @@ import {
   type ProgressionCoachSuggestion,
 } from "../domain/analytics/progressionCoach";
 import { formatDate } from "../shared";
+import { CoachingKnowledgeSummarySection } from "../components/coaching/CoachingKnowledgeSummarySection";
+import type { WorkoutContextEntry } from "../domain/entities/WorkoutContextEntry";
+import type { ExerciseSetupEntry } from "../domain/entities/ExerciseSetupEntry";
+import type { CoachObservationEntry } from "../domain/entities/CoachObservationEntry";
 
 type WorkoutSummaryPageProps = {
   workout: Workout;
@@ -20,6 +24,10 @@ type WorkoutSummaryPageProps = {
   exercises: Exercise[];
   unit: "KG" | "LB";
   sourceTemplate?: WorkoutTemplate | null;
+  workoutContexts: WorkoutContextEntry[];
+  exerciseSetups: ExerciseSetupEntry[];
+  coachObservations: CoachObservationEntry[];
+  templates: WorkoutTemplate[];
   onApplyProgression?: (
     exerciseId: string,
     suggestion: ProgressionCoachSuggestion,
@@ -72,6 +80,10 @@ export function WorkoutSummaryPage({
   exercises,
   unit,
   sourceTemplate = null,
+  workoutContexts,
+  exerciseSetups,
+  coachObservations,
+  templates,
   onApplyProgression,
   onDeclineProgression,
   historical = false,
@@ -462,6 +474,16 @@ export function WorkoutSummaryPage({
           </div>
         </article>
       )}
+
+      <CoachingKnowledgeSummarySection
+        workout={workout}
+        exercises={exercises}
+        workouts={workouts}
+        templates={templates}
+        workoutContexts={workoutContexts}
+        exerciseSetups={exerciseSetups}
+        coachObservations={coachObservations}
+      />
 
       <article className="card summary-section">
         <h2>Exercises</h2>

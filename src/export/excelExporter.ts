@@ -7,6 +7,9 @@ import { buildCustomExerciseSheet } from "./workbookBuilders/customExerciseSheet
 import { buildExerciseSummarySheet } from "./workbookBuilders/exerciseSummarySheet";
 import { buildTemplateSheet } from "./workbookBuilders/templateSheet";
 import { buildWorkoutLogSheet } from "./workbookBuilders/workoutSheet";
+import { buildWorkoutContextSheet } from "./workbookBuilders/workoutContextSheet";
+import { buildExerciseSetupSheet } from "./workbookBuilders/exerciseSetupSheet";
+import { buildCoachObservationSheet } from "./workbookBuilders/coachObservationSheet";
 import { localExportDateStamp } from "./sheetUtils";
 import type { ExcelExportInput } from "./types";
 
@@ -30,6 +33,9 @@ export function buildTrainingWorkbook(input: ExcelExportInput) {
 
   appendSheet(workbook, "Workout Log", buildWorkoutLogSheet(input));
   appendSheet(workbook, "Exercise Summary", buildExerciseSummarySheet(input));
+  appendSheet(workbook, "Workout Context", buildWorkoutContextSheet(input));
+  appendSheet(workbook, "Exercise Setup", buildExerciseSetupSheet(input));
+  appendSheet(workbook, "Coach Observations", buildCoachObservationSheet(input));
   appendSheet(workbook, "Bodyweight", buildBodyweightSheet(input));
   if (input.periodEntries.length > 0) {
     appendSheet(workbook, "Menstrual Cycle", buildMenstrualCycleSheet(input));
@@ -46,15 +52,27 @@ export function exportFilename(): string {
 
 async function loadExportInput(): Promise<ExcelExportInput> {
   const db = getDb();
-  const [workouts, exercises, templates, bodyweights, periodEntries, profileRows] =
-    await Promise.all([
-      db.workouts.toArray(),
-      db.exercises.toArray(),
-      db.templates.toArray(),
-      db.bodyweightEntries.toArray(),
-      db.periodEntries.toArray(),
-      db.profile.toArray(),
-    ]);
+  const [
+    workouts,
+    exercises,
+    templates,
+    bodyweights,
+    periodEntries,
+    workoutContexts,
+    exerciseSetups,
+    coachObservations,
+    profileRows,
+  ] = await Promise.all([
+    db.workouts.toArray(),
+    db.exercises.toArray(),
+    db.templates.toArray(),
+    db.bodyweightEntries.toArray(),
+    db.periodEntries.toArray(),
+    db.workoutContextEntries.toArray(),
+    db.exerciseSetupEntries.toArray(),
+    db.coachObservationEntries.toArray(),
+    db.profile.toArray(),
+  ]);
 
   const profile: Profile = profileRows[0] ?? {
     id: "profile",
@@ -62,7 +80,17 @@ async function loadExportInput(): Promise<ExcelExportInput> {
     weightUnit: "KG",
   };
 
-  return { workouts, exercises, templates, bodyweights, periodEntries, profile };
+  return {
+    workouts,
+    exercises,
+    templates,
+    bodyweights,
+    periodEntries,
+    workoutContexts,
+    exerciseSetups,
+    coachObservations,
+    profile,
+  };
 }
 
 export async function exportTrainingDataToExcel(): Promise<void> {

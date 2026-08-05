@@ -2,6 +2,8 @@ export interface WorkoutTemplate {
   id: string;
   name: string;
   createdAt: Date;
+  /** Workout this template was created from, when saved via "Save as template". */
+  originWorkoutId?: string;
   exercises: TemplateExercise[];
 }
 

@@ -5,6 +5,9 @@ import type { Profile } from "../../domain/entities/Profile";
 import type { WorkoutTemplate } from "../../domain/entities/Template";
 import type { BodyweightEntry } from "../../domain/entities/BodyweightEntry";
 import type { PeriodEntry } from "../../domain/entities/PeriodEntry";
+import type { WorkoutContextEntry } from "../../domain/entities/WorkoutContextEntry";
+import type { ExerciseSetupEntry } from "../../domain/entities/ExerciseSetupEntry";
+import type { CoachObservationEntry } from "../../domain/entities/CoachObservationEntry";
 
 export class LiftLogDatabase extends Dexie {
   exercises!: Table<Exercise, string>;
@@ -14,6 +17,9 @@ export class LiftLogDatabase extends Dexie {
   templates!: Table<WorkoutTemplate, string>;
   bodyweightEntries!: Table<BodyweightEntry, string>;
   periodEntries!: Table<PeriodEntry, string>;
+  workoutContextEntries!: Table<WorkoutContextEntry, string>;
+  exerciseSetupEntries!: Table<ExerciseSetupEntry, string>;
+  coachObservationEntries!: Table<CoachObservationEntry, string>;
 
   constructor(databaseName: string) {
     super(databaseName);
@@ -53,6 +59,37 @@ export class LiftLogDatabase extends Dexie {
       profile: "id",
       bodyweightEntries: "id, userId, recordedAt",
       periodEntries: "id, userId, startDate",
+    });
+
+    this.version(5).stores({
+      exercises: "id, name, primaryMuscle, source, archivedAt",
+      templates: "id, createdAt, name",
+      workouts: "id, startedAt, completedAt",
+      activeWorkout: "id",
+      profile: "id",
+      bodyweightEntries: "id, userId, recordedAt",
+      periodEntries: "id, userId, startDate",
+      workoutContextEntries: "id, userId, workoutId, createdAt",
+      exerciseSetupEntries:
+        "id, userId, exerciseId, workoutId, workoutExerciseId, createdAt",
+      coachObservationEntries:
+        "id, userId, exerciseId, workoutId, workoutExerciseId, setOrder, createdAt",
+    });
+
+    this.version(6).stores({
+      exercises: "id, name, primaryMuscle, source, archivedAt",
+      templates: "id, createdAt, name",
+      workouts: "id, startedAt, completedAt",
+      activeWorkout: "id",
+      profile: "id",
+      bodyweightEntries: "id, userId, recordedAt",
+      periodEntries: "id, userId, startDate",
+      workoutContextEntries:
+        "id, userId, workoutId, sourceTemplateId, createdAt",
+      exerciseSetupEntries:
+        "id, userId, exerciseId, workoutId, workoutExerciseId, sourceTemplateId, createdAt",
+      coachObservationEntries:
+        "id, userId, exerciseId, workoutId, workoutExerciseId, setOrder, sourceTemplateId, createdAt",
     });
   }
 }
