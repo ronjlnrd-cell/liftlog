@@ -352,27 +352,37 @@ h2 { margin:0; color:var(--ink); }
   grid-column:1 / -1;
   margin-top:-2px;
 }
+.workout-set-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 8px;
+}
 .workout-set-rest {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  max-width: none;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 650;
   color: var(--muted);
   white-space: nowrap;
 }
-.rest-setting.workout-set-rest select {
-  min-height: 30px;
-  height: 30px;
-  padding: 2px 8px;
-  font-size: 13px;
+.workout-set-rest span {
+  line-height: 1;
+}
+.workout-set-rest select {
+  min-height: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ink);
   width: auto;
-  min-width: 68px;
+  min-width: 62px;
+  border-radius: 8px;
 }
 .current-set-block {
   margin-top:16px;
@@ -382,14 +392,14 @@ h2 { margin:0; color:var(--ink); }
 .current-set-block .set-entry {
   margin-top:0;
 }
-.current-set-block .rest-setting {
-  margin-top: 10px;
-  max-width: none;
+.current-set-block .workout-set-rest {
+  margin-top: 8px;
 }
 .add-extra-set-button {
-  font-size:14px;
-  font-weight:700;
-  padding:6px 0;
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 0;
 }
 .editable-completed-set.compact .live-pr-badge {
   display:inline-flex;

@@ -259,30 +259,33 @@ export function WorkoutSetRows({
         );
       })}
 
-      <label className="rest-setting workout-set-rest">
-        Rest after set
-        <select
-          value={item.plannedRestSeconds}
-          onChange={(event) =>
-            onRestChange(item.id, Number(event.target.value))
-          }
-        >
-          <option value={60}>1:00</option>
-          <option value={90}>1:30</option>
-          <option value={120}>2:00</option>
-          <option value={180}>3:00</option>
-          <option value={240}>4:00</option>
-          <option value={300}>5:00</option>
-        </select>
-      </label>
+      <div className="workout-set-footer">
+        <div className="workout-set-rest">
+          <span>Rest after set</span>
+          <select
+            value={item.plannedRestSeconds}
+            aria-label="Rest after set"
+            onChange={(event) =>
+              onRestChange(item.id, Number(event.target.value))
+            }
+          >
+            <option value={60}>1:00</option>
+            <option value={90}>1:30</option>
+            <option value={120}>2:00</option>
+            <option value={180}>3:00</option>
+            <option value={240}>4:00</option>
+            <option value={300}>5:00</option>
+          </select>
+        </div>
 
-      <button
-        type="button"
-        className="text-button add-extra-set-button"
-        onClick={() => onAddPlannedSet(item.id)}
-      >
-        + Add set
-      </button>
+        <button
+          type="button"
+          className="text-button add-extra-set-button"
+          onClick={() => onAddPlannedSet(item.id)}
+        >
+          + Add set
+        </button>
+      </div>
     </div>
   );
 }
