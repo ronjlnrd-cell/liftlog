@@ -56,6 +56,7 @@ type WorkoutExerciseCardProps = {
   updatesTemplate: boolean;
   focusFirstSet?: boolean;
   onFocusFirstSet?: () => void;
+  onOpenExercise?: () => void;
 };
 
 export function WorkoutExerciseCard({
@@ -89,6 +90,7 @@ export function WorkoutExerciseCard({
   updatesTemplate,
   focusFirstSet = false,
   onFocusFirstSet,
+  onOpenExercise,
 }: WorkoutExerciseCardProps) {
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [progressionApplied, setProgressionApplied] = useState(false);
@@ -109,7 +111,19 @@ export function WorkoutExerciseCard({
       <div className="section-heading">
         <div>
           <div className="workout-exercise-title">
-            <h2>{exercise.name}</h2>
+            <h2>
+              {onOpenExercise ? (
+                <button
+                  type="button"
+                  className="text-button workout-exercise-title-link"
+                  onClick={onOpenExercise}
+                >
+                  {exercise.name}
+                </button>
+              ) : (
+                exercise.name
+              )}
+            </h2>
             {showProgressionIcon && (
               <button
                 type="button"

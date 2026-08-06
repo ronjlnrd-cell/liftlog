@@ -59,6 +59,7 @@ type WorkoutPageProps = {
     exerciseId: string,
   ) => ExerciseProgressionPreset | null;
   onExercisesChange?: () => Promise<void>;
+  onOpenExercise?: (exerciseId: string) => void;
 };
 
 export function WorkoutPage({
@@ -82,6 +83,7 @@ export function WorkoutPage({
   onSaveWorkoutContext,
   onSaveExerciseSetup,
   onSaveCoachObservation,
+  onOpenExercise,
 }: WorkoutPageProps) {
   const [restTimer, setRestTimer] = useState<{
     endAt: number;
@@ -487,6 +489,11 @@ export function WorkoutPage({
                   )
                 }
                 updatesTemplate={Boolean(workout.sourceTemplateId)}
+                onOpenExercise={
+                  onOpenExercise
+                    ? () => onOpenExercise(item.exerciseId)
+                    : undefined
+                }
               />
             ) : null;
           })}

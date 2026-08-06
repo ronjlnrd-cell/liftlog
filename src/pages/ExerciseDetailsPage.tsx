@@ -1,18 +1,21 @@
 import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
+import type { WorkoutTemplate } from "../domain/entities/Template";
 import { ExerciseSource } from "../domain/types/exercise-source";
 import { estimated1RM } from "../domain/analytics/personalRecords";
 import { getStrengthLevel, hasStrengthStandard } from "../domain/analytics/strengthStandards";
 import { updateCustomExercise } from "../domain/exercises/updateCustomExercise";
 import type { EditCustomExerciseInput } from "../components/EditCustomExerciseModal";
 import { EditCustomExerciseModal } from "../components/EditCustomExerciseModal";
-import { formatLabel } from "../shared";
+import { formatDate as formatWorkoutDate, formatLabel } from "../shared";
+import { getCoachingWorkoutTemplateContext } from "../domain/coaching/coachingTemplateContext";
 
 type ExerciseDetailsPageProps = {
   exercise: Exercise | null;
   exercises: Exercise[];
   workouts: Workout[];
+  templates: WorkoutTemplate[];
   unit: "KG" | "LB";
   gender: "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED";
   onBack: () => void;
@@ -33,10 +36,18 @@ type BestSet = {
   date: Date;
 };
 
+type HistoryRow = {
+  workoutId: string;
+  date: Date;
+  workoutLabel: string;
+  parameters: string;
+};
+
 export function ExerciseDetailsPage({
   exercise,
   exercises,
   workouts,
+  templates,
   unit,
   gender,
   onBack,
@@ -96,6 +107,39 @@ export function ExerciseDetailsPage({
 
     return { bestSet, heaviestWeight, lastPerformed, progress };
   }, [exercise, workouts]);
+
+  const historyRows = useMemo(() => {
+    if (!exercise) return [];
+
+    const rows: HistoryRow[] = [];
+
+    for (const workout of workouts) {
+      const item = workout.exercises.find(
+        (candidate) =>
+          candidate.exerciseId === exercise.id &&
+          candidate.completedSets.length > 0,
+      );
+      if (!item) continue;
+
+      const weight = Math.max(...item.completedSets.map((set) => set.weight));
+      const reps = Math.min(...item.completedSets.map((set) => set.reps));
+      const sets = item.completedSets.length;
+      const { workoutLabel } = getCoachingWorkoutTemplateContext(
+        workout.id,
+        workouts,
+        templates,
+      );
+
+      rows.push({
+        workoutId: workout.id,
+        date: new Date(workout.completedAt ?? workout.startedAt),
+        workoutLabel,
+        parameters: `${formatWeight(weight)}×${reps}×${sets}`,
+      });
+    }
+
+    return rows.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [exercise, workouts, templates]);
 
   if (!exercise) {
     return (
@@ -234,6 +278,36 @@ export function ExerciseDetailsPage({
               <span className="set-count">{stats?.progress.length ?? 0} sessions</span>
             </div>
             <ProgressChart points={stats?.progress ?? []} unitLabel={unitLabel} />
+          </div>
+
+          <div className="card progression-card">
+            <div className="section-heading">
+              <div>
+                <h2>History</h2>
+                <p>Completed workouts for this exercise.</p>
+              </div>
+              <span className="set-count">{historyRows.length} sessions</span>
+            </div>
+            <div className="previous-context-table-wrap exercise-history-table-wrap">
+              <table className="previous-context-table exercise-history-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Workout</th>
+                    <th scope="col">Parameters</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyRows.map((row) => (
+                    <tr key={row.workoutId}>
+                      <td>{formatWorkoutDate(row.date)}</td>
+                      <td>{row.workoutLabel}</td>
+                      <td>{row.parameters}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       ) : (

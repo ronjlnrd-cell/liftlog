@@ -1608,6 +1608,10 @@ function App() {
             onSaveWorkoutContext={saveWorkoutContextEntry}
             onSaveExerciseSetup={saveExerciseSetupEntry}
             onSaveCoachObservation={saveCoachObservationEntry}
+            onOpenExercise={(exerciseId) => {
+              setSelectedExerciseId(exerciseId);
+              setPage("exercise-details");
+            }}
           />
         )}
 
@@ -1671,6 +1675,7 @@ function App() {
             }
             exercises={exercises}
             workouts={workouts}
+            templates={templates}
             unit={profile.weightUnit}
             gender={profile.gender}
             onBack={() => {

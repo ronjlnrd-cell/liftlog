@@ -143,6 +143,23 @@ h2 { margin:0; color:var(--ink); }
   background:#f8e4e4;
   border-color:var(--green);
 }
+.workout-exercise-title-link {
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: color .12s ease, text-decoration-color .12s ease;
+}
+.workout-exercise-title-link:hover {
+  color: var(--green-dark);
+  text-decoration-color: var(--green);
+}
+.exercise-history-table-wrap { margin-top: 18px; max-height: none; }
+.exercise-history-table td:nth-child(3) { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .workout-set-table {
   margin-top:14px;
   border-top:1px solid var(--line);
