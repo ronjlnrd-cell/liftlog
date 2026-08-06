@@ -4,12 +4,15 @@ import type { Workout } from "../domain/entities/workout";
 import { ExerciseSource } from "../domain/types/exercise-source";
 import { exerciseRepository } from "../data/repositories/ExerciseRepository";
 import { createCustomExercise } from "../domain/exercises/createCustomExercise";
+import { updateCustomExercise } from "../domain/exercises/updateCustomExercise";
 import { ExerciseIllustration } from "../components/ExerciseIllustration";
 import { formatLabel } from "../shared";
 import {
   DEFAULT_PRIMARY_MUSCLE,
   PrimaryMuscleSelect,
 } from "../components/PrimaryMuscleSelect";
+import type { EditCustomExerciseInput } from "../components/EditCustomExerciseModal";
+import { EditCustomExerciseModal } from "../components/EditCustomExerciseModal";
 import type { MuscleGroup } from "../domain/types/MuscleGroup";
 import {
   compareExercisesByUsage,
@@ -38,6 +41,9 @@ export function ExercisesPage({
     useState<MuscleGroup>(DEFAULT_PRIMARY_MUSCLE);
   const [error, setError] = useState("");
   const [showAddCustom, setShowAddCustom] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [sortMode, setSortMode] = useState<"frequency" | "alphabetical">("frequency");
 
   const usageCounts = useMemo(
@@ -71,6 +77,23 @@ export function ExercisesPage({
     setPrimaryMuscle(DEFAULT_PRIMARY_MUSCLE);
     setError("");
     setShowAddCustom(false);
+    await onRefresh(result.exercise);
+  }
+
+  async function saveExerciseEdit(input: EditCustomExerciseInput) {
+    setSavingEdit(true);
+    setEditError("");
+
+    const result = await updateCustomExercise(input, exercises);
+    if (!result.ok) {
+      setEditError(result.error);
+      setSavingEdit(false);
+      return;
+    }
+
+    setEditingExercise(null);
+    setEditError("");
+    setSavingEdit(false);
     await onRefresh(result.exercise);
   }
 
@@ -165,27 +188,53 @@ export function ExercisesPage({
             </span>
 
             {exercise.source === ExerciseSource.CUSTOM && (
-              <button
-                className="danger-text"
-                onClick={async (event) => {
-                  event.stopPropagation();
-                  const confirmed = await confirm({
-                    title: "Archive exercise?",
-                    message: `"${exercise.name}" will be removed from your exercise list. Past workouts are kept.`,
-                    confirmLabel: "Archive",
-                    tone: "danger",
-                  });
-                  if (!confirmed) return;
-                  await exerciseRepository.archive(exercise.id);
-                  await onRefresh();
-                }}
-              >
-                Archive
-              </button>
+              <div className="exercise-row-actions">
+                <button
+                  className="text-button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setEditError("");
+                    setEditingExercise(exercise);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="danger-text"
+                  onClick={async (event) => {
+                    event.stopPropagation();
+                    const confirmed = await confirm({
+                      title: "Archive exercise?",
+                      message: `"${exercise.name}" will be removed from your exercise list. Past workouts are kept.`,
+                      confirmLabel: "Archive",
+                      tone: "danger",
+                    });
+                    if (!confirmed) return;
+                    await exerciseRepository.archive(exercise.id);
+                    await onRefresh();
+                  }}
+                >
+                  Archive
+                </button>
+              </div>
             )}
           </article>
         ))}
       </div>
+
+      {editingExercise && (
+        <EditCustomExerciseModal
+          key={editingExercise.id}
+          exercise={editingExercise}
+          error={editError}
+          saving={savingEdit}
+          onConfirm={saveExerciseEdit}
+          onClose={() => {
+            setEditingExercise(null);
+            setEditError("");
+          }}
+        />
+      )}
     </section>
   );
 }

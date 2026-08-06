@@ -615,6 +615,7 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .form-card h2 { margin-bottom:14px; }
 .search { width:100%; margin-bottom:14px; }
 .exercise-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.exercise-row-actions { display:flex; align-items:center; gap:12px; flex-shrink:0; }
 .exercise-row-main { display:flex; align-items:center; gap:14px; min-width:0; flex:1; }
 .exercise-illustration { margin:0; flex-shrink:0; }
 .exercise-illustration img {
@@ -2037,7 +2038,9 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 }
 .exercise-row-clickable{position:relative;padding-right:72px}
 .exercise-usage-number{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
-.exercise-row-clickable .danger-text{margin-right:44px}
+.exercise-row-clickable:has(.exercise-row-actions){padding-right:148px}
+.exercise-row-clickable:has(.exercise-row-actions) .exercise-usage-number{right:96px}
+.exercise-row-clickable .exercise-row-actions{position:absolute;right:16px;top:50%;transform:translateY(-50%)}
 
 .coaching-knowledge-master-toggle{
   display:inline-flex;
