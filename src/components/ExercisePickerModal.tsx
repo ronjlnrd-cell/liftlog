@@ -10,7 +10,7 @@ type ExercisePickerModalProps = {
   currentWorkout?: Workout | null;
   onSelect: (exerciseId: string) => void;
   onClose: () => void;
-  onExercisesChange?: () => Promise<void>;
+  onExercisesChange?: (createdExercise?: Exercise) => Promise<void>;
 };
 
 export function ExercisePickerModal({

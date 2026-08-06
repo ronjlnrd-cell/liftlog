@@ -9,6 +9,7 @@ import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { formatLabel } from "../shared";
 import { matchesExerciseSearch } from "../shared/exerciseSearch";
 import { AddCustomExerciseModal } from "./AddCustomExerciseModal";
+import type { AddCustomExerciseInput } from "./AddCustomExerciseModal";
 import { ExerciseIllustration } from "./ExerciseIllustration";
 
 type ExercisePickerPanelProps = {
@@ -17,7 +18,7 @@ type ExercisePickerPanelProps = {
   onSelect: (exerciseId: string) => void;
   workouts: Workout[];
   currentWorkout?: Workout | null;
-  onExercisesChange?: () => Promise<void>;
+  onExercisesChange?: (createdExercise?: Exercise) => Promise<void>;
 };
 
 export function ExercisePickerPanel({
@@ -74,18 +75,18 @@ export function ExercisePickerPanel({
     setQuery("");
   }
 
-  async function handleCreateExercise(name: string) {
+  async function handleCreateExercise(input: AddCustomExerciseInput) {
     setAddingExercise(true);
     setAddError("");
 
-    const result = await createCustomExercise(name, exercises);
+    const result = await createCustomExercise(input, exercises);
     if (!result.ok) {
       setAddError(result.error);
       setAddingExercise(false);
       return;
     }
 
-    await onExercisesChange?.();
+    await onExercisesChange?.(result.exercise);
     setAddingExercise(false);
     setShowAddModal(false);
     selectExercise(result.exercise.id);

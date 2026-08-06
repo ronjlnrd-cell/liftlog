@@ -3,17 +3,23 @@ import type { Exercise } from "../entities/Exercise";
 import { ExerciseSource } from "../types/exercise-source";
 import { LoadType } from "../types/LoadType";
 import { MovementPattern } from "../types/MovementPattern";
-import { MuscleGroup } from "../types/MuscleGroup";
+import type { MuscleGroup } from "../types/MuscleGroup";
+import { DEFAULT_PRIMARY_MUSCLE } from "./primaryMuscleOptions";
+
+export type CreateCustomExerciseInput = {
+  name: string;
+  primaryMuscle?: MuscleGroup;
+};
 
 export type CreateCustomExerciseResult =
   | { ok: true; exercise: Exercise }
   | { ok: false; error: string };
 
 export async function createCustomExercise(
-  name: string,
+  input: CreateCustomExerciseInput,
   existing: Exercise[],
 ): Promise<CreateCustomExerciseResult> {
-  const trimmed = name.trim();
+  const trimmed = input.name.trim();
   if (!trimmed) {
     return { ok: false, error: "Exercise name is required." };
   }
@@ -31,7 +37,7 @@ export async function createCustomExercise(
   const exercise: Exercise = {
     id: crypto.randomUUID(),
     name: trimmed,
-    primaryMuscle: MuscleGroup.UNKNOWN,
+    primaryMuscle: input.primaryMuscle ?? DEFAULT_PRIMARY_MUSCLE,
     movementPattern: MovementPattern.UNKNOWN,
     loadType: LoadType.UNKNOWN,
     defaultWeightIncrement: null,

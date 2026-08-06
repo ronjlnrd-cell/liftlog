@@ -92,6 +92,27 @@ h2 { margin:0; color:var(--ink); }
 .bottom-nav button span { font-size:22px; line-height:1; }
 .bottom-nav button.active { color:var(--green); }
 .add-row { display:flex; gap:10px; align-items:center; }
+.add-custom-exercise-form {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.add-custom-exercise-name,
+.primary-muscle-field {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:650;
+}
+.add-custom-exercise-name input,
+.primary-muscle-field select {
+  width:100%;
+}
+.add-custom-exercise-submit {
+  align-self:flex-start;
+}
 .add-row select,.add-row input,.search,input,select { min-height:45px; border:1px solid #dccaca; background:#fff; border-radius:11px; padding:10px 12px; color:var(--ink); }
 .add-row select,.add-row input { flex:1; min-width:0; }
 .stack,.exercise-list { display:flex; flex-direction:column; gap:12px; margin-top:16px; }

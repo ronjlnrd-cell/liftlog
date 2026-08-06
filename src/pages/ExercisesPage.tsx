@@ -7,6 +7,11 @@ import { createCustomExercise } from "../domain/exercises/createCustomExercise";
 import { ExerciseIllustration } from "../components/ExerciseIllustration";
 import { formatLabel } from "../shared";
 import {
+  DEFAULT_PRIMARY_MUSCLE,
+  PrimaryMuscleSelect,
+} from "../components/PrimaryMuscleSelect";
+import type { MuscleGroup } from "../domain/types/MuscleGroup";
+import {
   compareExercisesByUsage,
   getExerciseUsageCounts,
 } from "../domain/analytics/exerciseUsage";
@@ -16,7 +21,7 @@ import { useConfirm } from "../components/ConfirmProvider";
 type ExercisesPageProps = {
   exercises: Exercise[];
   workouts: Workout[];
-  onRefresh: () => Promise<void>;
+  onRefresh: (createdExercise?: Exercise) => Promise<void>;
   onOpen: (exercise: Exercise) => void;
 };
 
@@ -29,6 +34,8 @@ export function ExercisesPage({
   const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
+  const [primaryMuscle, setPrimaryMuscle] =
+    useState<MuscleGroup>(DEFAULT_PRIMARY_MUSCLE);
   const [error, setError] = useState("");
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [sortMode, setSortMode] = useState<"frequency" | "alphabetical">("frequency");
@@ -51,16 +58,20 @@ export function ExercisesPage({
   }, [exercises, query, sortMode, usageCounts]);
 
   async function addExercise() {
-    const result = await createCustomExercise(name, exercises);
+    const result = await createCustomExercise(
+      { name, primaryMuscle },
+      exercises,
+    );
     if (!result.ok) {
       setError(result.error);
       return;
     }
 
     setName("");
+    setPrimaryMuscle(DEFAULT_PRIMARY_MUSCLE);
     setError("");
     setShowAddCustom(false);
-    await onRefresh();
+    await onRefresh(result.exercise);
   }
 
   return (
@@ -95,16 +106,24 @@ export function ExercisesPage({
       {showAddCustom && (
         <div className="card form-card add-custom-panel">
           <h2>Add custom exercise</h2>
-          <div className="add-row">
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Exercise name"
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void addExercise();
-              }}
+          <div className="add-custom-exercise-form">
+            <label className="add-custom-exercise-name">
+              Exercise name
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Exercise name"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void addExercise();
+                }}
+              />
+            </label>
+            <PrimaryMuscleSelect
+              id="exercises-page-primary-muscle"
+              value={primaryMuscle}
+              onChange={setPrimaryMuscle}
             />
-            <button className="primary" onClick={addExercise}>
+            <button className="primary add-custom-exercise-submit" onClick={addExercise}>
               Add
             </button>
           </div>

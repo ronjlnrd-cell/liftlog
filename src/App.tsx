@@ -41,6 +41,8 @@ import {
 import { getWorkoutContextForWorkout } from "./domain/coaching/coachingKnowledgeQueries";
 import { mergeCoachingKnowledgeEntries, mergeTemplates } from "./domain/coaching/coachingKnowledgeMerge";
 import { buildWorkoutsForCoachingContext } from "./domain/coaching/coachingTemplateContext";
+import { mergeExerciseCatalog } from "./domain/exercises/mergeCustomExercises";
+import { ExerciseSource } from "./domain/types/exercise-source";
 import { CycleTrackingConsentModal } from "./components/CycleTrackingConsentModal";
 import { useConfirm } from "./components/ConfirmProvider";
 import { isCycleTrackingActive, mergeProfileWithCloud, needsCycleTrackingConsent } from "./domain/analytics/periodTracking";
@@ -106,6 +108,7 @@ type PendingSync =
   | { kind: "workout-context"; id: string }
   | { kind: "exercise-setup"; id: string }
   | { kind: "coach-observation"; id: string }
+  | { kind: "custom-exercise"; id: string }
   | { kind: "delete-workout"; id: string }
   | { kind: "delete-template"; id: string }
   | { kind: "delete-bodyweight"; id: string }
@@ -352,6 +355,23 @@ function App() {
 
   async function refreshExercises() {
     setExercises(await exerciseRepository.getAll());
+  }
+
+  async function handleExercisesChange(createdExercise?: Exercise) {
+    await refreshExercises();
+
+    if (!session || !createdExercise) return;
+
+    const synced = await cloudAction(() =>
+      saveCloudCustomExercise(session.user.id, createdExercise),
+    );
+    if (!synced) {
+      addPending({ kind: "custom-exercise", id: createdExercise.id });
+      setSyncMessage("Exercise saved on device — cloud sync pending");
+      return;
+    }
+
+    removePending("custom-exercise", createdExercise.id);
   }
 
   useEffect(() => {
@@ -653,7 +673,10 @@ function App() {
     } catch (error) {
       console.error("Could not load cloud coach observations:", error);
     }
-    const localCustom = exercises.filter((exercise) => exercise.source !== "BUILT_IN");
+    const localExercises = await exerciseRepository.getAll();
+    const localCustom = localExercises.filter(
+      (exercise) => exercise.source !== ExerciseSource.BUILT_IN,
+    );
     const cloudEmpty =
       cloud.workouts.length === 0 &&
       cloud.templates.length === 0 &&
@@ -668,7 +691,14 @@ function App() {
       setCloudReady(true);
       return;
     }
-    const builtIns = exercises.filter((exercise) => exercise.source === "BUILT_IN");
+
+    const mergedExercises = mergeExerciseCatalog(
+      localExercises,
+      cloud.customExercises,
+    );
+    const mergedCustom = mergedExercises.filter(
+      (exercise) => exercise.source !== ExerciseSource.BUILT_IN,
+    );
 
     // Merge by id: keep local when a pending sync exists, otherwise prefer the newest revision.
     const localWorkouts = (await workoutRepository.getAll()).map(ensureWorkoutExerciseIds);
@@ -738,7 +768,7 @@ function App() {
 
     setWorkouts(mergedWorkouts);
     setTemplates(mergedTemplates);
-    setExercises([...builtIns, ...cloud.customExercises].sort((a,b)=>a.name.localeCompare(b.name)));
+    setExercises(mergedExercises);
     setProfile(mergedProfile);
     setBodyweights(mergedBodyweights);
     setPeriodEntries(mergedPeriodEntries);
@@ -792,6 +822,7 @@ function App() {
     setCoachObservations(enrichedCoachObservations);
 
     await Promise.all([
+      ...mergedCustom.map((exercise) => exerciseRepository.add(exercise)),
       ...mergedWorkouts.map((workout) =>
         workoutRepository.save(ensureWorkoutExerciseIds(workout)),
       ),
@@ -974,6 +1005,11 @@ function App() {
               (candidate) => candidate.id === item.id,
             );
             if (entry) await saveCloudCoachObservation(userId, entry);
+          } else if (item.kind === "custom-exercise") {
+            const exercise = (await exerciseRepository.getAll()).find(
+              (candidate) => candidate.id === item.id,
+            );
+            if (exercise) await saveCloudCustomExercise(userId, exercise);
           } else if (item.kind === "delete-workout") {
             await deleteCloudWorkout(userId, item.id);
           } else if (item.kind === "delete-template") {
@@ -1563,7 +1599,7 @@ function App() {
                 ? readExerciseProgressionPreset(session.user.id, exerciseId)
                 : null
             }
-            onExercisesChange={refreshExercises}
+            onExercisesChange={handleExercisesChange}
             workoutContexts={workoutContexts}
             exerciseSetups={exerciseSetups}
             coachObservations={coachObservations}
@@ -1619,7 +1655,7 @@ function App() {
           <ExercisesPage
             exercises={exercises}
             workouts={workouts}
-            onRefresh={refreshExercises}
+            onRefresh={handleExercisesChange}
             onOpen={(exercise) => {
               setSelectedExerciseId(exercise.id);
               setPage("exercise-details");
@@ -1695,7 +1731,7 @@ function App() {
               setCreatingTemplate(null);
               setPage("templates");
             }}
-            onExercisesChange={refreshExercises}
+            onExercisesChange={handleExercisesChange}
             onSave={async (template) => {
               await templateRepository.save(template);
               setTemplates(await templateRepository.getAll());
@@ -1820,7 +1856,7 @@ function App() {
               setEditingWorkoutId(null);
               setPage("history");
             }}
-            onExercisesChange={refreshExercises}
+            onExercisesChange={handleExercisesChange}
             onSave={async (workout) => {
               const toSave: Workout = { ...workout, updatedAt: new Date() };
               await workoutRepository.save(toSave);
