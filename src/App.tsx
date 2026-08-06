@@ -1669,6 +1669,7 @@ function App() {
               exercises.find((exercise) => exercise.id === selectedExerciseId) ??
               null
             }
+            exercises={exercises}
             workouts={workouts}
             unit={profile.weightUnit}
             gender={profile.gender}
@@ -1676,6 +1677,7 @@ function App() {
               setSelectedExerciseId(null);
               setPage("exercises");
             }}
+            onRefresh={handleExercisesChange}
           />
         )}
 

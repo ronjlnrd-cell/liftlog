@@ -882,6 +882,13 @@ label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-s
 .exercise-row-clickable:focus-visible { outline:3px solid rgba(180,35,24,.2); outline-offset:2px; }
 .exercise-details-back { margin-bottom:18px; padding-left:0; }
 .exercise-details-heading { margin-bottom:22px; }
+.exercise-details-heading-main {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+}
+.exercise-details-edit { flex-shrink:0; margin-top:18px; }
 .exercise-details-heading .page-title { margin:5px 0 4px; }
 .exercise-details-meta { margin:0; color:var(--muted); }
 .exercise-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }

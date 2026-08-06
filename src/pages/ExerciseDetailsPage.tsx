@@ -1,16 +1,22 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
+import { ExerciseSource } from "../domain/types/exercise-source";
 import { estimated1RM } from "../domain/analytics/personalRecords";
 import { getStrengthLevel, hasStrengthStandard } from "../domain/analytics/strengthStandards";
+import { updateCustomExercise } from "../domain/exercises/updateCustomExercise";
+import type { EditCustomExerciseInput } from "../components/EditCustomExerciseModal";
+import { EditCustomExerciseModal } from "../components/EditCustomExerciseModal";
 import { formatLabel } from "../shared";
 
 type ExerciseDetailsPageProps = {
   exercise: Exercise | null;
+  exercises: Exercise[];
   workouts: Workout[];
   unit: "KG" | "LB";
   gender: "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED";
   onBack: () => void;
+  onRefresh: (updatedExercise?: Exercise) => Promise<void>;
 };
 
 type ProgressPoint = {
@@ -29,11 +35,17 @@ type BestSet = {
 
 export function ExerciseDetailsPage({
   exercise,
+  exercises,
   workouts,
   unit,
   gender,
   onBack,
+  onRefresh,
 }: ExerciseDetailsPageProps) {
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const stats = useMemo(() => {
     if (!exercise) return null;
 
@@ -107,6 +119,23 @@ export function ExerciseDetailsPage({
     ? getStrengthLevel(exercise.id, bestSet.estimated1RM, bestSet.bodyweight, gender)
     : null;
 
+  async function saveExerciseEdit(input: EditCustomExerciseInput) {
+    setSavingEdit(true);
+    setEditError("");
+
+    const result = await updateCustomExercise(input, exercises);
+    if (!result.ok) {
+      setEditError(result.error);
+      setSavingEdit(false);
+      return;
+    }
+
+    setShowEditModal(false);
+    setEditError("");
+    setSavingEdit(false);
+    await onRefresh(result.exercise);
+  }
+
   return (
     <section>
       <button className="text-button exercise-details-back" onClick={onBack}>
@@ -114,11 +143,27 @@ export function ExerciseDetailsPage({
       </button>
 
       <div className="exercise-details-heading">
-        <p className="eyebrow">EXERCISE PROGRESS</p>
-        <h1 className="page-title">{exercise.name}</h1>
-        <p className="exercise-details-meta">
-          {formatLabel(exercise.primaryMuscle)} · {formatLabel(exercise.loadType)}
-        </p>
+        <div className="exercise-details-heading-main">
+          <div>
+            <p className="eyebrow">EXERCISE PROGRESS</p>
+            <h1 className="page-title">{exercise.name}</h1>
+            <p className="exercise-details-meta">
+              {formatLabel(exercise.primaryMuscle)} · {formatLabel(exercise.loadType)}
+            </p>
+          </div>
+          {exercise.source === ExerciseSource.CUSTOM && (
+            <button
+              type="button"
+              className="text-button exercise-details-edit"
+              onClick={() => {
+                setEditError("");
+                setShowEditModal(true);
+              }}
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </div>
 
       {bestSet ? (
@@ -196,6 +241,20 @@ export function ExerciseDetailsPage({
           <h2>No workout data yet</h2>
           <p>Complete a set of {exercise.name} to start tracking estimated 1RM progress.</p>
         </div>
+      )}
+
+      {showEditModal && exercise.source === ExerciseSource.CUSTOM && (
+        <EditCustomExerciseModal
+          key={exercise.id}
+          exercise={exercise}
+          error={editError}
+          saving={savingEdit}
+          onConfirm={saveExerciseEdit}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditError("");
+          }}
+        />
       )}
     </section>
   );
