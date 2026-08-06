@@ -1,12 +1,8 @@
 import type { WorkoutTemplate } from "../domain/entities/Template";
 import type { Exercise } from "../domain/entities/Exercise";
 import type { Workout } from "../domain/entities/workout";
-import { MuscleGroup } from "../domain/types/MuscleGroup";
+import { getWeeklyMuscleSetCounts } from "../domain/analytics/weeklyMuscleVolume";
 import { formatDate, formatLabel } from "../shared";
-
-const TRACKED_MUSCLE_GROUPS = Object.values(MuscleGroup).filter(
-  (muscle) => muscle !== MuscleGroup.UNKNOWN && muscle !== MuscleGroup.QUADS,
-);
 
 type HomePageProps = {
   activeWorkout: Workout | null;
@@ -33,24 +29,9 @@ export function HomePage({
 }: HomePageProps) {
   const last = workouts[0];
   const recentTemplates = templates.slice(0, 3);
-  const sevenDaysAgo = Date.now() - 7 * 86_400_000;
-  const weeklyMuscleSets = new Map<string, number>(
-    TRACKED_MUSCLE_GROUPS.map((muscle) => [muscle, 0]),
-  );
-
-  workouts
-    .filter((workout) => workout.completedAt && new Date(workout.completedAt).getTime() >= sevenDaysAgo)
-    .forEach((workout) => {
-      workout.exercises.forEach((item) => {
-        const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
-        if (!exercise || exercise.primaryMuscle === "UNKNOWN") return;
-        if (!weeklyMuscleSets.has(exercise.primaryMuscle)) return;
-        weeklyMuscleSets.set(
-          exercise.primaryMuscle,
-          (weeklyMuscleSets.get(exercise.primaryMuscle) ?? 0) + item.completedSets.length,
-        );
-      });
-    });
+  const weeklyMuscleSets = getWeeklyMuscleSetCounts(exercises, workouts, {
+    activeWorkout,
+  });
 
   const muscleVolume = [...weeklyMuscleSets.entries()]
     .map(([muscle, sets]) => ({ muscle, sets }))

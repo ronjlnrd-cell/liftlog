@@ -38,12 +38,13 @@ describe("updateCustomExercise", () => {
     addMock.mockResolvedValue(undefined);
   });
 
-  it("updates name and primary muscle for a custom exercise", async () => {
+  it("updates name, primary muscle, and equipment for a custom exercise", async () => {
     const result = await updateCustomExercise(
       {
         id: customExercise.id,
         name: "Paused Bench",
         primaryMuscle: MuscleGroup.TRICEPS,
+        loadType: LoadType.CABLE,
       },
       [customExercise],
     );
@@ -53,6 +54,7 @@ describe("updateCustomExercise", () => {
 
     expect(result.exercise.name).toBe("Paused Bench");
     expect(result.exercise.primaryMuscle).toBe(MuscleGroup.TRICEPS);
+    expect(result.exercise.loadType).toBe(LoadType.CABLE);
     expect(result.exercise.id).toBe(customExercise.id);
     expect(addMock).toHaveBeenCalledWith(result.exercise);
   });
@@ -63,6 +65,7 @@ describe("updateCustomExercise", () => {
         id: customExercise.id,
         name: "   ",
         primaryMuscle: MuscleGroup.CHEST,
+        loadType: LoadType.UNKNOWN,
       },
       [customExercise],
     );
@@ -83,6 +86,7 @@ describe("updateCustomExercise", () => {
         id: customExercise.id,
         name: "Paused Bench",
         primaryMuscle: MuscleGroup.CHEST,
+        loadType: LoadType.UNKNOWN,
       },
       [customExercise, otherCustom],
     );
@@ -100,6 +104,7 @@ describe("updateCustomExercise", () => {
         id: customExercise.id,
         name: "Tempo Bench",
         primaryMuscle: MuscleGroup.BACK,
+        loadType: LoadType.UNKNOWN,
       },
       [customExercise],
     );
@@ -117,6 +122,7 @@ describe("updateCustomExercise", () => {
         id: builtInExercise.id,
         name: "Renamed Bench",
         primaryMuscle: MuscleGroup.CHEST,
+        loadType: LoadType.UNKNOWN,
       },
       [builtInExercise],
     );

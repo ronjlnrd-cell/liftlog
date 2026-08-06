@@ -2,11 +2,13 @@ import { exerciseRepository } from "../../data/repositories/ExerciseRepository";
 import type { Exercise } from "../entities/Exercise";
 import { ExerciseSource } from "../types/exercise-source";
 import type { MuscleGroup } from "../types/MuscleGroup";
+import type { LoadType } from "../types/LoadType";
 
 export type UpdateCustomExerciseInput = {
   id: string;
   name: string;
   primaryMuscle: MuscleGroup;
+  loadType: LoadType;
 };
 
 export type UpdateCustomExerciseResult =
@@ -46,6 +48,7 @@ export async function updateCustomExercise(
     ...exercise,
     name: trimmed,
     primaryMuscle: input.primaryMuscle,
+    loadType: input.loadType,
   };
 
   await exerciseRepository.add(updated);

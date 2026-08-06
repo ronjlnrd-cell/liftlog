@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LoadType } from "../types/LoadType";
 import { MuscleGroup } from "../types/MuscleGroup";
 import { createCustomExercise } from "./createCustomExercise";
 
@@ -16,9 +17,13 @@ describe("createCustomExercise", () => {
     addMock.mockResolvedValue(undefined);
   });
 
-  it("stores the selected primary muscle on the new exercise", async () => {
+  it("stores the selected primary muscle and equipment on the new exercise", async () => {
     const result = await createCustomExercise(
-      { name: "Tempo Bench", primaryMuscle: MuscleGroup.CHEST },
+      {
+        name: "Tempo Bench",
+        primaryMuscle: MuscleGroup.CHEST,
+        loadType: LoadType.DUMBBELL,
+      },
       [],
     );
 
@@ -26,6 +31,7 @@ describe("createCustomExercise", () => {
     if (!result.ok) return;
 
     expect(result.exercise.primaryMuscle).toBe(MuscleGroup.CHEST);
+    expect(result.exercise.loadType).toBe(LoadType.DUMBBELL);
     expect(addMock).toHaveBeenCalledWith(result.exercise);
   });
 });

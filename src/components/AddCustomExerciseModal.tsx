@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { MuscleGroup } from "../domain/types/MuscleGroup";
+import type { LoadType } from "../domain/types/LoadType";
 import {
   DEFAULT_PRIMARY_MUSCLE,
   PrimaryMuscleSelect,
 } from "./PrimaryMuscleSelect";
+import { DEFAULT_LOAD_TYPE, LoadTypeSelect } from "./LoadTypeSelect";
 
 export type AddCustomExerciseInput = {
   name: string;
   primaryMuscle: MuscleGroup;
+  loadType: LoadType;
 };
 
 type AddCustomExerciseModalProps = {
@@ -27,9 +30,10 @@ export function AddCustomExerciseModal({
   const [name, setName] = useState("");
   const [primaryMuscle, setPrimaryMuscle] =
     useState<MuscleGroup>(DEFAULT_PRIMARY_MUSCLE);
+  const [loadType, setLoadType] = useState<LoadType>(DEFAULT_LOAD_TYPE);
 
   async function handleConfirm() {
-    await onConfirm({ name, primaryMuscle });
+    await onConfirm({ name, primaryMuscle, loadType });
   }
 
   return createPortal(
@@ -72,6 +76,11 @@ export function AddCustomExerciseModal({
             id="add-custom-exercise-muscle"
             value={primaryMuscle}
             onChange={setPrimaryMuscle}
+          />
+          <LoadTypeSelect
+            id="add-custom-exercise-equipment"
+            value={loadType}
+            onChange={setLoadType}
           />
           <button
             className="primary add-custom-exercise-submit"

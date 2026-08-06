@@ -11,9 +11,11 @@ import {
   DEFAULT_PRIMARY_MUSCLE,
   PrimaryMuscleSelect,
 } from "../components/PrimaryMuscleSelect";
+import { DEFAULT_LOAD_TYPE, LoadTypeSelect } from "../components/LoadTypeSelect";
 import type { EditCustomExerciseInput } from "../components/EditCustomExerciseModal";
 import { EditCustomExerciseModal } from "../components/EditCustomExerciseModal";
 import type { MuscleGroup } from "../domain/types/MuscleGroup";
+import type { LoadType } from "../domain/types/LoadType";
 import {
   compareExercisesByUsage,
   getExerciseUsageCounts,
@@ -39,6 +41,7 @@ export function ExercisesPage({
   const [name, setName] = useState("");
   const [primaryMuscle, setPrimaryMuscle] =
     useState<MuscleGroup>(DEFAULT_PRIMARY_MUSCLE);
+  const [loadType, setLoadType] = useState<LoadType>(DEFAULT_LOAD_TYPE);
   const [error, setError] = useState("");
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
@@ -63,9 +66,20 @@ export function ExercisesPage({
     );
   }, [exercises, query, sortMode, usageCounts]);
 
+  const customExercises = useMemo(
+    () =>
+      exercises
+        .filter(
+          (exercise) =>
+            exercise.source === ExerciseSource.CUSTOM && !exercise.archivedAt,
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [exercises],
+  );
+
   async function addExercise() {
     const result = await createCustomExercise(
-      { name, primaryMuscle },
+      { name, primaryMuscle, loadType },
       exercises,
     );
     if (!result.ok) {
@@ -75,6 +89,7 @@ export function ExercisesPage({
 
     setName("");
     setPrimaryMuscle(DEFAULT_PRIMARY_MUSCLE);
+    setLoadType(DEFAULT_LOAD_TYPE);
     setError("");
     setShowAddCustom(false);
     await onRefresh(result.exercise);
@@ -110,7 +125,7 @@ export function ExercisesPage({
           <span className="add-custom-icon" aria-hidden="true">
             +
           </span>
-          Add custom
+          Custom exercises
         </button>
       </div>
 
@@ -128,7 +143,7 @@ export function ExercisesPage({
 
       {showAddCustom && (
         <div className="card form-card add-custom-panel">
-          <h2>Add custom exercise</h2>
+          <h2>Custom exercises</h2>
           <div className="add-custom-exercise-form">
             <label className="add-custom-exercise-name">
               Exercise name
@@ -146,11 +161,71 @@ export function ExercisesPage({
               value={primaryMuscle}
               onChange={setPrimaryMuscle}
             />
+            <LoadTypeSelect
+              id="exercises-page-equipment"
+              value={loadType}
+              onChange={setLoadType}
+            />
             <button className="primary add-custom-exercise-submit" onClick={addExercise}>
               Add
             </button>
           </div>
           {error && <p className="error">{error}</p>}
+
+          {customExercises.length > 0 && (
+            <div className="custom-exercise-list">
+              <h3>Your custom exercises</h3>
+              {customExercises.map((exercise) => (
+                <article
+                  className="custom-exercise-row"
+                  key={exercise.id}
+                >
+                  <div className="custom-exercise-row-main">
+                    <ExerciseIllustration
+                      exerciseId={exercise.id}
+                      className="exercise-row-thumbnail"
+                    />
+                    <div>
+                      <strong>{exercise.name}</strong>
+                      <p>
+                        {formatLabel(exercise.primaryMuscle)} ·{" "}
+                        {formatLabel(exercise.loadType)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="exercise-row-actions">
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => {
+                        setEditError("");
+                        setEditingExercise(exercise);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="danger-text"
+                      type="button"
+                      onClick={async () => {
+                        const confirmed = await confirm({
+                          title: "Archive exercise?",
+                          message: `"${exercise.name}" will be removed from your exercise list. Past workouts are kept.`,
+                          confirmLabel: "Archive",
+                          tone: "danger",
+                        });
+                        if (!confirmed) return;
+                        await exerciseRepository.archive(exercise.id);
+                        await onRefresh();
+                      }}
+                    >
+                      Archive
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -186,38 +261,6 @@ export function ExercisesPage({
             <span className="exercise-usage-number" title={`${usageCounts.get(exercise.id) ?? 0} workouts performed`}>
               {usageCounts.get(exercise.id) ?? 0}
             </span>
-
-            {exercise.source === ExerciseSource.CUSTOM && (
-              <div className="exercise-row-actions">
-                <button
-                  className="text-button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setEditError("");
-                    setEditingExercise(exercise);
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  className="danger-text"
-                  onClick={async (event) => {
-                    event.stopPropagation();
-                    const confirmed = await confirm({
-                      title: "Archive exercise?",
-                      message: `"${exercise.name}" will be removed from your exercise list. Past workouts are kept.`,
-                      confirmLabel: "Archive",
-                      tone: "danger",
-                    });
-                    if (!confirmed) return;
-                    await exerciseRepository.archive(exercise.id);
-                    await onRefresh();
-                  }}
-                >
-                  Archive
-                </button>
-              </div>
-            )}
           </article>
         ))}
       </div>

@@ -1,14 +1,16 @@
 import { exerciseRepository } from "../../data/repositories/ExerciseRepository";
 import type { Exercise } from "../entities/Exercise";
 import { ExerciseSource } from "../types/exercise-source";
-import { LoadType } from "../types/LoadType";
 import { MovementPattern } from "../types/MovementPattern";
 import type { MuscleGroup } from "../types/MuscleGroup";
 import { DEFAULT_PRIMARY_MUSCLE } from "./primaryMuscleOptions";
+import type { LoadType } from "../types/LoadType";
+import { DEFAULT_LOAD_TYPE } from "./loadTypeOptions";
 
 export type CreateCustomExerciseInput = {
   name: string;
   primaryMuscle?: MuscleGroup;
+  loadType?: LoadType;
 };
 
 export type CreateCustomExerciseResult =
@@ -39,7 +41,7 @@ export async function createCustomExercise(
     name: trimmed,
     primaryMuscle: input.primaryMuscle ?? DEFAULT_PRIMARY_MUSCLE,
     movementPattern: MovementPattern.UNKNOWN,
-    loadType: LoadType.UNKNOWN,
+    loadType: input.loadType ?? DEFAULT_LOAD_TYPE,
     defaultWeightIncrement: null,
     source: ExerciseSource.CUSTOM,
     archivedAt: null,
