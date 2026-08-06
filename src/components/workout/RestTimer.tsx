@@ -5,6 +5,7 @@ import {
   ensureNotificationPermission,
   notifyTimerComplete,
   prepareTimerNotification,
+  shouldPlayCompletionFeedback,
   startBackgroundRestTimer,
   stopBackgroundRestTimer,
   subscribeToRestTimerComplete,
@@ -37,11 +38,8 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
   useEffect(() => {
     completedEndAtRef.current = null;
     prepareTimerNotification();
-
-    void ensureNotificationPermission().then((granted) => {
-      if (!granted) return;
-      void startBackgroundRestTimer(endAt, exerciseName);
-    });
+    void ensureNotificationPermission();
+    void startBackgroundRestTimer(endAt, exerciseName);
 
     return () => {
       stopBackgroundRestTimer();
@@ -49,8 +47,11 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
   }, [endAt, exerciseName]);
 
   useEffect(() => {
-    return subscribeToRestTimerComplete(() => {
-      finishTimer(document.visibilityState === "visible");
+    return subscribeToRestTimerComplete((completedAt) => {
+      finishTimer(
+        document.visibilityState === "visible" &&
+          shouldPlayCompletionFeedback(endAt, completedAt),
+      );
     });
   }, [endAt]);
 
@@ -68,9 +69,11 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
         return;
       }
 
+      void clearRestTimerNotification();
       syncSecondsLeft();
+
       if (Date.now() >= endAt) {
-        finishTimer(true);
+        finishTimer(shouldPlayCompletionFeedback(endAt));
       }
     };
 
@@ -84,7 +87,8 @@ export function RestTimer({ endAt, exerciseName, onSkip, onAdjust }: RestTimerPr
   useEffect(() => {
     if (secondsLeft > 0) return;
     if (Date.now() < endAt) return;
-    finishTimer(true);
+    if (document.visibilityState !== "visible") return;
+    finishTimer(shouldPlayCompletionFeedback(endAt));
   }, [endAt, secondsLeft]);
 
   function handleSkip() {

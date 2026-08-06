@@ -5,13 +5,15 @@ let notificationTickInterval: number | null = null;
 let activeNotificationTimer: { endAt: number; exerciseName?: string } | null =
   null;
 
-const REST_TIMER_MESSAGE = {
+export const REST_TIMER_MESSAGE = {
   START: "REST_TIMER_START",
   STOP: "REST_TIMER_STOP",
   SYNC: "REST_TIMER_SYNC",
-  HEARTBEAT: "REST_TIMER_HEARTBEAT",
+  VISIBILITY: "REST_TIMER_VISIBILITY",
   COMPLETE: "REST_TIMER_COMPLETE",
 } as const;
+
+export const REST_TIMER_STALE_FEEDBACK_MS = 3000;
 
 const REST_TIMER_TAG = "liftlog-rest-timer";
 const NOTIFICATION_ICON = "/app-icon.svg";
@@ -73,6 +75,15 @@ function formatRestTime(secondsLeft: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function syncPageVisibilityWithServiceWorker() {
+  if (typeof document === "undefined") return;
+
+  void postToServiceWorker({
+    type: REST_TIMER_MESSAGE.VISIBILITY,
+    visible: document.visibilityState === "visible",
+  });
+}
+
 function startRestTimerKeepAlive() {
   if (typeof window === "undefined") return;
 
@@ -118,27 +129,32 @@ function tickRestTimerNotification() {
   const timer = activeNotificationTimer;
   if (!timer) return;
 
-  void postToServiceWorker({ type: REST_TIMER_MESSAGE.HEARTBEAT });
+  syncPageVisibilityWithServiceWorker();
 
   const secondsLeft = Math.max(
     0,
     Math.ceil((timer.endAt - Date.now()) / 1000),
   );
-  if (secondsLeft <= 0) return;
 
   if (document.visibilityState === "visible") {
-    void updateRestTimerNotification(
-      secondsLeft,
-      timer.exerciseName,
-      timer.endAt,
-    );
+    void clearRestTimerNotification();
+    return;
   }
+
+  if (secondsLeft <= 0) return;
+
+  void updateRestTimerNotification(
+    secondsLeft,
+    timer.exerciseName,
+    timer.endAt,
+  );
 }
 
 function startRestTimerNotificationLoop(endAt: number, exerciseName?: string) {
   stopRestTimerNotificationLoop();
   activeNotificationTimer = { endAt, exerciseName };
   startRestTimerKeepAlive();
+  syncPageVisibilityWithServiceWorker();
 
   tickRestTimerNotification();
   notificationTickInterval = window.setInterval(tickRestTimerNotification, 1000);
@@ -178,6 +194,7 @@ export async function updateRestTimerNotification(
 ) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
+  if (document.visibilityState === "visible") return;
 
   if (secondsLeft <= 0) {
     await clearRestTimerNotification();
@@ -229,8 +246,7 @@ export async function startBackgroundRestTimer(
   endAt: number,
   exerciseName?: string,
 ) {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
+  if (typeof window === "undefined") return;
 
   lastNotifiedSecond = -1;
   startRestTimerNotificationLoop(endAt, exerciseName);
@@ -249,6 +265,8 @@ export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
     activeNotificationTimer.exerciseName !== exerciseName
   ) {
     startRestTimerNotificationLoop(endAt, exerciseName);
+  } else {
+    syncPageVisibilityWithServiceWorker();
   }
 
   void postToServiceWorker({
@@ -266,7 +284,7 @@ export function stopBackgroundRestTimer() {
 }
 
 export function subscribeToRestTimerComplete(
-  callback: () => void,
+  callback: (completedAt: number) => void,
 ): () => void {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
     return () => {};
@@ -274,7 +292,11 @@ export function subscribeToRestTimerComplete(
 
   const handler = (event: MessageEvent) => {
     if (event.data?.type === REST_TIMER_MESSAGE.COMPLETE) {
-      callback();
+      callback(
+        typeof event.data.completedAt === "number"
+          ? event.data.completedAt
+          : Date.now(),
+      );
     }
   };
 
@@ -331,4 +353,12 @@ function beep(
 
   oscillator.start(startAt);
   oscillator.stop(startAt + duration);
+}
+
+export function shouldPlayCompletionFeedback(
+  endAt: number,
+  completedAt = Date.now(),
+): boolean {
+  if (completedAt < endAt) return false;
+  return completedAt - endAt <= REST_TIMER_STALE_FEEDBACK_MS;
 }

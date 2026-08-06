@@ -3,18 +3,16 @@ const REST_TIMER_COMPLETE_TAG = "liftlog-rest-timer-complete";
 const NOTIFICATION_ICON = "/app-icon.svg";
 const TIMER_CACHE = "liftlog-rest-timer-v1";
 const TIMER_KEY = "/__rest-timer__";
-const HEARTBEAT_TIMEOUT_MS = 8000;
+const STALE_COMPLETION_MS = 60_000;
 
 /** @type {{ endAt: number, exerciseName?: string } | null} */
 let activeTimer = null;
 /** @type {number | null} */
 let tickTimeoutId = null;
-/** @type {number | null} */
-let heartbeatWatchIntervalId = null;
 /** @type {number} */
 let restTimerEpoch = 0;
-/** @type {number} */
-let lastHeartbeatAt = 0;
+/** @type {boolean} */
+let pageVisible = false;
 
 function formatRestTime(secondsLeft) {
   const minutes = Math.floor(secondsLeft / 60);
@@ -36,27 +34,6 @@ function sleep(ms) {
       resolve();
     }, ms);
   });
-}
-
-function stopHeartbeatWatch() {
-  if (heartbeatWatchIntervalId != null) {
-    clearInterval(heartbeatWatchIntervalId);
-    heartbeatWatchIntervalId = null;
-  }
-}
-
-function startHeartbeatWatch() {
-  stopHeartbeatWatch();
-
-  heartbeatWatchIntervalId = setInterval(() => {
-    if (!activeTimer) return;
-    if (Date.now() - lastHeartbeatAt <= HEARTBEAT_TIMEOUT_MS) return;
-    stopRestTimerInternal();
-  }, 2000);
-}
-
-function touchHeartbeat() {
-  lastHeartbeatAt = Date.now();
 }
 
 async function persistTimer(timer) {
@@ -90,8 +67,16 @@ async function closeRestTimerNotifications() {
   }
 }
 
+async function hasVisibleClient() {
+  const clients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  return clients.some((client) => client.visibilityState === "visible");
+}
+
 async function updateRestTimerNotification() {
-  if (!activeTimer) return;
+  if (!activeTimer || pageVisible) return;
 
   const epoch = restTimerEpoch;
   const secondsLeft = Math.max(
@@ -123,39 +108,46 @@ async function updateRestTimerNotification() {
   }
 }
 
-async function notifyClientsComplete() {
+async function notifyClientsComplete(completedAt, endAt) {
   const clients = await self.clients.matchAll({
     type: "window",
     includeUncontrolled: true,
   });
   clients.forEach((client) => {
-    client.postMessage({ type: "REST_TIMER_COMPLETE" });
+    client.postMessage({
+      type: "REST_TIMER_COMPLETE",
+      completedAt,
+      endAt,
+    });
   });
 }
 
 async function completeRestTimer() {
   const exerciseName = activeTimer?.exerciseName;
+  const timerEndAt = activeTimer?.endAt ?? null;
+  const completedAt = Date.now();
   stopRestTimerInternal(false);
   await closeRestTimerNotifications();
 
-  await self.registration.showNotification(
-    exerciseName ? `Rest complete · ${exerciseName}` : "Rest complete",
-    {
-      body: "Time for your next set",
-      tag: REST_TIMER_COMPLETE_TAG,
-      icon: NOTIFICATION_ICON,
-      silent: false,
-      vibrate: [200, 100, 200, 100, 400],
-    },
-  );
+  const visibleClient = await hasVisibleClient();
+  if (!visibleClient) {
+    await self.registration.showNotification(
+      exerciseName ? `Rest complete · ${exerciseName}` : "Rest complete",
+      {
+        body: "Time for your next set",
+        tag: REST_TIMER_COMPLETE_TAG,
+        icon: NOTIFICATION_ICON,
+        silent: false,
+        vibrate: [200, 100, 200, 100, 400],
+      },
+    );
+  }
 
-  await closeRestTimerNotifications();
-  await notifyClientsComplete();
+  await notifyClientsComplete(completedAt, timerEndAt);
 }
 
 function stopRestTimerInternal(clearNotification = true) {
   restTimerEpoch += 1;
-  stopHeartbeatWatch();
   cancelSleep();
 
   activeTimer = null;
@@ -169,8 +161,6 @@ function stopRestTimerInternal(clearNotification = true) {
 async function runRestTimer(endAt, exerciseName) {
   activeTimer = { endAt, exerciseName };
   await persistTimer(activeTimer);
-  touchHeartbeat();
-  startHeartbeatWatch();
 
   while (activeTimer && activeTimer.endAt === endAt) {
     const now = Date.now();
@@ -179,7 +169,11 @@ async function runRestTimer(endAt, exerciseName) {
       return;
     }
 
-    await updateRestTimerNotification();
+    if (!pageVisible) {
+      await updateRestTimerNotification();
+    } else {
+      await closeRestTimerNotifications();
+    }
 
     const secondsLeft = Math.ceil((endAt - now) / 1000);
     const nextSecondBoundary = endAt - (secondsLeft - 1) * 1000;
@@ -196,7 +190,6 @@ function startRestTimer(endAt, exerciseName) {
     activeTimer?.endAt === endAt &&
     activeTimer?.exerciseName === exerciseName
   ) {
-    touchHeartbeat();
     return Promise.resolve();
   }
 
@@ -209,6 +202,11 @@ async function resumePersistedTimer() {
   if (!persisted?.endAt) return;
 
   if (persisted.endAt <= Date.now()) {
+    if (Date.now() - persisted.endAt > STALE_COMPLETION_MS) {
+      await persistTimer(null);
+      return;
+    }
+
     activeTimer = persisted;
     await completeRestTimer();
     return;
@@ -216,6 +214,13 @@ async function resumePersistedTimer() {
 
   if (!activeTimer) {
     await runRestTimer(persisted.endAt, persisted.exerciseName);
+  }
+}
+
+function setPageVisible(visible) {
+  pageVisible = visible;
+  if (visible) {
+    void closeRestTimerNotifications();
   }
 }
 
@@ -230,20 +235,19 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  const { type, endAt, exerciseName } = event.data ?? {};
+  const { type, endAt, exerciseName, visible } = event.data ?? {};
   if (type === "REST_TIMER_START") {
     event.waitUntil(startRestTimer(endAt, exerciseName));
     return;
   }
   if (type === "REST_TIMER_SYNC") {
-    touchHeartbeat();
     if (!activeTimer || activeTimer.endAt !== endAt) {
       event.waitUntil(startRestTimer(endAt, exerciseName));
     }
     return;
   }
-  if (type === "REST_TIMER_HEARTBEAT") {
-    touchHeartbeat();
+  if (type === "REST_TIMER_VISIBILITY") {
+    setPageVisible(Boolean(visible));
     return;
   }
   if (type === "REST_TIMER_STOP") {
