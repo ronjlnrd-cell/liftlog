@@ -1,9 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import {
-  formatRestTime,
-  getRemainingSeconds,
-} from "../../services/restTimer/computeRemaining";
+import { formatRestTime } from "../../services/restTimer/computeRemaining";
 import { restTimerService } from "../../services/restTimer/RestTimerService";
 
 type RestTimerProps = {
@@ -20,8 +17,7 @@ export function RestTimer({ onSkip, onAdjust }: RestTimerProps) {
 
   if (!snapshot) return null;
 
-  const secondsLeft = getRemainingSeconds(snapshot.endAt);
-  const timeLabel = formatRestTime(secondsLeft);
+  const timeLabel = formatRestTime(snapshot.remainingSeconds);
 
   return createPortal(
     <div

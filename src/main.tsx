@@ -4,12 +4,11 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import { ConfirmProvider } from "./components/ConfirmProvider";
-import { registerTimerServiceWorker } from "./services/restTimer/swBridge";
 import { restTimerService } from "./services/restTimer/RestTimerService";
+import { registerTimerServiceWorker } from "./services/restTimer/swBridge";
 
-void registerTimerServiceWorker().then(() => {
-  restTimerService.init();
-});
+restTimerService.init();
+void registerTimerServiceWorker();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

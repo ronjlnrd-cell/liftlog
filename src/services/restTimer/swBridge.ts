@@ -1,4 +1,5 @@
 import { REST_TIMER_MESSAGE } from "./types";
+import type { RestTimerState } from "./types";
 
 const REST_TIMER_TAG = "liftlog-rest-timer";
 
@@ -51,6 +52,14 @@ async function postToServiceWorker(message: Record<string, unknown>) {
   });
 }
 
+function timerPayload(state: RestTimerState) {
+  return {
+    timerId: state.timerId,
+    endAt: state.endAt,
+    exerciseName: state.exerciseName,
+  };
+}
+
 export async function ensureNotificationPermission(): Promise<boolean> {
   if (typeof window === "undefined" || !("Notification" in window)) {
     return false;
@@ -77,34 +86,33 @@ export async function clearRestTimerNotification() {
   }
 }
 
-export async function startBackgroundRestTimer(
-  endAt: number,
-  exerciseName?: string,
-) {
+export async function postRestTimerStart(state: RestTimerState) {
   await postToServiceWorker({
     type: REST_TIMER_MESSAGE.START,
-    endAt,
-    exerciseName,
+    ...timerPayload(state),
   });
 }
 
-export async function syncBackgroundRestTimer(
-  endAt: number,
-  exerciseName?: string,
-) {
+export async function postRestTimerSync(state: RestTimerState) {
   await postToServiceWorker({
     type: REST_TIMER_MESSAGE.SYNC,
-    endAt,
-    exerciseName,
+    ...timerPayload(state),
   });
 }
 
-export async function stopBackgroundRestTimer() {
-  await postToServiceWorker({ type: REST_TIMER_MESSAGE.STOP });
+export async function postRestTimerStop(timerId: string) {
+  await postToServiceWorker({
+    type: REST_TIMER_MESSAGE.STOP,
+    timerId,
+  });
 }
 
 export function subscribeToRestTimerComplete(
-  callback: (completedAt: number, endAt: number | null) => void,
+  callback: (payload: {
+    timerId: string;
+    completedAt: number;
+    endAt: number;
+  }) => void,
 ): () => void {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
     return () => {};
@@ -112,13 +120,19 @@ export function subscribeToRestTimerComplete(
 
   const handler = (event: MessageEvent) => {
     if (event.data?.type !== REST_TIMER_MESSAGE.COMPLETE) return;
+    if (typeof event.data.timerId !== "string") return;
 
-    callback(
-      typeof event.data.completedAt === "number"
-        ? event.data.completedAt
-        : Date.now(),
-      typeof event.data.endAt === "number" ? event.data.endAt : null,
-    );
+    callback({
+      timerId: event.data.timerId,
+      completedAt:
+        typeof event.data.completedAt === "number"
+          ? event.data.completedAt
+          : Date.now(),
+      endAt:
+        typeof event.data.endAt === "number"
+          ? event.data.endAt
+          : Date.now(),
+    });
   };
 
   navigator.serviceWorker.addEventListener("message", handler);

@@ -5,14 +5,10 @@ const TIMER_CACHE = "liftlog-rest-timer-v1";
 const TIMER_KEY = "/__rest-timer__";
 const STALE_COMPLETION_MS = 60_000;
 
-/** @type {{ endAt: number, exerciseName?: string } | null} */
-let activeTimer = null;
 /** @type {number | null} */
 let tickTimeoutId = null;
 /** @type {number | null} */
 let completeTimeoutId = null;
-/** @type {number} */
-let restTimerEpoch = 0;
 
 function formatRestTime(secondsLeft) {
   const minutes = Math.floor(secondsLeft / 60);
@@ -43,24 +39,31 @@ function clearSchedules() {
   }
 }
 
-async function persistTimer(timer) {
-  const cache = await caches.open(TIMER_CACHE);
-  if (timer) {
-    await cache.put(TIMER_KEY, new Response(JSON.stringify(timer)));
-    return;
-  }
-  await cache.delete(TIMER_KEY);
-}
-
 async function loadPersistedTimer() {
   try {
     const cache = await caches.open(TIMER_CACHE);
     const response = await cache.match(TIMER_KEY);
     if (!response) return null;
-    return response.json();
+    const parsed = await response.json();
+    if (
+      typeof parsed?.timerId !== "string" ||
+      typeof parsed?.endAt !== "number"
+    ) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
+}
+
+async function savePersistedTimer(timer) {
+  const cache = await caches.open(TIMER_CACHE);
+  if (!timer) {
+    await cache.delete(TIMER_KEY);
+    return;
+  }
+  await cache.put(TIMER_KEY, new Response(JSON.stringify(timer)));
 }
 
 async function closeRestTimerNotifications() {
@@ -82,8 +85,13 @@ async function hasVisibleClient() {
   return clients.some((client) => client.visibilityState === "visible");
 }
 
-async function showProgressNotification(secondsLeft, exerciseName) {
-  const title = exerciseName ? `Rest · ${exerciseName}` : "Rest timer";
+async function showProgressNotification(state) {
+  const secondsLeft = remainingSeconds(state.endAt);
+  if (secondsLeft <= 0) return;
+
+  const title = state.exerciseName
+    ? `Rest · ${state.exerciseName}`
+    : "Rest timer";
 
   await self.registration.showNotification(title, {
     body: `${formatRestTime(secondsLeft)} remaining`,
@@ -93,30 +101,14 @@ async function showProgressNotification(secondsLeft, exerciseName) {
     renotify: true,
     timestamp: Date.now(),
     data: {
-      endAt: activeTimer?.endAt ?? null,
-      exerciseName: exerciseName ?? null,
+      timerId: state.timerId,
+      endAt: state.endAt,
+      exerciseName: state.exerciseName ?? null,
     },
   });
 }
 
-async function refreshNotificationIfBackground() {
-  if (!activeTimer) return;
-  if (await hasVisibleClient()) {
-    await closeRestTimerNotifications();
-    return;
-  }
-
-  const secondsLeft = remainingSeconds(activeTimer.endAt);
-  if (secondsLeft <= 0) return;
-
-  try {
-    await showProgressNotification(secondsLeft, activeTimer.exerciseName);
-  } catch {
-    // Notification permission denied or unavailable.
-  }
-}
-
-async function notifyClientsComplete(completedAt, endAt) {
+async function notifyClientsComplete(timerId, completedAt, endAt) {
   const clients = await self.clients.matchAll({
     type: "window",
     includeUncontrolled: true,
@@ -124,27 +116,29 @@ async function notifyClientsComplete(completedAt, endAt) {
   clients.forEach((client) => {
     client.postMessage({
       type: "REST_TIMER_COMPLETE",
+      timerId,
       completedAt,
       endAt,
     });
   });
 }
 
-async function completeRestTimer() {
-  if (!activeTimer) return;
+async function completeTimer(state) {
+  const current = await loadPersistedTimer();
+  if (!current || current.timerId !== state.timerId) return;
 
-  const exerciseName = activeTimer.exerciseName;
-  const timerEndAt = activeTimer.endAt;
   const completedAt = Date.now();
-
-  disarmTimer(false);
+  clearSchedules();
+  await savePersistedTimer(null);
   await closeRestTimerNotifications();
 
   const visibleClient = await hasVisibleClient();
   if (!visibleClient) {
     try {
       await self.registration.showNotification(
-        exerciseName ? `Rest complete · ${exerciseName}` : "Rest complete",
+        state.exerciseName
+          ? `Rest complete · ${state.exerciseName}`
+          : "Rest complete",
         {
           body: "Time for your next set",
           tag: REST_TIMER_COMPLETE_TAG,
@@ -158,83 +152,64 @@ async function completeRestTimer() {
     }
   }
 
-  await notifyClientsComplete(completedAt, timerEndAt);
+  await notifyClientsComplete(state.timerId, completedAt, state.endAt);
 }
 
-function disarmTimer(clearNotification = true) {
-  restTimerEpoch += 1;
-  clearSchedules();
-  activeTimer = null;
-  void persistTimer(null);
-
-  if (clearNotification) {
-    void closeRestTimerNotifications();
-  }
-}
-
-function scheduleTimerLoop() {
-  clearSchedules();
-  if (!activeTimer) return;
-
-  const epoch = restTimerEpoch;
-  const { endAt, exerciseName } = activeTimer;
-
-  const runTick = async () => {
-    if (!activeTimer || activeTimer.endAt !== endAt || epoch !== restTimerEpoch) {
-      return;
-    }
-
-    if (Date.now() >= endAt) {
-      await completeRestTimer();
-      return;
-    }
-
-    await refreshNotificationIfBackground();
-
-    if (!activeTimer || activeTimer.endAt !== endAt || epoch !== restTimerEpoch) {
-      return;
-    }
-
-    tickTimeoutId = setTimeout(() => {
-      void runTick();
-    }, msUntilNextSecondBoundary(endAt));
-  };
-
-  completeTimeoutId = setTimeout(() => {
-    void completeRestTimer();
-  }, Math.max(0, endAt - Date.now()));
-
-  void runTick();
-}
-
-function armTimer(endAt, exerciseName) {
-  restTimerEpoch += 1;
-  activeTimer = { endAt, exerciseName };
-  void persistTimer(activeTimer);
-  scheduleTimerLoop();
-}
-
-function replanTimer() {
-  if (!activeTimer) return;
-  scheduleTimerLoop();
-}
-
-async function resumePersistedTimer() {
-  const persisted = await loadPersistedTimer();
-  if (!persisted?.endAt) return;
-
-  if (persisted.endAt <= Date.now()) {
-    if (Date.now() - persisted.endAt > STALE_COMPLETION_MS) {
-      await persistTimer(null);
-      return;
-    }
-
-    activeTimer = persisted;
-    await completeRestTimer();
+async function runTimerCycle() {
+  const state = await loadPersistedTimer();
+  if (!state) {
+    clearSchedules();
+    await closeRestTimerNotifications();
     return;
   }
 
-  armTimer(persisted.endAt, persisted.exerciseName);
+  const now = Date.now();
+  if (now >= state.endAt) {
+    if (now - state.endAt > STALE_COMPLETION_MS) {
+      clearSchedules();
+      await savePersistedTimer(null);
+      await closeRestTimerNotifications();
+      return;
+    }
+
+    await completeTimer(state);
+    return;
+  }
+
+  if (await hasVisibleClient()) {
+    await closeRestTimerNotifications();
+  } else {
+    try {
+      await showProgressNotification(state);
+    } catch {
+      // Notification permission denied or unavailable.
+    }
+  }
+
+  clearSchedules();
+
+  completeTimeoutId = setTimeout(() => {
+    void runTimerCycle();
+  }, Math.max(0, state.endAt - now));
+
+  tickTimeoutId = setTimeout(() => {
+    void runTimerCycle();
+  }, msUntilNextSecondBoundary(state.endAt, now));
+}
+
+async function persistAndRun(state) {
+  await savePersistedTimer(state);
+  clearSchedules();
+  await runTimerCycle();
+}
+
+async function clearPersistedTimer(timerId) {
+  const current = await loadPersistedTimer();
+  if (current && current.timerId !== timerId) return;
+
+  clearSchedules();
+  await savePersistedTimer(null);
+  await closeRestTimerNotifications();
 }
 
 self.addEventListener("install", (event) => {
@@ -243,38 +218,26 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    Promise.all([self.clients.claim(), resumePersistedTimer()]),
+    Promise.all([self.clients.claim(), runTimerCycle()]),
   );
 });
 
 self.addEventListener("message", (event) => {
-  const { type, endAt, exerciseName } = event.data ?? {};
+  const { type, timerId, endAt, exerciseName } = event.data ?? {};
 
-  if (type === "REST_TIMER_START") {
-    event.waitUntil(Promise.resolve().then(() => armTimer(endAt, exerciseName)));
-    return;
-  }
-
-  if (type === "REST_TIMER_SYNC") {
+  if (type === "REST_TIMER_START" || type === "REST_TIMER_SYNC") {
     event.waitUntil(
-      Promise.resolve().then(() => {
-        if (
-          !activeTimer ||
-          activeTimer.endAt !== endAt ||
-          activeTimer.exerciseName !== exerciseName
-        ) {
-          armTimer(endAt, exerciseName);
-          return;
-        }
-
-        replanTimer();
+      persistAndRun({
+        timerId,
+        endAt,
+        exerciseName,
       }),
     );
     return;
   }
 
   if (type === "REST_TIMER_STOP") {
-    disarmTimer();
+    event.waitUntil(clearPersistedTimer(timerId));
   }
 });
 

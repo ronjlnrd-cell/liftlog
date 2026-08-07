@@ -1,6 +1,14 @@
 export type RestTimerState = {
+  timerId: string;
   endAt: number;
   exerciseName?: string;
+};
+
+export type RestTimerView = {
+  timerId: string;
+  endAt: number;
+  exerciseName?: string;
+  remainingSeconds: number;
 };
 
 export const REST_TIMER_MESSAGE = {

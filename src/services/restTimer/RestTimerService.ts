@@ -1,3 +1,4 @@
+import { systemClock, type Clock } from "./clock";
 import {
   getRemainingSeconds,
   hasTimerExpired,
@@ -7,6 +8,7 @@ import {
   prepareCompletionAudio,
   shouldPlayCompletionFeedback,
 } from "./completionFeedback";
+import { logTimerDebug } from "./debug";
 import {
   loadRestTimerState,
   saveRestTimerState,
@@ -14,27 +16,47 @@ import {
 import {
   clearRestTimerNotification,
   ensureNotificationPermission,
+  postRestTimerStart,
+  postRestTimerStop,
+  postRestTimerSync,
   registerTimerServiceWorker,
-  startBackgroundRestTimer,
-  stopBackgroundRestTimer,
   subscribeToRestTimerComplete,
-  syncBackgroundRestTimer,
 } from "./swBridge";
-import type { RestTimerState } from "./types";
+import type { RestTimerState, RestTimerView } from "./types";
 
-type RestTimerSnapshot = RestTimerState | null;
+const DISPLAY_PULSE_MS = 250;
 
-const HIDDEN_KEEPALIVE_MS = 15_000;
+export type RestTimerServiceDeps = {
+  clock: Clock;
+  isDocumentVisible: () => boolean;
+};
 
-class RestTimerService {
+function createTimerId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `timer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export class RestTimerService {
   private state: RestTimerState | null = null;
+  private completedTimerId: string | null = null;
   private listeners = new Set<() => void>();
   private completeListeners = new Set<() => void>();
-  private uiTickHandle: number | null = null;
-  private hiddenKeepaliveHandle: number | null = null;
-  private completedEndAt: number | null = null;
+  private displayPulseHandle: ReturnType<typeof setInterval> | null = null;
   private initialized = false;
   private unsubscribeComplete: (() => void) | null = null;
+  private readonly clock: Clock;
+  private readonly isDocumentVisible: () => boolean;
+
+  constructor(deps: RestTimerServiceDeps = {
+    clock: systemClock,
+    isDocumentVisible: () =>
+      typeof document === "undefined" || document.visibilityState === "visible",
+  }) {
+    this.clock = deps.clock;
+    this.isDocumentVisible = deps.isDocumentVisible;
+  }
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -50,12 +72,22 @@ class RestTimerService {
     };
   };
 
-  getSnapshot = (): RestTimerSnapshot => this.state;
+  getSnapshot = (): RestTimerView | null => {
+    if (!this.state) return null;
 
-  getRemainingSeconds(now = Date.now()): number {
-    if (!this.state) return 0;
-    return getRemainingSeconds(this.state.endAt, now);
-  }
+    const snapshot: RestTimerView = {
+      timerId: this.state.timerId,
+      endAt: this.state.endAt,
+      exerciseName: this.state.exerciseName,
+      remainingSeconds: getRemainingSeconds(
+        this.state.endAt,
+        this.clock.now(),
+      ),
+    };
+
+    logTimerDebug("UI_RENDER", snapshot);
+    return snapshot;
+  };
 
   isActive(): boolean {
     return this.state != null;
@@ -67,34 +99,26 @@ class RestTimerService {
 
     void registerTimerServiceWorker();
 
-    this.unsubscribeComplete = subscribeToRestTimerComplete(
-      (completedAt, endAt) => {
-        if (!this.state) return;
-        if (endAt != null && endAt !== this.state.endAt) return;
-
-        this.finish(
-          document.visibilityState === "visible" &&
-            shouldPlayCompletionFeedback(this.state.endAt, completedAt),
-          completedAt,
-        );
-      },
-    );
+    this.unsubscribeComplete = subscribeToRestTimerComplete((payload) => {
+      this.handleServiceWorkerComplete(payload);
+    });
 
     const restored = loadRestTimerState();
     if (restored) {
+      logTimerDebug("RESTORE", restored);
       this.state = restored;
-      this.completedEndAt = null;
+      this.completedTimerId = null;
 
-      if (hasTimerExpired(restored.endAt)) {
-        this.finish(false);
+      if (hasTimerExpired(restored.endAt, this.clock.now())) {
+        void this.complete(restored.timerId, false);
       } else {
-        void syncBackgroundRestTimer(restored.endAt, restored.exerciseName);
-        this.startUiTick();
+        void postRestTimerSync(restored);
+        this.startDisplayPulse();
       }
     }
 
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
-    window.addEventListener("pageshow", this.handlePageShow);
+    window.addEventListener("pageshow", this.reconcile);
     window.addEventListener("focus", this.reconcile);
   }
 
@@ -102,77 +126,107 @@ class RestTimerService {
     prepareCompletionAudio();
     await ensureNotificationPermission();
 
-    this.state = { endAt, exerciseName };
-    this.completedEndAt = null;
-    saveRestTimerState(this.state);
+    const state: RestTimerState = {
+      timerId: createTimerId(),
+      endAt,
+      exerciseName,
+    };
 
-    await startBackgroundRestTimer(endAt, exerciseName);
-    this.startUiTick();
+    this.applyState(state);
+    logTimerDebug("START", state);
+
+    await postRestTimerStart(state);
+    this.startDisplayPulse();
     this.notify();
-
-    if (document.visibilityState === "hidden") {
-      this.startHiddenKeepalive();
-    }
   }
 
   async stop() {
     if (!this.state) return;
-
-    this.state = null;
-    this.completedEndAt = null;
-    saveRestTimerState(null);
-
-    this.stopUiTick();
-    this.stopHiddenKeepalive();
-    await stopBackgroundRestTimer();
-    await clearRestTimerNotification();
-    this.notify();
+    await this.clearTimer(this.state.timerId);
   }
 
   async adjust(deltaSeconds: number) {
     if (!this.state) return;
 
-    const nextEndAt = Math.max(
-      Date.now(),
-      this.state.endAt + deltaSeconds * 1000,
-    );
-    this.state = { ...this.state, endAt: nextEndAt };
-    this.completedEndAt = null;
-    saveRestTimerState(this.state);
+    const nextState: RestTimerState = {
+      ...this.state,
+      endAt: Math.max(
+        this.clock.now(),
+        this.state.endAt + deltaSeconds * 1000,
+      ),
+    };
 
-    await syncBackgroundRestTimer(nextEndAt, this.state.exerciseName);
+    this.applyState(nextState);
+    logTimerDebug("SYNC", nextState);
+
+    await postRestTimerSync(nextState);
     this.notify();
   }
 
-  reconcile = () => {
+  reconcile = async () => {
     if (!this.state) return;
 
-    if (hasTimerExpired(this.state.endAt)) {
-      this.finish(shouldPlayCompletionFeedback(this.state.endAt));
+    if (hasTimerExpired(this.state.endAt, this.clock.now())) {
+      await this.complete(
+        this.state.timerId,
+        shouldPlayCompletionFeedback(this.state.endAt, this.clock.now()),
+      );
       return;
     }
 
     void clearRestTimerNotification();
-    void syncBackgroundRestTimer(this.state.endAt, this.state.exerciseName);
+    void postRestTimerSync(this.state);
+    this.startDisplayPulse();
     this.notify();
   };
 
-  private finish(playFeedback: boolean, completedAt = Date.now()) {
-    if (!this.state) return;
-    if (this.completedEndAt === this.state.endAt) return;
+  private applyState(state: RestTimerState) {
+    this.state = state;
+    this.completedTimerId = null;
+    saveRestTimerState(state);
+  }
 
-    const { endAt } = this.state;
-    this.completedEndAt = endAt;
+  private async clearTimer(timerId: string) {
+    if (!this.state || this.state.timerId !== timerId) return;
+
+    logTimerDebug("STOP", { timerId });
+    this.state = null;
+    this.completedTimerId = timerId;
+    saveRestTimerState(null);
+    this.stopDisplayPulse();
+
+    await postRestTimerStop(timerId);
+    await clearRestTimerNotification();
+    this.notify();
+  }
+
+  private async complete(
+    timerId: string,
+    playFeedback: boolean,
+    completedAt = this.clock.now(),
+  ) {
+    if (!this.state || this.state.timerId !== timerId) return;
+    if (this.completedTimerId === timerId) return;
+
+    logTimerDebug("COMPLETE", {
+      timerId,
+      playFeedback,
+      completedAt,
+    });
+
+    this.completedTimerId = timerId;
+    const endAt = this.state.endAt;
     this.state = null;
     saveRestTimerState(null);
+    this.stopDisplayPulse();
 
-    this.stopUiTick();
-    this.stopHiddenKeepalive();
+    await postRestTimerStop(timerId);
+    await clearRestTimerNotification();
 
-    void stopBackgroundRestTimer();
-    void clearRestTimerNotification();
-
-    if (playFeedback) {
+    if (
+      playFeedback &&
+      shouldPlayCompletionFeedback(endAt, completedAt)
+    ) {
       playCompletionFeedback();
     }
 
@@ -180,76 +234,67 @@ class RestTimerService {
     this.completeListeners.forEach((listener) => listener());
   }
 
+  private handleServiceWorkerComplete(payload: {
+    timerId: string;
+    completedAt: number;
+    endAt: number;
+  }) {
+    if (!this.state || this.state.timerId !== payload.timerId) return;
+
+    void this.complete(
+      payload.timerId,
+      this.isDocumentVisible() &&
+        shouldPlayCompletionFeedback(payload.endAt, payload.completedAt),
+      payload.completedAt,
+    );
+  }
+
   private handleVisibilityChange = () => {
-    if (document.visibilityState === "hidden") {
-      if (this.state) {
-        void syncBackgroundRestTimer(this.state.endAt, this.state.exerciseName);
-        this.startHiddenKeepalive();
-      }
+    if (!this.state) return;
+
+    if (!this.isDocumentVisible()) {
+      this.stopDisplayPulse();
+      void postRestTimerSync(this.state);
+      logTimerDebug("SYNC", { reason: "hidden", timerId: this.state.timerId });
       return;
     }
 
-    this.stopHiddenKeepalive();
     this.reconcile();
   };
 
-  private handlePageShow = () => {
-    this.reconcile();
-  };
+  private startDisplayPulse() {
+    this.stopDisplayPulse();
+    if (typeof window === "undefined" || !this.state) return;
 
-  private startUiTick() {
-    this.stopUiTick();
-    if (typeof window === "undefined") return;
-
-    this.uiTickHandle = window.setInterval(() => {
+    this.displayPulseHandle = setInterval(() => {
       if (!this.state) {
-        this.stopUiTick();
+        this.stopDisplayPulse();
         return;
       }
 
-      if (hasTimerExpired(this.state.endAt)) {
-        if (document.visibilityState === "visible") {
-          this.finish(shouldPlayCompletionFeedback(this.state.endAt));
+      if (hasTimerExpired(this.state.endAt, this.clock.now())) {
+        if (this.isDocumentVisible()) {
+          void this.complete(
+            this.state.timerId,
+            shouldPlayCompletionFeedback(
+              this.state.endAt,
+              this.clock.now(),
+            ),
+          );
         }
         return;
       }
 
-      this.notify();
-    }, 250);
-  }
-
-  private stopUiTick() {
-    if (this.uiTickHandle != null) {
-      window.clearInterval(this.uiTickHandle);
-      this.uiTickHandle = null;
-    }
-  }
-
-  private startHiddenKeepalive() {
-    this.stopHiddenKeepalive();
-    if (typeof window === "undefined" || !this.state) return;
-
-    const tick = () => {
-      if (document.visibilityState !== "hidden" || !this.state) {
-        this.stopHiddenKeepalive();
-        return;
+      if (this.isDocumentVisible()) {
+        this.notify();
       }
-
-      if (hasTimerExpired(this.state.endAt)) {
-        return;
-      }
-
-      void syncBackgroundRestTimer(this.state.endAt, this.state.exerciseName);
-      this.hiddenKeepaliveHandle = window.setTimeout(tick, HIDDEN_KEEPALIVE_MS);
-    };
-
-    this.hiddenKeepaliveHandle = window.setTimeout(tick, HIDDEN_KEEPALIVE_MS);
+    }, DISPLAY_PULSE_MS);
   }
 
-  private stopHiddenKeepalive() {
-    if (this.hiddenKeepaliveHandle != null) {
-      window.clearTimeout(this.hiddenKeepaliveHandle);
-      this.hiddenKeepaliveHandle = null;
+  private stopDisplayPulse() {
+    if (this.displayPulseHandle != null) {
+      clearInterval(this.displayPulseHandle);
+      this.displayPulseHandle = null;
     }
   }
 

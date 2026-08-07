@@ -10,11 +10,16 @@ export function loadRestTimerState(): RestTimerState | null {
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as RestTimerState;
-    if (typeof parsed.endAt !== "number" || !Number.isFinite(parsed.endAt)) {
+    if (
+      typeof parsed.timerId !== "string" ||
+      typeof parsed.endAt !== "number" ||
+      !Number.isFinite(parsed.endAt)
+    ) {
       return null;
     }
 
     return {
+      timerId: parsed.timerId,
       endAt: parsed.endAt,
       exerciseName:
         typeof parsed.exerciseName === "string"
