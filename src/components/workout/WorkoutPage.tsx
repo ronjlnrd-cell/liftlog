@@ -5,10 +5,7 @@ import type { Exercise } from "../../domain/entities/Exercise";
 import type { Workout } from "../../domain/entities/workout";
 import type { WorkoutTemplate } from "../../domain/entities/Template";
 import { ExercisePickerModal } from "../ExercisePickerModal";
-import {
-  ensureNotificationPermission,
-  prepareTimerNotification,
-} from "../../shared/timerNotification";
+import { restTimerService } from "../../services/restTimer/RestTimerService";
 import { WorkoutExerciseCard } from "./WorkoutExerciseCard";
 import { getActiveWorkoutPRs } from "../../domain/analytics/personalRecords";
 import { createWorkoutExercise } from "../../domain/workout/createWorkoutExercise";
@@ -85,11 +82,6 @@ export function WorkoutPage({
   onSaveCoachObservation,
   onOpenExercise,
 }: WorkoutPageProps) {
-  const [restTimer, setRestTimer] = useState<{
-    endAt: number;
-    workoutExerciseId: string;
-    exerciseName: string;
-  } | null>(null);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
 
@@ -224,18 +216,14 @@ export function WorkoutPage({
       ),
     });
 
-    prepareTimerNotification();
-    void ensureNotificationPermission();
-
     const exercise = exercises.find(
       (candidate) => candidate.id === target.exerciseId,
     );
 
-    setRestTimer({
-      endAt: Date.now() + target.plannedRestSeconds * 1000,
-      workoutExerciseId,
-      exerciseName: exercise?.name ?? "Rest",
-    });
+    void restTimerService.start(
+      Date.now() + target.plannedRestSeconds * 1000,
+      exercise?.name ?? "Rest",
+    );
   }
 
   function updatePlannedSet(
@@ -515,25 +503,14 @@ export function WorkoutPage({
 
       {exercisePicker}
 
-      {restTimer && (
-        <RestTimer
-          endAt={restTimer.endAt}
-          exerciseName={restTimer.exerciseName}
-          onSkip={() => setRestTimer(null)}
-          onAdjust={(deltaSeconds) => {
-            setRestTimer((current) => {
-              if (!current) return null;
-              return {
-                ...current,
-                endAt: Math.max(
-                  Date.now(),
-                  current.endAt + deltaSeconds * 1000,
-                ),
-              };
-            });
-          }}
-        />
-      )}
+      <RestTimer
+        onSkip={() => {
+          void restTimerService.stop();
+        }}
+        onAdjust={(deltaSeconds) => {
+          void restTimerService.adjust(deltaSeconds);
+        }}
+      />
     </section>
   );
 }

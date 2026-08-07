@@ -9,10 +9,10 @@ const STALE_COMPLETION_MS = 60_000;
 let activeTimer = null;
 /** @type {number | null} */
 let tickTimeoutId = null;
+/** @type {number | null} */
+let completeTimeoutId = null;
 /** @type {number} */
 let restTimerEpoch = 0;
-/** @type {number} */
-let lastNotifiedSecond = -1;
 
 function formatRestTime(secondsLeft) {
   const minutes = Math.floor(secondsLeft / 60);
@@ -20,20 +20,27 @@ function formatRestTime(secondsLeft) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-function cancelSleep() {
+function remainingSeconds(endAt, now = Date.now()) {
+  return Math.max(0, Math.ceil((endAt - now) / 1000));
+}
+
+function msUntilNextSecondBoundary(endAt, now = Date.now()) {
+  const secondsLeft = remainingSeconds(endAt, now);
+  if (secondsLeft <= 0) return 0;
+
+  const nextBoundary = endAt - (secondsLeft - 1) * 1000;
+  return Math.max(0, nextBoundary - now);
+}
+
+function clearSchedules() {
   if (tickTimeoutId != null) {
     clearTimeout(tickTimeoutId);
     tickTimeoutId = null;
   }
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => {
-    tickTimeoutId = setTimeout(() => {
-      tickTimeoutId = null;
-      resolve();
-    }, ms);
-  });
+  if (completeTimeoutId != null) {
+    clearTimeout(completeTimeoutId);
+    completeTimeoutId = null;
+  }
 }
 
 async function persistTimer(timer) {
@@ -75,44 +82,37 @@ async function hasVisibleClient() {
   return clients.some((client) => client.visibilityState === "visible");
 }
 
-async function updateRestTimerNotification() {
+async function showProgressNotification(secondsLeft, exerciseName) {
+  const title = exerciseName ? `Rest · ${exerciseName}` : "Rest timer";
+
+  await self.registration.showNotification(title, {
+    body: `${formatRestTime(secondsLeft)} remaining`,
+    tag: REST_TIMER_TAG,
+    icon: NOTIFICATION_ICON,
+    silent: true,
+    renotify: true,
+    timestamp: Date.now(),
+    data: {
+      endAt: activeTimer?.endAt ?? null,
+      exerciseName: exerciseName ?? null,
+    },
+  });
+}
+
+async function refreshNotificationIfBackground() {
   if (!activeTimer) return;
-  if (await hasVisibleClient()) return;
-
-  const epoch = restTimerEpoch;
-  const secondsLeft = Math.max(
-    0,
-    Math.ceil((activeTimer.endAt - Date.now()) / 1000),
-  );
-  if (secondsLeft <= 0) return;
-  if (epoch !== restTimerEpoch) return;
-  if (secondsLeft === lastNotifiedSecond) return;
-
-  lastNotifiedSecond = secondsLeft;
-
-  const title = activeTimer.exerciseName
-    ? `Rest · ${activeTimer.exerciseName}`
-    : "Rest timer";
-
-  try {
-    await self.registration.showNotification(title, {
-      body: `${formatRestTime(secondsLeft)} remaining`,
-      tag: REST_TIMER_TAG,
-      icon: NOTIFICATION_ICON,
-      silent: true,
-      renotify: true,
-      timestamp: Date.now(),
-      data: {
-        endAt: activeTimer.endAt,
-        exerciseName: activeTimer.exerciseName ?? null,
-      },
-    });
-  } catch {
-    // Notification permission denied or unavailable.
+  if (await hasVisibleClient()) {
+    await closeRestTimerNotifications();
+    return;
   }
 
-  if (epoch !== restTimerEpoch) {
-    await closeRestTimerNotifications();
+  const secondsLeft = remainingSeconds(activeTimer.endAt);
+  if (secondsLeft <= 0) return;
+
+  try {
+    await showProgressNotification(secondsLeft, activeTimer.exerciseName);
+  } catch {
+    // Notification permission denied or unavailable.
   }
 }
 
@@ -131,10 +131,13 @@ async function notifyClientsComplete(completedAt, endAt) {
 }
 
 async function completeRestTimer() {
-  const exerciseName = activeTimer?.exerciseName;
-  const timerEndAt = activeTimer?.endAt ?? null;
+  if (!activeTimer) return;
+
+  const exerciseName = activeTimer.exerciseName;
+  const timerEndAt = activeTimer.endAt;
   const completedAt = Date.now();
-  stopRestTimerInternal(false);
+
+  disarmTimer(false);
   await closeRestTimerNotifications();
 
   const visibleClient = await hasVisibleClient();
@@ -158,11 +161,9 @@ async function completeRestTimer() {
   await notifyClientsComplete(completedAt, timerEndAt);
 }
 
-function stopRestTimerInternal(clearNotification = true) {
+function disarmTimer(clearNotification = true) {
   restTimerEpoch += 1;
-  cancelSleep();
-  lastNotifiedSecond = -1;
-
+  clearSchedules();
   activeTimer = null;
   void persistTimer(null);
 
@@ -171,44 +172,51 @@ function stopRestTimerInternal(clearNotification = true) {
   }
 }
 
-async function runRestTimer(endAt, exerciseName) {
-  activeTimer = { endAt, exerciseName };
-  await persistTimer(activeTimer);
+function scheduleTimerLoop() {
+  clearSchedules();
+  if (!activeTimer) return;
 
-  while (activeTimer && activeTimer.endAt === endAt) {
-    const now = Date.now();
-    if (now >= endAt) {
+  const epoch = restTimerEpoch;
+  const { endAt, exerciseName } = activeTimer;
+
+  const runTick = async () => {
+    if (!activeTimer || activeTimer.endAt !== endAt || epoch !== restTimerEpoch) {
+      return;
+    }
+
+    if (Date.now() >= endAt) {
       await completeRestTimer();
       return;
     }
 
-    if (await hasVisibleClient()) {
-      lastNotifiedSecond = -1;
-      await closeRestTimerNotifications();
-    } else {
-      await updateRestTimerNotification();
+    await refreshNotificationIfBackground();
+
+    if (!activeTimer || activeTimer.endAt !== endAt || epoch !== restTimerEpoch) {
+      return;
     }
 
-    const secondsLeft = Math.ceil((endAt - now) / 1000);
-    const nextSecondBoundary = endAt - (secondsLeft - 1) * 1000;
-    const delay = Math.min(1000, Math.max(250, nextSecondBoundary - Date.now()));
+    tickTimeoutId = setTimeout(() => {
+      void runTick();
+    }, msUntilNextSecondBoundary(endAt));
+  };
 
-    await sleep(delay);
+  completeTimeoutId = setTimeout(() => {
+    void completeRestTimer();
+  }, Math.max(0, endAt - Date.now()));
 
-    if (!activeTimer || activeTimer.endAt !== endAt) return;
-  }
+  void runTick();
 }
 
-function startRestTimer(endAt, exerciseName) {
-  if (
-    activeTimer?.endAt === endAt &&
-    activeTimer?.exerciseName === exerciseName
-  ) {
-    return Promise.resolve();
-  }
+function armTimer(endAt, exerciseName) {
+  restTimerEpoch += 1;
+  activeTimer = { endAt, exerciseName };
+  void persistTimer(activeTimer);
+  scheduleTimerLoop();
+}
 
-  stopRestTimerInternal();
-  return runRestTimer(endAt, exerciseName);
+function replanTimer() {
+  if (!activeTimer) return;
+  scheduleTimerLoop();
 }
 
 async function resumePersistedTimer() {
@@ -226,9 +234,7 @@ async function resumePersistedTimer() {
     return;
   }
 
-  if (!activeTimer) {
-    await runRestTimer(persisted.endAt, persisted.exerciseName);
-  }
+  armTimer(persisted.endAt, persisted.exerciseName);
 }
 
 self.addEventListener("install", (event) => {
@@ -243,18 +249,32 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   const { type, endAt, exerciseName } = event.data ?? {};
+
   if (type === "REST_TIMER_START") {
-    event.waitUntil(startRestTimer(endAt, exerciseName));
+    event.waitUntil(Promise.resolve().then(() => armTimer(endAt, exerciseName)));
     return;
   }
+
   if (type === "REST_TIMER_SYNC") {
-    if (!activeTimer || activeTimer.endAt !== endAt) {
-      event.waitUntil(startRestTimer(endAt, exerciseName));
-    }
+    event.waitUntil(
+      Promise.resolve().then(() => {
+        if (
+          !activeTimer ||
+          activeTimer.endAt !== endAt ||
+          activeTimer.exerciseName !== exerciseName
+        ) {
+          armTimer(endAt, exerciseName);
+          return;
+        }
+
+        replanTimer();
+      }),
+    );
     return;
   }
+
   if (type === "REST_TIMER_STOP") {
-    stopRestTimerInternal();
+    disarmTimer();
   }
 });
 
