@@ -166,6 +166,16 @@ export function WorkoutSummaryPage({
 
   return (
     <section className="workout-summary-page">
+      {historical && (
+        <button
+          type="button"
+          className="text-button exercise-details-back"
+          onClick={onDone}
+        >
+          ← Back to history
+        </button>
+      )}
+
       <div className="summary-hero">
         <p className="eyebrow">WORKOUT COMPLETE</p>
         <h1>Nice work.</h1>
