@@ -40,6 +40,7 @@ function createTimerId(): string {
 
 export class RestTimerService {
   private state: RestTimerState | null = null;
+  private snapshot: RestTimerView | null = null;
   private completedTimerId: string | null = null;
   private listeners = new Set<() => void>();
   private completeListeners = new Set<() => void>();
@@ -72,22 +73,7 @@ export class RestTimerService {
     };
   };
 
-  getSnapshot = (): RestTimerView | null => {
-    if (!this.state) return null;
-
-    const snapshot: RestTimerView = {
-      timerId: this.state.timerId,
-      endAt: this.state.endAt,
-      exerciseName: this.state.exerciseName,
-      remainingSeconds: getRemainingSeconds(
-        this.state.endAt,
-        this.clock.now(),
-      ),
-    };
-
-    logTimerDebug("UI_RENDER", snapshot);
-    return snapshot;
-  };
+  getSnapshot = (): RestTimerView | null => this.snapshot;
 
   isActive(): boolean {
     return this.state != null;
@@ -112,6 +98,7 @@ export class RestTimerService {
       if (hasTimerExpired(restored.endAt, this.clock.now())) {
         void this.complete(restored.timerId, false);
       } else {
+        this.rebuildSnapshot();
         void postRestTimerSync(restored);
         this.startDisplayPulse();
       }
@@ -299,7 +286,27 @@ export class RestTimerService {
   }
 
   private notify() {
+    this.rebuildSnapshot();
     this.listeners.forEach((listener) => listener());
+  }
+
+  private rebuildSnapshot() {
+    if (!this.state) {
+      this.snapshot = null;
+      return;
+    }
+
+    this.snapshot = {
+      timerId: this.state.timerId,
+      endAt: this.state.endAt,
+      exerciseName: this.state.exerciseName,
+      remainingSeconds: getRemainingSeconds(
+        this.state.endAt,
+        this.clock.now(),
+      ),
+    };
+
+    logTimerDebug("UI_RENDER", this.snapshot);
   }
 }
 

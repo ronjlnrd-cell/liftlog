@@ -82,28 +82,33 @@ describe("RestTimerService", () => {
     expect(service.getSnapshot()?.remainingSeconds).toBe(120);
 
     advance(30_000);
+    await service.reconcile();
     expect(service.getSnapshot()?.remainingSeconds).toBe(90);
   });
 
-  it("returns a fresh snapshot object on every read", async () => {
+  it("returns a stable snapshot between updates", async () => {
     const { service } = createHarness(0);
 
     await service.start(60_000, "Squat");
     const first = service.getSnapshot();
     const second = service.getSnapshot();
 
-    expect(first).not.toBe(second);
-    expect(first?.remainingSeconds).toBe(second?.remainingSeconds);
+    expect(first).toBe(second);
+    expect(first?.remainingSeconds).toBe(60);
   });
 
-  it("updates snapshot remainingSeconds after clock advances", async () => {
+  it("returns an updated snapshot after the clock advances", async () => {
     const { service, advance } = createHarness(0);
 
     await service.start(10_000, "Row");
-    expect(service.getSnapshot()?.remainingSeconds).toBe(10);
+    const first = service.getSnapshot();
 
     advance(3_000);
-    expect(service.getSnapshot()?.remainingSeconds).toBe(7);
+    await service.reconcile();
+
+    const second = service.getSnapshot();
+    expect(second?.remainingSeconds).toBe(7);
+    expect(first).not.toBe(second);
   });
 
   it("completes exactly once when time expires in the foreground", async () => {
