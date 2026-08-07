@@ -1,4 +1,3 @@
-const REST_TIMER_TAG = "liftlog-rest-timer";
 const REST_TIMER_COMPLETE_TAG = "liftlog-rest-timer-complete";
 const NOTIFICATION_ICON = "/app-icon.svg";
 const TIMER_CACHE = "liftlog-rest-timer-v1";
@@ -6,33 +5,9 @@ const TIMER_KEY = "/__rest-timer__";
 const STALE_COMPLETION_MS = 60_000;
 
 /** @type {number | null} */
-let tickTimeoutId = null;
-/** @type {number | null} */
 let completeTimeoutId = null;
 
-function formatRestTime(secondsLeft) {
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function remainingSeconds(endAt, now = Date.now()) {
-  return Math.max(0, Math.ceil((endAt - now) / 1000));
-}
-
-function msUntilNextSecondBoundary(endAt, now = Date.now()) {
-  const secondsLeft = remainingSeconds(endAt, now);
-  if (secondsLeft <= 0) return 0;
-
-  const nextBoundary = endAt - (secondsLeft - 1) * 1000;
-  return Math.max(0, nextBoundary - now);
-}
-
-function clearSchedules() {
-  if (tickTimeoutId != null) {
-    clearTimeout(tickTimeoutId);
-    tickTimeoutId = null;
-  }
+function clearCompletionSchedule() {
   if (completeTimeoutId != null) {
     clearTimeout(completeTimeoutId);
     completeTimeoutId = null;
@@ -66,11 +41,11 @@ async function savePersistedTimer(timer) {
   await cache.put(TIMER_KEY, new Response(JSON.stringify(timer)));
 }
 
-async function closeRestTimerNotifications() {
+async function closeLegacyProgressNotifications() {
   try {
     const notifications = await self.registration.getNotifications();
     notifications
-      .filter((notification) => notification.tag === REST_TIMER_TAG)
+      .filter((notification) => notification.tag === "liftlog-rest-timer")
       .forEach((notification) => notification.close());
   } catch {
     // ignore
@@ -83,29 +58,6 @@ async function hasVisibleClient() {
     includeUncontrolled: true,
   });
   return clients.some((client) => client.visibilityState === "visible");
-}
-
-async function showProgressNotification(state) {
-  const secondsLeft = remainingSeconds(state.endAt);
-  if (secondsLeft <= 0) return;
-
-  const title = state.exerciseName
-    ? `Rest · ${state.exerciseName}`
-    : "Rest timer";
-
-  await self.registration.showNotification(title, {
-    body: `${formatRestTime(secondsLeft)} remaining`,
-    tag: REST_TIMER_TAG,
-    icon: NOTIFICATION_ICON,
-    silent: true,
-    renotify: true,
-    timestamp: Date.now(),
-    data: {
-      timerId: state.timerId,
-      endAt: state.endAt,
-      exerciseName: state.exerciseName ?? null,
-    },
-  });
 }
 
 async function notifyClientsComplete(timerId, completedAt, endAt) {
@@ -128,9 +80,9 @@ async function completeTimer(state) {
   if (!current || current.timerId !== state.timerId) return;
 
   const completedAt = Date.now();
-  clearSchedules();
+  clearCompletionSchedule();
   await savePersistedTimer(null);
-  await closeRestTimerNotifications();
+  await closeLegacyProgressNotifications();
 
   const visibleClient = await hasVisibleClient();
   if (!visibleClient) {
@@ -155,20 +107,17 @@ async function completeTimer(state) {
   await notifyClientsComplete(state.timerId, completedAt, state.endAt);
 }
 
-async function runTimerCycle() {
+async function scheduleCompletion() {
+  clearCompletionSchedule();
+  await closeLegacyProgressNotifications();
+
   const state = await loadPersistedTimer();
-  if (!state) {
-    clearSchedules();
-    await closeRestTimerNotifications();
-    return;
-  }
+  if (!state) return;
 
   const now = Date.now();
   if (now >= state.endAt) {
     if (now - state.endAt > STALE_COMPLETION_MS) {
-      clearSchedules();
       await savePersistedTimer(null);
-      await closeRestTimerNotifications();
       return;
     }
 
@@ -176,40 +125,23 @@ async function runTimerCycle() {
     return;
   }
 
-  if (await hasVisibleClient()) {
-    await closeRestTimerNotifications();
-  } else {
-    try {
-      await showProgressNotification(state);
-    } catch {
-      // Notification permission denied or unavailable.
-    }
-  }
-
-  clearSchedules();
-
   completeTimeoutId = setTimeout(() => {
-    void runTimerCycle();
+    void scheduleCompletion();
   }, Math.max(0, state.endAt - now));
-
-  tickTimeoutId = setTimeout(() => {
-    void runTimerCycle();
-  }, msUntilNextSecondBoundary(state.endAt, now));
 }
 
-async function persistAndRun(state) {
+async function persistAndSchedule(state) {
   await savePersistedTimer(state);
-  clearSchedules();
-  await runTimerCycle();
+  await scheduleCompletion();
 }
 
 async function clearPersistedTimer(timerId) {
   const current = await loadPersistedTimer();
   if (current && current.timerId !== timerId) return;
 
-  clearSchedules();
+  clearCompletionSchedule();
   await savePersistedTimer(null);
-  await closeRestTimerNotifications();
+  await closeLegacyProgressNotifications();
 }
 
 self.addEventListener("install", (event) => {
@@ -218,7 +150,7 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    Promise.all([self.clients.claim(), runTimerCycle()]),
+    Promise.all([self.clients.claim(), scheduleCompletion()]),
   );
 });
 
@@ -227,7 +159,7 @@ self.addEventListener("message", (event) => {
 
   if (type === "REST_TIMER_START" || type === "REST_TIMER_SYNC") {
     event.waitUntil(
-      persistAndRun({
+      persistAndSchedule({
         timerId,
         endAt,
         exerciseName,
@@ -242,12 +174,9 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
   event.waitUntil(
     (async () => {
-      if (event.notification.tag !== REST_TIMER_TAG) {
-        event.notification.close();
-      }
-
       const clients = await self.clients.matchAll({
         type: "window",
         includeUncontrolled: true,

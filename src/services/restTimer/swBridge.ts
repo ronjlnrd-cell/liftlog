@@ -1,7 +1,8 @@
 import { REST_TIMER_MESSAGE } from "./types";
 import type { RestTimerState } from "./types";
 
-const REST_TIMER_TAG = "liftlog-rest-timer";
+const REST_TIMER_LEGACY_TAG = "liftlog-rest-timer";
+const REST_TIMER_COMPLETE_TAG = "liftlog-rest-timer-complete";
 
 let registrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
 
@@ -79,7 +80,11 @@ export async function clearRestTimerNotification() {
   try {
     const notifications = await registration.getNotifications();
     notifications
-      .filter((notification) => notification.tag === REST_TIMER_TAG)
+      .filter(
+        (notification) =>
+          notification.tag === REST_TIMER_LEGACY_TAG ||
+          notification.tag === REST_TIMER_COMPLETE_TAG,
+      )
       .forEach((notification) => notification.close());
   } catch {
     // ignore

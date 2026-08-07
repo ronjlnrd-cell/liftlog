@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { formatRestTime } from "../../services/restTimer/computeRemaining";
 import { restTimerService } from "../../services/restTimer/RestTimerService";
@@ -9,13 +9,28 @@ type RestTimerProps = {
 };
 
 export function RestTimer({ onSkip, onAdjust }: RestTimerProps) {
+  const [pageVisible, setPageVisible] = useState(
+    () => typeof document === "undefined" || document.visibilityState === "visible",
+  );
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setPageVisible(document.visibilityState === "visible");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   const snapshot = useSyncExternalStore(
     restTimerService.subscribe,
     restTimerService.getSnapshot,
     restTimerService.getSnapshot,
   );
 
-  if (!snapshot) return null;
+  if (!snapshot || !pageVisible) return null;
 
   const timeLabel = formatRestTime(snapshot.remainingSeconds);
 

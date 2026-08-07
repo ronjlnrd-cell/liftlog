@@ -14,7 +14,6 @@ import {
   saveRestTimerState,
 } from "./storage";
 import {
-  clearRestTimerNotification,
   ensureNotificationPermission,
   postRestTimerStart,
   postRestTimerStop,
@@ -161,7 +160,6 @@ export class RestTimerService {
       return;
     }
 
-    void clearRestTimerNotification();
     void postRestTimerSync(this.state);
     this.startDisplayPulse();
     this.notify();
@@ -183,7 +181,6 @@ export class RestTimerService {
     this.stopDisplayPulse();
 
     await postRestTimerStop(timerId);
-    await clearRestTimerNotification();
     this.notify();
   }
 
@@ -208,7 +205,6 @@ export class RestTimerService {
     this.stopDisplayPulse();
 
     await postRestTimerStop(timerId);
-    await clearRestTimerNotification();
 
     if (
       playFeedback &&
