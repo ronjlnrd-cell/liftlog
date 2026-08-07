@@ -20,6 +20,7 @@ type ExerciseDetailsPageProps = {
   gender: "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED";
   onBack: () => void;
   onRefresh: (updatedExercise?: Exercise) => Promise<void>;
+  backLabel?: string;
 };
 
 type ProgressPoint = {
@@ -52,6 +53,7 @@ export function ExerciseDetailsPage({
   gender,
   onBack,
   onRefresh,
+  backLabel = "Exercises",
 }: ExerciseDetailsPageProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editError, setEditError] = useState("");
@@ -144,7 +146,7 @@ export function ExerciseDetailsPage({
   if (!exercise) {
     return (
       <section>
-        <button className="text-button" onClick={onBack}>← Exercises</button>
+        <button className="text-button" onClick={onBack}>← {backLabel}</button>
         <div className="card empty">
           <h2>Exercise not found</h2>
           <p>This exercise may have been removed.</p>
@@ -183,7 +185,7 @@ export function ExerciseDetailsPage({
   return (
     <section>
       <button className="text-button exercise-details-back" onClick={onBack}>
-        ← Exercises
+        ← {backLabel}
       </button>
 
       <div className="exercise-details-heading">

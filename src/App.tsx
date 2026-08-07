@@ -239,6 +239,9 @@ function App() {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [historySummaryId, setHistorySummaryId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [exerciseDetailsReturnPage, setExerciseDetailsReturnPage] = useState<
+    "workout" | "exercises"
+  >("exercises");
   const [summaryWorkout, setSummaryWorkout] = useState<Workout | null>(null);
   const [cloudReady, setCloudReady] = useState(false);
   const [migrationNeeded, setMigrationNeeded] = useState(false);
@@ -282,6 +285,7 @@ function App() {
     setEditingWorkoutId(null);
     setHistorySummaryId(null);
     setSelectedExerciseId(null);
+    setExerciseDetailsReturnPage("exercises");
     setSummaryWorkout(null);
     setMigrationNeeded(false);
     setMigrationError("");
@@ -1610,6 +1614,7 @@ function App() {
             onSaveCoachObservation={saveCoachObservationEntry}
             onOpenExercise={(exerciseId) => {
               setSelectedExerciseId(exerciseId);
+              setExerciseDetailsReturnPage("workout");
               setPage("exercise-details");
             }}
           />
@@ -1662,6 +1667,7 @@ function App() {
             onRefresh={handleExercisesChange}
             onOpen={(exercise) => {
               setSelectedExerciseId(exercise.id);
+              setExerciseDetailsReturnPage("exercises");
               setPage("exercise-details");
             }}
           />
@@ -1680,8 +1686,11 @@ function App() {
             gender={profile.gender}
             onBack={() => {
               setSelectedExerciseId(null);
-              setPage("exercises");
+              setPage(exerciseDetailsReturnPage);
             }}
+            backLabel={
+              exerciseDetailsReturnPage === "workout" ? "Workout" : "Exercises"
+            }
             onRefresh={handleExercisesChange}
           />
         )}
