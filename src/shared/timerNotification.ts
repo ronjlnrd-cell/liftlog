@@ -1,26 +1,18 @@
 let audioContext: AudioContext | null = null;
-let keepAliveOscillator: OscillatorNode | null = null;
-let keepAliveGain: GainNode | null = null;
-let notificationTickInterval: number | null = null;
-let activeNotificationTimer: { endAt: number; exerciseName?: string } | null =
-  null;
 
 export const REST_TIMER_MESSAGE = {
   START: "REST_TIMER_START",
   STOP: "REST_TIMER_STOP",
   SYNC: "REST_TIMER_SYNC",
-  VISIBILITY: "REST_TIMER_VISIBILITY",
   COMPLETE: "REST_TIMER_COMPLETE",
 } as const;
 
 export const REST_TIMER_STALE_FEEDBACK_MS = 3000;
 
 const REST_TIMER_TAG = "liftlog-rest-timer";
-const NOTIFICATION_ICON = "/app-icon.svg";
 
 let registrationPromise: Promise<ServiceWorkerRegistration | null> | null =
   null;
-let lastNotifiedSecond = -1;
 
 export function registerTimerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (registrationPromise) return registrationPromise;
@@ -69,97 +61,6 @@ async function postToServiceWorker(message: Record<string, unknown>) {
   });
 }
 
-function formatRestTime(secondsLeft: number): string {
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function syncPageVisibilityWithServiceWorker() {
-  if (typeof document === "undefined") return;
-
-  void postToServiceWorker({
-    type: REST_TIMER_MESSAGE.VISIBILITY,
-    visible: document.visibilityState === "visible",
-  });
-}
-
-function startRestTimerKeepAlive() {
-  if (typeof window === "undefined") return;
-
-  try {
-    audioContext ??= new AudioContext();
-    void audioContext.resume().then(() => {
-      if (!audioContext || keepAliveOscillator) return;
-
-      keepAliveOscillator = audioContext.createOscillator();
-      keepAliveGain = audioContext.createGain();
-      keepAliveOscillator.type = "sine";
-      keepAliveOscillator.frequency.value = 1;
-      keepAliveGain.gain.value = 0.00001;
-      keepAliveOscillator.connect(keepAliveGain);
-      keepAliveGain.connect(audioContext.destination);
-      keepAliveOscillator.start();
-    });
-  } catch {
-    // Audio unavailable or blocked until a later user gesture.
-  }
-}
-
-function stopRestTimerKeepAlive() {
-  try {
-    keepAliveOscillator?.stop();
-  } catch {
-    // Oscillator may already be stopped.
-  }
-  keepAliveOscillator = null;
-  keepAliveGain = null;
-}
-
-function stopRestTimerNotificationLoop() {
-  activeNotificationTimer = null;
-  if (notificationTickInterval != null) {
-    window.clearInterval(notificationTickInterval);
-    notificationTickInterval = null;
-  }
-  stopRestTimerKeepAlive();
-}
-
-function tickRestTimerNotification() {
-  const timer = activeNotificationTimer;
-  if (!timer) return;
-
-  syncPageVisibilityWithServiceWorker();
-
-  const secondsLeft = Math.max(
-    0,
-    Math.ceil((timer.endAt - Date.now()) / 1000),
-  );
-
-  if (document.visibilityState === "visible") {
-    void clearRestTimerNotification();
-    return;
-  }
-
-  if (secondsLeft <= 0) return;
-
-  void updateRestTimerNotification(
-    secondsLeft,
-    timer.exerciseName,
-    timer.endAt,
-  );
-}
-
-function startRestTimerNotificationLoop(endAt: number, exerciseName?: string) {
-  stopRestTimerNotificationLoop();
-  activeNotificationTimer = { endAt, exerciseName };
-  startRestTimerKeepAlive();
-  syncPageVisibilityWithServiceWorker();
-
-  tickRestTimerNotification();
-  notificationTickInterval = window.setInterval(tickRestTimerNotification, 1000);
-}
-
 export function prepareTimerNotification() {
   if (typeof window === "undefined") return;
 
@@ -187,48 +88,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-export async function updateRestTimerNotification(
-  secondsLeft: number,
-  exerciseName?: string,
-  endAt?: number,
-) {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  if (document.visibilityState === "visible") return;
-
-  if (secondsLeft <= 0) {
-    await clearRestTimerNotification();
-    return;
-  }
-
-  if (secondsLeft === lastNotifiedSecond) return;
-  lastNotifiedSecond = secondsLeft;
-
-  const registration = await registerTimerServiceWorker();
-  if (!registration) return;
-
-  const title = exerciseName ? `Rest · ${exerciseName}` : "Rest timer";
-  const body = `${formatRestTime(secondsLeft)} remaining`;
-  const timerEndAt = endAt ?? Date.now() + secondsLeft * 1000;
-
-  try {
-    await registration.showNotification(title, {
-      body,
-      tag: REST_TIMER_TAG,
-      icon: NOTIFICATION_ICON,
-      silent: true,
-      renotify: true,
-      timestamp: Date.now(),
-      data: { endAt: timerEndAt, exerciseName: exerciseName ?? null },
-    });
-  } catch {
-    // Notifications unavailable in this context.
-  }
-}
-
 export async function clearRestTimerNotification() {
-  lastNotifiedSecond = -1;
-
   const registration = await registerTimerServiceWorker();
   if (!registration) return;
 
@@ -248,9 +108,6 @@ export async function startBackgroundRestTimer(
 ) {
   if (typeof window === "undefined") return;
 
-  lastNotifiedSecond = -1;
-  startRestTimerNotificationLoop(endAt, exerciseName);
-
   await postToServiceWorker({
     type: REST_TIMER_MESSAGE.START,
     endAt,
@@ -259,16 +116,6 @@ export async function startBackgroundRestTimer(
 }
 
 export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
-  if (
-    !activeNotificationTimer ||
-    activeNotificationTimer.endAt !== endAt ||
-    activeNotificationTimer.exerciseName !== exerciseName
-  ) {
-    startRestTimerNotificationLoop(endAt, exerciseName);
-  } else {
-    syncPageVisibilityWithServiceWorker();
-  }
-
   void postToServiceWorker({
     type: REST_TIMER_MESSAGE.SYNC,
     endAt,
@@ -277,8 +124,6 @@ export function syncBackgroundRestTimer(endAt: number, exerciseName?: string) {
 }
 
 export function stopBackgroundRestTimer() {
-  lastNotifiedSecond = -1;
-  stopRestTimerNotificationLoop();
   void clearRestTimerNotification();
   void postToServiceWorker({ type: REST_TIMER_MESSAGE.STOP });
 }

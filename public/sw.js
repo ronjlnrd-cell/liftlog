@@ -11,8 +11,8 @@ let activeTimer = null;
 let tickTimeoutId = null;
 /** @type {number} */
 let restTimerEpoch = 0;
-/** @type {boolean} */
-let pageVisible = false;
+/** @type {number} */
+let lastNotifiedSecond = -1;
 
 function formatRestTime(secondsLeft) {
   const minutes = Math.floor(secondsLeft / 60);
@@ -76,7 +76,8 @@ async function hasVisibleClient() {
 }
 
 async function updateRestTimerNotification() {
-  if (!activeTimer || pageVisible) return;
+  if (!activeTimer) return;
+  if (await hasVisibleClient()) return;
 
   const epoch = restTimerEpoch;
   const secondsLeft = Math.max(
@@ -85,23 +86,30 @@ async function updateRestTimerNotification() {
   );
   if (secondsLeft <= 0) return;
   if (epoch !== restTimerEpoch) return;
+  if (secondsLeft === lastNotifiedSecond) return;
+
+  lastNotifiedSecond = secondsLeft;
 
   const title = activeTimer.exerciseName
     ? `Rest · ${activeTimer.exerciseName}`
     : "Rest timer";
 
-  await self.registration.showNotification(title, {
-    body: `${formatRestTime(secondsLeft)} remaining`,
-    tag: REST_TIMER_TAG,
-    icon: NOTIFICATION_ICON,
-    silent: true,
-    renotify: true,
-    timestamp: Date.now(),
-    data: {
-      endAt: activeTimer.endAt,
-      exerciseName: activeTimer.exerciseName ?? null,
-    },
-  });
+  try {
+    await self.registration.showNotification(title, {
+      body: `${formatRestTime(secondsLeft)} remaining`,
+      tag: REST_TIMER_TAG,
+      icon: NOTIFICATION_ICON,
+      silent: true,
+      renotify: true,
+      timestamp: Date.now(),
+      data: {
+        endAt: activeTimer.endAt,
+        exerciseName: activeTimer.exerciseName ?? null,
+      },
+    });
+  } catch {
+    // Notification permission denied or unavailable.
+  }
 
   if (epoch !== restTimerEpoch) {
     await closeRestTimerNotifications();
@@ -131,16 +139,20 @@ async function completeRestTimer() {
 
   const visibleClient = await hasVisibleClient();
   if (!visibleClient) {
-    await self.registration.showNotification(
-      exerciseName ? `Rest complete · ${exerciseName}` : "Rest complete",
-      {
-        body: "Time for your next set",
-        tag: REST_TIMER_COMPLETE_TAG,
-        icon: NOTIFICATION_ICON,
-        silent: false,
-        vibrate: [200, 100, 200, 100, 400],
-      },
-    );
+    try {
+      await self.registration.showNotification(
+        exerciseName ? `Rest complete · ${exerciseName}` : "Rest complete",
+        {
+          body: "Time for your next set",
+          tag: REST_TIMER_COMPLETE_TAG,
+          icon: NOTIFICATION_ICON,
+          silent: false,
+          vibrate: [200, 100, 200, 100, 400],
+        },
+      );
+    } catch {
+      // Notification permission denied or unavailable.
+    }
   }
 
   await notifyClientsComplete(completedAt, timerEndAt);
@@ -149,6 +161,7 @@ async function completeRestTimer() {
 function stopRestTimerInternal(clearNotification = true) {
   restTimerEpoch += 1;
   cancelSleep();
+  lastNotifiedSecond = -1;
 
   activeTimer = null;
   void persistTimer(null);
@@ -169,10 +182,11 @@ async function runRestTimer(endAt, exerciseName) {
       return;
     }
 
-    if (!pageVisible) {
-      await updateRestTimerNotification();
-    } else {
+    if (await hasVisibleClient()) {
+      lastNotifiedSecond = -1;
       await closeRestTimerNotifications();
+    } else {
+      await updateRestTimerNotification();
     }
 
     const secondsLeft = Math.ceil((endAt - now) / 1000);
@@ -217,13 +231,6 @@ async function resumePersistedTimer() {
   }
 }
 
-function setPageVisible(visible) {
-  pageVisible = visible;
-  if (visible) {
-    void closeRestTimerNotifications();
-  }
-}
-
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
@@ -235,7 +242,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  const { type, endAt, exerciseName, visible } = event.data ?? {};
+  const { type, endAt, exerciseName } = event.data ?? {};
   if (type === "REST_TIMER_START") {
     event.waitUntil(startRestTimer(endAt, exerciseName));
     return;
@@ -244,10 +251,6 @@ self.addEventListener("message", (event) => {
     if (!activeTimer || activeTimer.endAt !== endAt) {
       event.waitUntil(startRestTimer(endAt, exerciseName));
     }
-    return;
-  }
-  if (type === "REST_TIMER_VISIBILITY") {
-    setPageVisible(Boolean(visible));
     return;
   }
   if (type === "REST_TIMER_STOP") {
